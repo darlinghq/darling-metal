@@ -25,6 +25,7 @@
 #import <Metal/MTLBufferInternal.h>
 #import <Metal/MTLLibraryInternal.h>
 #import <Metal/stubs.h>
+#import <Metal/MTLRenderPipelineInternal.h>
 
 MTL_EXTERN const MTLDeviceNotificationName MTLDeviceWasAddedNotification = @"MTLDeviceWasAdded";
 MTL_EXTERN const MTLDeviceNotificationName MTLDeviceRemovalRequestedNotification = @"MTLDeviceRemovalRequested";
@@ -106,11 +107,12 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 #if __OBJC2__
 
 {
-	std::shared_ptr<Indium::Device> _device;
 	NSThread* _pollingThread;
 	NSCondition* _threadExitCondition;
 	BOOL _threadIsRunning;
 }
+
+@synthesize device = _device;
 
 - (void)pollingLoop
 {
@@ -204,6 +206,20 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 		return nil;
 	}
 	return [[MTLComputePipelineStateInternal alloc] initWithState: pso device: self];
+}
+
+- (id<MTLRenderPipelineState>)newRenderPipelineStateWithDescriptor: (MTLRenderPipelineDescriptor*)descriptor
+                                                             error: (NSError**)error
+{
+	auto pso = _device->newRenderPipelineState([descriptor asIndiumDescriptor]);
+	if (!pso) {
+		if (error) {
+			// TODO: better error and/or match what the official Metal method does
+			*error = [NSError errorWithDomain: NSPOSIXErrorDomain code: ENOMEM userInfo: nil];
+		}
+		return nil;
+	}
+	return [[MTLRenderPipelineStateInternal alloc] initWithState: pso device: self];
 }
 
 - (id<MTLCommandQueue>)newCommandQueue

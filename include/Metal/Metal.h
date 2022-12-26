@@ -31,7 +31,11 @@
 #import <Metal/MTLDrawable.h>
 #import <Metal/MTLLibrary.h>
 #import <Metal/MTLPipeline.h>
+#import <Metal/MTLPixelFormat.h>
+#import <Metal/MTLRenderCommandEncoder.h>
+#import <Metal/MTLRenderPipeline.h>
 #import <Metal/MTLResource.h>
+#import <Metal/MTLTexture.h>
 #import <Metal/MTLTypes.h>
 
 #endif // _METAL_METAL_H_

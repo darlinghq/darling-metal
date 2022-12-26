@@ -70,6 +70,7 @@
 	copy.maxTotalThreadsPerThreadgroup = self.maxTotalThreadsPerThreadgroup;
 	copy.maxCallStackDepth = self.maxCallStackDepth;
 	copy.stageInputDescriptor = self.stageInputDescriptor;
+	[copy->_buffers release];
 	copy->_buffers = [_buffers copy];
 	copy.supportIndirectCommandBuffers = self.supportIndirectCommandBuffers;
 	copy.preloadedLibraries = self.preloadedLibraries;
@@ -82,7 +83,7 @@
 
 - (NSArray<id<MTLDynamicLibrary>>*)insertLibraries
 {
-	return self.preloadedLibraries;
+	return [[self.preloadedLibraries retain] autorelease];
 }
 
 - (void)setInsertLibraries: (NSArray<id<MTLDynamicLibrary>>*)insertLibraries

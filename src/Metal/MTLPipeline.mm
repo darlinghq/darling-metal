@@ -51,6 +51,21 @@ MTL_UNSUPPORTED_CLASS
 
 @end
 
+@implementation MTLPipelineBufferDescriptor (Internal)
+
+#if __OBJC2__
+
+- (Indium::PipelineBufferDescriptor)asIndiumDescriptor
+{
+	return Indium::PipelineBufferDescriptor {
+		static_cast<Indium::Mutability>(_mutability),
+	};
+}
+
+#endif
+
+@end
+
 @implementation MTLPipelineBufferDescriptorArray
 
 #if __OBJC2__
@@ -85,13 +100,16 @@ MTL_UNSUPPORTED_CLASS
 
 - (MTLPipelineBufferDescriptor*)objectAtIndexedSubscript: (NSUInteger)index
 {
-	return _dict[@(index)];
+	if (!_dict[@(index)]) {
+		_dict[@(index)] = [[MTLPipelineBufferDescriptor new] autorelease];
+	}
+	return [[_dict[@(index)] retain] autorelease];
 }
 
--    (void)setObject: (MTLPipelineBufferDescriptor*)buffer
+-    (void)setObject: (MTLPipelineBufferDescriptor*)desc
   atIndexedSubscript: (NSUInteger)index
 {
-	_dict[@(index)] = buffer;
+	_dict[@(index)] = desc;
 }
 
 #else
@@ -111,9 +129,16 @@ MTL_UNSUPPORTED_CLASS
 	return [[MTLPipelineBufferDescriptorArray alloc] initWithDictionary: _dict];
 }
 
-#else
+- (std::unordered_map<size_t, Indium::PipelineBufferDescriptor>)asIndiumDescriptors
+{
+	std::unordered_map<size_t, Indium::PipelineBufferDescriptor> result;
 
-MTL_UNSUPPORTED_CLASS
+	for (NSNumber* index in _dict) {
+		result[[index unsignedIntegerValue]] = [_dict[index] asIndiumDescriptor];
+	}
+
+	return result;
+}
 
 #endif
 

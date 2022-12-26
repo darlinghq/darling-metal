@@ -86,13 +86,16 @@ MTL_UNSUPPORTED_CLASS
 
 - (MTLComputePassSampleBufferAttachmentDescriptor*)objectAtIndexedSubscript: (NSUInteger)index
 {
-	return _dict[@(index)];
+	if (!_dict[@(index)]) {
+		_dict[@(index)] = [[MTLComputePassSampleBufferAttachmentDescriptor new] autorelease];
+	}
+	return [[_dict[@(index)] retain] autorelease];
 }
 
--    (void)setObject: (MTLComputePassSampleBufferAttachmentDescriptor*)buffer
+-    (void)setObject: (MTLComputePassSampleBufferAttachmentDescriptor*)desc
   atIndexedSubscript: (NSUInteger)index
 {
-	_dict[@(index)] = buffer;
+	_dict[@(index)] = desc;
 }
 
 #else

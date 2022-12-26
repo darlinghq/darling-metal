@@ -37,6 +37,46 @@ MTLSize MTLSizeMake(NSUInteger width, NSUInteger height, NSUInteger depth) {
 	return MTLSize { width, height, depth };
 };
 
+typedef struct MTLOrigin {
+	NSUInteger x;
+	NSUInteger y;
+	NSUInteger z;
+} MTLOrigin;
+
+NS_INLINE
+MTLOrigin MTLOriginMake(NSUInteger x, NSUInteger y, NSUInteger z) {
+	return MTLOrigin { x, y, z };
+};
+
+typedef struct MTLRegion {
+	MTLOrigin origin;
+	MTLSize size;
+} MTLRegion;
+
+NS_INLINE
+MTLRegion MTLRegionMake1D(NSUInteger x, NSUInteger width) {
+	return MTLRegion {
+		MTLOrigin { x, 0, 0 },
+		MTLSize { width, 1, 1 },
+	};
+};
+
+NS_INLINE
+MTLRegion MTLRegionMake2D(NSUInteger x, NSUInteger y, NSUInteger width, NSUInteger height) {
+	return MTLRegion {
+		MTLOrigin { x, y, 0 },
+		MTLSize { width, height, 1 },
+	};
+};
+
+NS_INLINE
+MTLRegion MTLRegionMake3D(NSUInteger x, NSUInteger y, NSUInteger z, NSUInteger width, NSUInteger height, NSUInteger depth) {
+	return MTLRegion {
+		MTLOrigin { x, y, z },
+		MTLSize { width, height, depth },
+	};
+};
+
 METAL_DECLARATIONS_END
 
 #endif // _METAL_MTLTYPES_H_

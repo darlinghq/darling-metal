@@ -23,6 +23,7 @@
 #import <Metal/MTLCommandQueue.h>
 #import <Metal/MTLDrawableInternal.h>
 #import <Metal/stubs.h>
+#import <Metal/MTLRenderCommandEncoderInternal.h>
 
 // used to take care of RR while passing the block around in C++ code
 struct MTLCommandBufferHandlerWrapper {
@@ -95,7 +96,7 @@ struct MTLCommandBufferHandlerWrapper {
 	if (!encoder) {
 		return nil;
 	}
-	return [[MTLComputeCommandEncoderInternal alloc] initWithEncoder: encoder device: _device];
+	return [[[MTLComputeCommandEncoderInternal alloc] initWithEncoder: encoder device: _device] autorelease];
 }
 
 - (id<MTLComputeCommandEncoder>)computeCommandEncoderWithDispatchType: (MTLDispatchType)dispatchType
@@ -104,7 +105,7 @@ struct MTLCommandBufferHandlerWrapper {
 	if (!encoder) {
 		return nil;
 	}
-	return [[MTLComputeCommandEncoderInternal alloc] initWithEncoder: encoder device: _device];
+	return [[[MTLComputeCommandEncoderInternal alloc] initWithEncoder: encoder device: _device] autorelease];
 }
 
 - (id<MTLComputeCommandEncoder>)computeCommandEncoder
@@ -113,7 +114,16 @@ struct MTLCommandBufferHandlerWrapper {
 	if (!encoder) {
 		return nil;
 	}
-	return [[MTLComputeCommandEncoderInternal alloc] initWithEncoder: encoder device: _device];
+	return [[[MTLComputeCommandEncoderInternal alloc] initWithEncoder: encoder device: _device] autorelease];
+}
+
+- (id<MTLRenderCommandEncoder>)renderCommandEncoderWithDescriptor: (MTLRenderPassDescriptor*)renderPassDescriptor
+{
+	auto encoder = _commandBuffer->renderCommandEncoder([renderPassDescriptor asIndiumDescriptor]);
+	if (!encoder) {
+		return nil;
+	}
+	return [[[MTLRenderCommandEncoderInternal alloc] initWithEncoder: encoder device: _device] autorelease];
 }
 
 - (void)addCompletedHandler: (MTLCommandBufferHandler)block

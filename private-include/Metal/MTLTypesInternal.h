@@ -34,4 +34,12 @@ Indium::Range<size_t> NSRangeToIndium(NSRange range) {
 	return Indium::Range<size_t> { range.location, range.length };
 };
 
+NS_INLINE
+Indium::Region MTLRegionToIndium(MTLRegion region) {
+	return Indium::Region {
+		Indium::Origin { region.origin.x, region.origin.y, region.origin.z },
+		Indium::Size { region.size.width, region.size.height, region.size.depth },
+	};
+};
+
 #endif // _METAL_MTLTYPESINTERNAL_H_

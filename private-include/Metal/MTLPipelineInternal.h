@@ -22,7 +22,17 @@
 
 #import <Metal/MTLPipeline.h>
 
+#include <indium/indium.hpp>
+
+@interface MTLPipelineBufferDescriptor (Internal)
+
+- (Indium::PipelineBufferDescriptor)asIndiumDescriptor;
+
+@end
+
 @interface MTLPipelineBufferDescriptorArray (Internal) <NSCopying>
+
+- (std::unordered_map<size_t, Indium::PipelineBufferDescriptor>)asIndiumDescriptors;
 
 @end
 

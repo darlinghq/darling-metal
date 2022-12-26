@@ -31,8 +31,10 @@ METAL_DECLARATIONS_BEGIN
 @protocol MTLDrawable;
 @protocol MTLComputeCommandEncoder;
 @protocol MTLCommandQueue;
+@protocol MTLRenderCommandEncoder;
 
 @class MTLComputePassDescriptor;
+@class MTLRenderPassDescriptor;
 
 typedef NS_ENUM(NSUInteger, MTLDispatchType) {
 	MTLDispatchTypeSerial = 0,
@@ -49,6 +51,8 @@ typedef void (^MTLCommandBufferHandler)(id<MTLCommandBuffer>);
 - (id<MTLComputeCommandEncoder>)computeCommandEncoderWithDescriptor: (MTLComputePassDescriptor*)computePassDescriptor;
 - (id<MTLComputeCommandEncoder>)computeCommandEncoderWithDispatchType: (MTLDispatchType)dispatchType;
 - (id<MTLComputeCommandEncoder>)computeCommandEncoder;
+
+- (id<MTLRenderCommandEncoder>)renderCommandEncoderWithDescriptor: (MTLRenderPassDescriptor*)renderPassDescriptor;
 
 - (void)addCompletedHandler: (MTLCommandBufferHandler)block;
 - (void)waitUntilCompleted;

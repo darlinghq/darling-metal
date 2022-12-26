@@ -28,7 +28,12 @@
 // because MetalKit gets loaded after we do, it has no way to tell us what extensions it needs.
 // so, we have to hardcode it here and always require those extensions, even if we don't actually
 // use MetalKit. TODO: find some way to avoid hardcoding these extensions.
-static const char* additionalExtensions[] = {};
+static const char* additionalExtensions[] = {
+	// we don't render to these directly; see CAMetalDrawable.mm (in Cocotron's QuartzCore) for more details
+	//"VK_KHR_xlib_surface",
+	//"VK_KHR_surface",
+	//"VK_KHR_swapchain",
+};
 
 __attribute__((constructor))
 static void initMetal(void) {

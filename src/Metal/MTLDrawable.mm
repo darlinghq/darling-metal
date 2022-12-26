@@ -37,13 +37,13 @@
 
 - (NSUInteger)drawableID
 {
-	// TODO
+	NSLog(@"STUB: drawableID");
 	return 0;
 }
 
 - (CFTimeInterval)presentedTime
 {
-	// TODO
+	NSLog(@"STUB: presentedTime");
 	return 0;
 }
 
@@ -54,19 +54,19 @@
 
 - (void)presentAfterMinimumDuration: (CFTimeInterval)duration
 {
-	// TODO
+	NSLog(@"STUB: presentAfterMinimumDuration");
 	abort();
 }
 
 - (void)presentAtTime: (CFTimeInterval)presentationTime
 {
-	// TODO
+	NSLog(@"STUB: presentAtTime");
 	abort();
 }
 
 - (void)addPresentedHandler: (MTLDrawablePresentedHandler)block
 {
-	// TODO
+	NSLog(@"STUB: addPresentedHandler");
 	abort();
 }
 

@@ -56,7 +56,7 @@
 	if (!buf) {
 		return nil;
 	}
-	return [[MTLCommandBufferInternal alloc] initWithCommandBuffer: buf commandQueue: self];
+	return [[[MTLCommandBufferInternal alloc] initWithCommandBuffer: buf commandQueue: self] autorelease];
 }
 
 #else

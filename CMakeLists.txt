@@ -43,6 +43,9 @@ add_framework(Metal
 		src/Metal/MTLDrawable.mm
 		src/Metal/MTLLibrary.mm
 		src/Metal/MTLPipeline.mm
+		src/Metal/MTLRenderCommandEncoder.mm
+		src/Metal/MTLRenderPipeline.mm
+		src/Metal/MTLTexture.mm
 
 	DEPENDENCIES
 		system
@@ -64,6 +67,15 @@ target_include_directories(Metal PUBLIC
 )
 
 target_include_directories(Metal PRIVATE
+	private-include
+)
+
+# private API
+add_library(Metal_private INTERFACE)
+target_link_libraries(Metal_private INTERFACE
+	Metal
+)
+target_include_directories(Metal_private INTERFACE
 	private-include
 )
 

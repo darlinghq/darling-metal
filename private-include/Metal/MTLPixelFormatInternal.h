@@ -17,25 +17,10 @@
  * along with Darling.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _METAL_MTLDEVICEINTERNAL_H_
-#define _METAL_MTLDEVICEINTERNAL_H_
-
-#import <Metal/MTLDevice.h>
+#import <Metal/MTLPixelFormat.h>
 
 #include <indium/indium.hpp>
 
-void MTLDeviceDestroyAll(void);
+METAL_DECLARATIONS_BEGIN
 
-@interface MTLDeviceInternal : NSObject <MTLDevice>
-
-@property(readonly) std::shared_ptr<Indium::Device> device;
-
-- (instancetype)initWithDevice: (std::shared_ptr<Indium::Device>)device;
-
-- (void)stopPolling;
-
-- (void)waitUntilPollingIsStopped;
-
-@end
-
-#endif // _METAL_MTLDEVICEINTERNAL_H_
+METAL_DECLARATIONS_END

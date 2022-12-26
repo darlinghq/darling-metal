@@ -33,9 +33,11 @@ METAL_DECLARATIONS_BEGIN
 @protocol MTLDevice;
 @protocol MTLBuffer;
 @protocol MTLLibrary;
+@protocol MTLRenderPipelineState;
 
 @class MTLComputePipelineDescriptor;
 @class MTLAutoreleasedComputePipelineReflection;
+@class MTLRenderPipelineDescriptor;
 
 typedef NS_OPTIONS(NSUInteger, MTLPipelineOption) {
 	MTLPipelineOptionNone = 0,
@@ -69,6 +71,9 @@ MTL_EXPORT void MTLRemoveDeviceObserver(id<NSObject> observer);
 - (id<MTLComputePipelineState>)newComputePipelineStateWithFunction: (id<MTLFunction>)computeFunction 
                                                            options: (MTLPipelineOption)options 
                                                         reflection: (MTLAutoreleasedComputePipelineReflection*)reflection 
+                                                             error: (NSError**)error;
+
+- (id<MTLRenderPipelineState>)newRenderPipelineStateWithDescriptor: (MTLRenderPipelineDescriptor*)descriptor
                                                              error: (NSError**)error;
 
 - (id<MTLCommandQueue>)newCommandQueue;
