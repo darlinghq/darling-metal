@@ -99,7 +99,7 @@ add_framework(MetalKit
 	VERSION ${FRAMEWORK_VERSION}
 
 	SOURCES
-		src/dummy.c
+		src/MetalKit/MTKView.m
 
 	DEPENDENCIES
 		AppKit
@@ -107,10 +107,16 @@ add_framework(MetalKit
 		objc
 		Foundation
 		Metal
+		QuartzCore
 )
 
 target_include_directories(MetalKit PUBLIC
 	include
+)
+
+target_include_directories(MetalKit PRIVATE
+	private-include
+	${CMAKE_SOURCE_DIR}/src/external/foundation/internal_include
 )
 
 #

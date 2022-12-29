@@ -20,6 +20,6 @@
 #ifndef _METALKIT_METALKIT_H_
 #define _METALKIT_METALKIT_H_
 
-// TODO
+#import <MetalKit/MTKView.h>
 
 #endif // _METALKIT_METALKIT_H_
