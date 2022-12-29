@@ -40,6 +40,7 @@ METAL_DECLARATIONS_BEGIN
 @class MTLRenderPassAttachmentDescriptor;
 
 struct MTLSamplePosition;
+typedef struct MTLSamplePosition MTLSamplePosition;
 
 typedef NS_ENUM(NSUInteger, MTLLoadAction) {
 	MTLLoadActionDontCare = 0,
@@ -121,7 +122,8 @@ typedef struct MTLScissorRect {
 
 NS_INLINE
 MTLClearColor MTLClearColorMake(double red, double green, double blue, double alpha) {
-	return MTLClearColor { red, green, blue, alpha };
+	MTLClearColor color = { red, green, blue, alpha };
+  return color;
 };
 
 MTL_EXPORT

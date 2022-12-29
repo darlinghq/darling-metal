@@ -34,7 +34,8 @@ typedef struct MTLSize {
 
 NS_INLINE
 MTLSize MTLSizeMake(NSUInteger width, NSUInteger height, NSUInteger depth) {
-	return MTLSize { width, height, depth };
+	MTLSize size = { width, height, depth };
+	return size;
 };
 
 typedef struct MTLOrigin {
@@ -45,7 +46,8 @@ typedef struct MTLOrigin {
 
 NS_INLINE
 MTLOrigin MTLOriginMake(NSUInteger x, NSUInteger y, NSUInteger z) {
-	return MTLOrigin { x, y, z };
+	MTLOrigin origin = { x, y, z };
+	return origin;
 };
 
 typedef struct MTLRegion {
@@ -55,26 +57,29 @@ typedef struct MTLRegion {
 
 NS_INLINE
 MTLRegion MTLRegionMake1D(NSUInteger x, NSUInteger width) {
-	return MTLRegion {
-		MTLOrigin { x, 0, 0 },
-		MTLSize { width, 1, 1 },
+	MTLRegion region = {
+		MTLOriginMake(x, 0, 0),
+		MTLSizeMake(width, 1, 1),
 	};
+	return region;
 };
 
 NS_INLINE
 MTLRegion MTLRegionMake2D(NSUInteger x, NSUInteger y, NSUInteger width, NSUInteger height) {
-	return MTLRegion {
-		MTLOrigin { x, y, 0 },
-		MTLSize { width, height, 1 },
+	MTLRegion region = {
+		MTLOriginMake(x, y, 0),
+		MTLSizeMake(width, height, 1),
 	};
+	return region;
 };
 
 NS_INLINE
 MTLRegion MTLRegionMake3D(NSUInteger x, NSUInteger y, NSUInteger z, NSUInteger width, NSUInteger height, NSUInteger depth) {
-	return MTLRegion {
-		MTLOrigin { x, y, z },
-		MTLSize { width, height, depth },
+	MTLRegion region = {
+		MTLOriginMake(x, y, z),
+		MTLSizeMake(width, height, depth),
 	};
+	return region;
 };
 
 METAL_DECLARATIONS_END

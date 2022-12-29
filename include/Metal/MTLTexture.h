@@ -66,7 +66,8 @@ typedef struct MTLTextureSwizzleChannels {
 
 NS_INLINE
 MTLTextureSwizzleChannels MTLTextureSwizzleChannelsMake(MTLTextureSwizzle red, MTLTextureSwizzle green, MTLTextureSwizzle blue, MTLTextureSwizzle alpha) {
-	return MTLTextureSwizzleChannels { red, green, blue, alpha };
+	MTLTextureSwizzleChannels channels = { red, green, blue, alpha };
+	return channels;
 };
 
 #define MTLTextureSwizzleChannelsDefault MTLTextureSwizzleChannelsMake(MTLTextureSwizzleRed, MTLTextureSwizzleGreen, MTLTextureSwizzleBlue, MTLTextureSwizzleAlpha)
