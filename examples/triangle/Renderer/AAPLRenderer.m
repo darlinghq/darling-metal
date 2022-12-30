@@ -5,7 +5,6 @@ Abstract:
 Implementation of a platform independent renderer class, which performs Metal setup and per frame rendering
 */
 // this file has been modified to use #import instead of @import
-// and to disable uses of `label` (this is not yet implemented in our Metal implementation)
 
 #import <simd/simd.h>
 #import <MetalKit/MetalKit.h>
@@ -48,7 +47,7 @@ Implementation of a platform independent renderer class, which performs Metal se
 
         // Configure a pipeline descriptor that is used to create a pipeline state.
         MTLRenderPipelineDescriptor *pipelineStateDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
-        //pipelineStateDescriptor.label = @"Simple Pipeline";
+        pipelineStateDescriptor.label = @"Simple Pipeline";
         pipelineStateDescriptor.vertexFunction = vertexFunction;
         pipelineStateDescriptor.fragmentFunction = fragmentFunction;
         pipelineStateDescriptor.colorAttachments[0].pixelFormat = mtkView.colorPixelFormat;
@@ -90,7 +89,7 @@ Implementation of a platform independent renderer class, which performs Metal se
 
     // Create a new command buffer for each render pass to the current drawable.
     id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
-    //commandBuffer.label = @"MyCommand";
+    commandBuffer.label = @"MyCommand";
 
     // Obtain a renderPassDescriptor generated from the view's drawable textures.
     MTLRenderPassDescriptor *renderPassDescriptor = view.currentRenderPassDescriptor;
@@ -100,7 +99,7 @@ Implementation of a platform independent renderer class, which performs Metal se
         // Create a render command encoder.
         id<MTLRenderCommandEncoder> renderEncoder =
         [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
-        //renderEncoder.label = @"MyRenderEncoder";
+        renderEncoder.label = @"MyRenderEncoder";
 
         // Set the region of the drawable to draw into.
         [renderEncoder setViewport:(MTLViewport){0.0, 0.0, _viewportSize.x, _viewportSize.y, 0.0, 1.0 }];
