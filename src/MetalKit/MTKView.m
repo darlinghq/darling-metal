@@ -150,7 +150,7 @@
 - (id<CAMetalDrawable>)currentDrawable
 {
 	if (!_currentDrawable) {
-		_currentDrawable = [(CAMetalLayer*)_layer nextDrawable];
+		_currentDrawable = [[(CAMetalLayer*)_layer nextDrawable] retain];
 	}
 	return _currentDrawable;
 }
@@ -296,7 +296,7 @@
 - (void)draw
 {
 	[_currentDrawable release];
-	_currentDrawable = [(CAMetalLayer*)_layer nextDrawable];
+	_currentDrawable = [[(CAMetalLayer*)_layer nextDrawable] retain];
 
 	if ([self methodForSelector: @selector(drawRect:)] != [MTKView instanceMethodForSelector: @selector(drawRect:)]) {
 		// a subclass has overridden this method; invoke it.
