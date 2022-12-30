@@ -170,6 +170,7 @@ MTL_EXPORT
 @property(copy, nonatomic) MTLLinkedFunctions* fragmentLinkedFunctions;
 @property(readwrite, nonnull, nonatomic, copy) NSArray<id<MTLDynamicLibrary>>* fragmentPreloadedLibraries;
 @property(readwrite, nonnull, nonatomic, copy) NSArray<id<MTLDynamicLibrary>>* vertexPreloadedLibraries;
+@property(nullable, copy, nonatomic) NSString* label;
 
 - (void)reset;
 
@@ -178,6 +179,7 @@ MTL_EXPORT
 @protocol MTLRenderPipelineState <NSObject>
 
 @property(readonly) id<MTLDevice> device;
+@property(readonly) NSString* label;
 
 @end
 

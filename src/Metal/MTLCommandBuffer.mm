@@ -70,6 +70,7 @@ struct MTLCommandBufferHandlerWrapper {
 
 @synthesize device = _device;
 @synthesize commandQueue = _commandQueue;
+@synthesize label = _label;
 
 - (instancetype)initWithCommandBuffer: (std::shared_ptr<Indium::CommandBuffer>)commandBuffer
                          commandQueue: (id<MTLCommandQueue>)commandQueue
@@ -87,6 +88,7 @@ struct MTLCommandBufferHandlerWrapper {
 {
 	[_device release];
 	[_commandQueue release];
+	[_label release];
 	[super dealloc];
 }
 

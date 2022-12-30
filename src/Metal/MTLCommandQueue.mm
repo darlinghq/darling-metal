@@ -31,6 +31,7 @@
 }
 
 @synthesize device = _device;
+@synthesize label = _label;
 
 - (instancetype)initWithQueue: (std::shared_ptr<Indium::CommandQueue>)queue
                        device: (id<MTLDevice>)device
@@ -46,7 +47,7 @@
 - (void)dealloc
 {
 	[_device release];
-
+	[_label release];
 	[super dealloc];
 }
 

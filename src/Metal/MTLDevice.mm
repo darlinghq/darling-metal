@@ -180,7 +180,7 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 		}
 		return nil;
 	}
-	return [[MTLComputePipelineStateInternal alloc] initWithState: pso device: self];
+	return [[MTLComputePipelineStateInternal alloc] initWithState: pso device: self label: descriptor.label];
 }
 
 - (id<MTLComputePipelineState>)newComputePipelineStateWithFunction: (id<MTLFunction>)computeFunction 
@@ -205,7 +205,7 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 		}
 		return nil;
 	}
-	return [[MTLComputePipelineStateInternal alloc] initWithState: pso device: self];
+	return [[MTLComputePipelineStateInternal alloc] initWithState: pso device: self label: nil];
 }
 
 - (id<MTLRenderPipelineState>)newRenderPipelineStateWithDescriptor: (MTLRenderPipelineDescriptor*)descriptor
@@ -219,7 +219,7 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 		}
 		return nil;
 	}
-	return [[MTLRenderPipelineStateInternal alloc] initWithState: pso device: self];
+	return [[MTLRenderPipelineStateInternal alloc] initWithState: pso device: self label: descriptor.label];
 }
 
 - (id<MTLCommandQueue>)newCommandQueue

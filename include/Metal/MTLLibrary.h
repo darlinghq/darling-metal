@@ -75,6 +75,7 @@ typedef NS_ENUM(NSUInteger, MTLLibraryType) {
 @property(readonly) NSArray<MTLVertexAttribute*>* vertexAttributes;
 @property(readonly) NSArray<MTLAttribute*>* stageInputAttributes;
 @property(readonly) NSDictionary<NSString*, MTLFunctionConstant*>* functionConstantsDictionary;
+@property(nullable, copy, nonatomic) NSString* label;
 
 - (id<MTLArgumentEncoder>)newArgumentEncoderWithBufferIndex: (NSUInteger)bufferIndex;
 
@@ -89,6 +90,7 @@ typedef NS_ENUM(NSUInteger, MTLLibraryType) {
 @property(readonly) MTLLibraryType type;
 @property(readonly) NSArray<NSString*>* functionNames;
 @property(readonly) id<MTLDevice> device;
+@property(nullable, copy, nonatomic) NSString* label;
 
 - (id<MTLFunction>)newFunctionWithName: (NSString*)functionName;
 

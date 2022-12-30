@@ -29,6 +29,7 @@
 @synthesize buffer = _buffer;
 @synthesize device = _device;
 @synthesize resourceOptions = _resourceOptions;
+@synthesize label = _label;
 
 - (instancetype)initWithBuffer: (std::shared_ptr<Indium::Buffer>)buffer
                         device: (id<MTLDevice>)device
@@ -46,6 +47,7 @@
 - (void)dealloc
 {
 	[_device release];
+	[_label release];
 	[super dealloc];
 }
 

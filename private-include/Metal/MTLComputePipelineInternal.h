@@ -35,7 +35,8 @@
 @property(readonly) std::shared_ptr<Indium::ComputePipelineState> state;
 
 - (instancetype)initWithState: (std::shared_ptr<Indium::ComputePipelineState>)state
-                       device: (id<MTLDevice>)device;
+                       device: (id<MTLDevice>)device
+                        label: (NSString*)label;
 
 @end
 

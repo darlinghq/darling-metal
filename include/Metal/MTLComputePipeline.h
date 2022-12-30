@@ -57,6 +57,7 @@ MTL_EXPORT
 @property(readwrite, nullable, copy, nonatomic) MTLLinkedFunctions* linkedFunctions;
 @property(readwrite, nonatomic) BOOL supportAddingBinaryFunctions;
 @property(readwrite, nullable, nonatomic, copy) NSArray<id<MTLBinaryArchive>>* binaryArchives;
+@property(nullable, copy, atomic) NSString* label;
 
 - (void)reset;
 
@@ -69,6 +70,7 @@ MTL_EXPORT
 @property(readonly) NSUInteger staticThreadgroupMemoryLength;
 @property(readonly) id<MTLDevice> device;
 @property(readonly) BOOL supportIndirectCommandBuffers;
+@property(readonly) NSString* label;
 
 - (NSUInteger)imageblockMemoryLengthForDimensions: (MTLSize)imageblockDimensions;
 

@@ -28,6 +28,7 @@ METAL_DECLARATIONS_BEGIN
 @protocol MTLCommandEncoder <NSObject>
 
 @property(readonly) id<MTLDevice> device;
+@property(nullable, copy, atomic) NSString* label;
 
 - (void)endEncoding;
 

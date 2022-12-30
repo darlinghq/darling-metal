@@ -47,6 +47,7 @@ typedef void (^MTLCommandBufferHandler)(id<MTLCommandBuffer>);
 
 @property(readonly) id<MTLCommandQueue> commandQueue;
 @property (readonly) id<MTLDevice> device;
+@property(nullable, copy, atomic) NSString* label;
 
 - (id<MTLComputeCommandEncoder>)computeCommandEncoderWithDescriptor: (MTLComputePassDescriptor*)computePassDescriptor;
 - (id<MTLComputeCommandEncoder>)computeCommandEncoderWithDispatchType: (MTLDispatchType)dispatchType;

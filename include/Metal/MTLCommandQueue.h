@@ -33,6 +33,7 @@ METAL_DECLARATIONS_BEGIN
 @protocol MTLCommandQueue <NSObject>
 
 @property(readonly) id<MTLDevice> device;
+@property(nullable, copy, atomic) NSString* label;
 
 - (id<MTLCommandBuffer>)commandBuffer;
 

@@ -53,7 +53,8 @@ METAL_DECLARATIONS_BEGIN
 @property(readonly) std::shared_ptr<Indium::RenderPipelineState> state;
 
 - (instancetype)initWithState: (std::shared_ptr<Indium::RenderPipelineState>)state
-                       device: (id<MTLDevice>)device;
+                       device: (id<MTLDevice>)device
+                        label: (NSString*)label;
 
 @end
 

@@ -30,6 +30,7 @@
 @synthesize texture = _texture;
 @synthesize device = _device;
 @synthesize resourceOptions = _resourceOptions;
+@synthesize label = _label;
 
 - (instancetype)initWithTexture: (std::shared_ptr<Indium::Texture>)texture
                          device: (id<MTLDevice>)device
@@ -47,6 +48,7 @@
 - (void)dealloc
 {
 	[_device release];
+	[_label release];
 	[super dealloc];
 }
 

@@ -55,6 +55,7 @@
 	[_preloadedLibraries release];
 	[_linkedFunctions release];
 	[_binaryArchives release];
+	[_label release];
 
 	[super dealloc];
 }
@@ -77,6 +78,7 @@
 	copy.linkedFunctions = self.linkedFunctions;
 	copy.supportAddingBinaryFunctions = self.supportAddingBinaryFunctions;
 	copy.binaryArchives = self.binaryArchives;
+	copy.label = self.label;
 
 	return copy;
 }
@@ -105,6 +107,7 @@
 	self.linkedFunctions = nil;
 	self.supportAddingBinaryFunctions = NO; // TODO: check what the actual default is
 	self.binaryArchives = nil;
+	self.label = nil;
 }
 
 #else
@@ -146,14 +149,17 @@ MTL_UNSUPPORTED_CLASS
 
 @synthesize device = _device;
 @synthesize state = _pso;
+@synthesize label = _label;
 
 - (instancetype)initWithState: (std::shared_ptr<Indium::ComputePipelineState>)state
                        device: (id<MTLDevice>)device
+                        label: (NSString*)label
 {
 	self = [super init];
 	if (self != nil) {
 		_pso = state;
 		_device = [device retain];
+		_label = [label copy];
 	}
 	return self;
 }
@@ -161,7 +167,7 @@ MTL_UNSUPPORTED_CLASS
 - (void)dealloc
 {
 	[_device release];
-
+	[_label release];
 	[super dealloc];
 }
 

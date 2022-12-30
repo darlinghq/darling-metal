@@ -71,6 +71,7 @@ typedef NS_OPTIONS(NSUInteger, MTLResourceOptions) {
 @property(readonly) MTLStorageMode storageMode;
 @property(readonly) MTLHazardTrackingMode hazardTrackingMode;
 @property(readonly) MTLResourceOptions resourceOptions;
+@property(nullable, copy, nonatomic) NSString* label;
 
 @end
 

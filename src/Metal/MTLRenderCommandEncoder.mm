@@ -510,6 +510,7 @@ MTL_UNSUPPORTED_CLASS
 
 @synthesize device = _device;
 @synthesize encoder = _encoder;
+@synthesize label = _label;
 
 - (instancetype)initWithEncoder: (std::shared_ptr<Indium::RenderCommandEncoder>)encoder
                          device: (id<MTLDevice>)device
@@ -525,6 +526,7 @@ MTL_UNSUPPORTED_CLASS
 - (void)dealloc
 {
 	[_device release];
+	[_label release];
 	[super dealloc];
 }
 

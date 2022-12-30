@@ -61,6 +61,7 @@
 @synthesize fragmentLinkedFunctions = _fragmentLinkedFunctions;
 @synthesize fragmentPreloadedLibraries = _fragmentPreloadedLibraries;
 @synthesize vertexPreloadedLibraries = _vertexPreloadedLibraries;
+@synthesize label = _label;
 
 - (void)_doInit
 {
@@ -98,6 +99,7 @@
 	[_fragmentLinkedFunctions release];
 	[_fragmentPreloadedLibraries release];
 	[_vertexPreloadedLibraries release];
+	[_label release];
 }
 
 - (instancetype)init
@@ -154,6 +156,7 @@
 	copy.fragmentLinkedFunctions = _fragmentLinkedFunctions;
 	copy.fragmentPreloadedLibraries = _fragmentPreloadedLibraries;
 	copy.vertexPreloadedLibraries = _vertexPreloadedLibraries;
+	copy.label = _label;
 
 	return copy;
 }
@@ -390,14 +393,17 @@ MTL_UNSUPPORTED_CLASS
 
 @synthesize state = _state;
 @synthesize device = _device;
+@synthesize label = _label;
 
 - (instancetype)initWithState: (std::shared_ptr<Indium::RenderPipelineState>)state
                        device: (id<MTLDevice>)device
+                        label: (NSString*)label
 {
 	self = [super init];
 	if (self != nil) {
 		_state = state;
 		_device = [device retain];
+		_label = [label copy];
 	}
 	return self;
 }
@@ -405,6 +411,7 @@ MTL_UNSUPPORTED_CLASS
 - (void)dealloc
 {
 	[_device release];
+	[_label release];
 	[super dealloc];
 }
 

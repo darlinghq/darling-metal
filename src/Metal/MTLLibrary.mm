@@ -35,6 +35,7 @@
 @synthesize vertexAttributes = _vertexAttributes;
 @synthesize stageInputAttributes = _stageInputAttributes;
 @synthesize functionConstantsDictionary = _functionConstantsDictionary;
+@synthesize label = _label;
 
 - (instancetype)initWithFunction: (std::shared_ptr<Indium::Function>)function
                           device: (id<MTLDevice>)device
@@ -57,6 +58,7 @@
 	[_vertexAttributes release];
 	[_stageInputAttributes release];
 	[_functionConstantsDictionary release];
+	[_label release];
 	[super dealloc];
 }
 
@@ -92,6 +94,7 @@ MTL_UNSUPPORTED_CLASS
 @synthesize type = _type;
 @synthesize functionNames = _functionNames;
 @synthesize device = _device;
+@synthesize label = _label;
 
 - (instancetype)initWithLibrary: (std::shared_ptr<Indium::Library>)library
                          device: (id<MTLDevice>)device
@@ -117,7 +120,7 @@ MTL_UNSUPPORTED_CLASS
 	[_installName release];
 	[_functionNames release];
 	[_device release];
-
+	[_label release];
 	[super dealloc];
 }
 
