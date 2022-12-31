@@ -18,10 +18,13 @@
  */
 
 #import <Metal/Metal.h>
+#if DARLING_METAL_ENABLED
 #include <indium/indium.hpp>
+#endif
 #import <Metal/MTLDeviceInternal.h>
+#import <Metal/stubs.h>
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 // TODO: add some extension here that MetalKit needs.
 //

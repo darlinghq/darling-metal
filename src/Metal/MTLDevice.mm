@@ -31,7 +31,7 @@ MTL_EXTERN const MTLDeviceNotificationName MTLDeviceWasAddedNotification = @"MTL
 MTL_EXTERN const MTLDeviceNotificationName MTLDeviceRemovalRequestedNotification = @"MTLDeviceRemovalRequested";
 MTL_EXTERN const MTLDeviceNotificationName MTLDeviceWasRemovedNotification = @"MTLDeviceWasRemoved";
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 static NSMutableArray<MTLDeviceInternal*>* devices = nil;
 static dispatch_once_t devicesInitToken = 0;
@@ -68,7 +68,7 @@ void MTLDeviceDestroyAll(void) {
 
 MTL_EXTERN
 id<MTLDevice> MTLCreateSystemDefaultDevice(void) {
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 	ensureDevices();
 	if (systemDefaultDevice) {
 		return [systemDefaultDevice retain];
@@ -79,7 +79,7 @@ id<MTLDevice> MTLCreateSystemDefaultDevice(void) {
 
 MTL_EXTERN
 NSArray<id<MTLDevice>>* MTLCopyAllDevices(void) {
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 	ensureDevices();
 	return [devices copy];
 #else
@@ -104,7 +104,7 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 
 @implementation MTLDeviceInternal
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 {
 	NSThread* _pollingThread;

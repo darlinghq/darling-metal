@@ -22,12 +22,16 @@
 
 #import <Metal/MTLCommandQueue.h>
 
+#if DARLING_METAL_ENABLED
 #include <indium/indium.hpp>
+#endif
 
 @interface MTLCommandQueueInternal : NSObject <MTLCommandQueue>
 
+#if DARLING_METAL_ENABLED
 - (instancetype)initWithQueue: (std::shared_ptr<Indium::CommandQueue>)queue
                        device: (id<MTLDevice>)device;
+#endif
 
 @end
 

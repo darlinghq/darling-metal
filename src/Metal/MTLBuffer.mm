@@ -24,7 +24,7 @@
 
 @implementation MTLBufferInternal
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 @synthesize buffer = _buffer;
 @synthesize device = _device;
@@ -87,6 +87,15 @@
 }
 
 #else
+
+@dynamic length;
+@dynamic gpuAddress;
+@dynamic device;
+@dynamic cpuCacheMode;
+@dynamic storageMode;
+@dynamic hazardTrackingMode;
+@dynamic resourceOptions;
+@dynamic label;
 
 MTL_UNSUPPORTED_CLASS
 

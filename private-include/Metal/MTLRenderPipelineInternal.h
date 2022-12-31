@@ -22,12 +22,15 @@
 
 #import <Metal/MTLRenderPipeline.h>
 
+#if DARLING_METAL_ENABLED
 #include <indium/indium.hpp>
+#endif
 
 METAL_DECLARATIONS_BEGIN
 
 @protocol MTLDevice;
 
+#if DARLING_METAL_ENABLED
 @interface MTLRenderPipelineDescriptor (Internal)
 
 - (Indium::RenderPipelineDescriptor)asIndiumDescriptor;
@@ -47,14 +50,17 @@ METAL_DECLARATIONS_BEGIN
 - (Indium::RenderPipelineColorAttachmentDescriptor)asIndiumDescriptor;
 
 @end
+#endif
 
 @interface MTLRenderPipelineStateInternal : NSObject <MTLRenderPipelineState>
 
+#if DARLING_METAL_ENABLED
 @property(readonly) std::shared_ptr<Indium::RenderPipelineState> state;
 
 - (instancetype)initWithState: (std::shared_ptr<Indium::RenderPipelineState>)state
                        device: (id<MTLDevice>)device
                         label: (NSString*)label;
+#endif
 
 @end
 

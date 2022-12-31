@@ -22,15 +22,19 @@
 
 #import <Metal/MTLBuffer.h>
 
+#if DARLING_METAL_ENABLED
 #include <indium/indium.hpp>
+#endif
 
 @interface MTLBufferInternal : NSObject <MTLBuffer>
 
+#if DARLING_METAL_ENABLED
 @property(readonly) std::shared_ptr<Indium::Buffer> buffer;
 
 - (instancetype)initWithBuffer: (std::shared_ptr<Indium::Buffer>)buffer
                         device: (id<MTLDevice>)device
                resourceOptions: (MTLResourceOptions)options;
+#endif
 
 @end
 

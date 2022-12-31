@@ -4,7 +4,9 @@ remove_sdk_framework(Metal)
 remove_sdk_framework(MetalKit)
 remove_sdk_framework(MetalPerformanceShaders)
 
-add_subdirectory(deps/indium)
+if (BUILD_METAL)
+	add_subdirectory(deps/indium)
+endif()
 
 add_compile_options(
 	-fvisibility=hidden
@@ -23,6 +25,12 @@ generate_sdk_framework(Metal
 	VERSION ${FRAMEWORK_VERSION}
 	HEADER "include/Metal"
 )
+
+if (BUILD_METAL)
+	set(METAL_LINK_INDIUM indium)
+else()
+	set(METAL_LINK_INDIUM "")
+endif()
 
 add_framework(Metal
 	# Metal is not supported in 32-bit apps, but it does still link successfully into such apps.
@@ -51,7 +59,7 @@ add_framework(Metal
 		system
 		objc
 		Foundation
-		indium
+		${METAL_LINK_INDIUM}
 		cxx
 )
 
@@ -78,6 +86,12 @@ target_link_libraries(Metal_private INTERFACE
 target_include_directories(Metal_private INTERFACE
 	private-include
 )
+
+if (BUILD_METAL)
+	target_compile_definitions(Metal PUBLIC
+		DARLING_METAL_ENABLED=1
+	)
+endif()
 
 #
 # MetalKit

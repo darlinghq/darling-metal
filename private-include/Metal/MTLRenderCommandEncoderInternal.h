@@ -22,10 +22,13 @@
 
 #import <Metal/MTLRenderCommandEncoder.h>
 
+#if DARLING_METAL_ENABLED
 #include <indium/indium.hpp>
+#endif
 
 METAL_DECLARATIONS_BEGIN
 
+#if DARLING_METAL_ENABLED
 NS_INLINE
 Indium::ClearColor MTLClearColorToIndium(MTLClearColor clearColor) {
 	return Indium::ClearColor { clearColor.red, clearColor.green, clearColor.blue, clearColor.alpha };
@@ -90,13 +93,16 @@ Indium::ScissorRect MTLScissorRectToIndium(MTLScissorRect rect) {
 - (Indium::RenderPassDescriptor)asIndiumDescriptor;
 
 @end
+#endif
 
 @interface MTLRenderCommandEncoderInternal : NSObject <MTLRenderCommandEncoder>
 
+#if DARLING_METAL_ENABLED
 @property(readonly) std::shared_ptr<Indium::RenderCommandEncoder> encoder;
 
 - (instancetype)initWithEncoder: (std::shared_ptr<Indium::RenderCommandEncoder>)encoder
                          device: (id<MTLDevice>)device;
+#endif
 
 @end
 

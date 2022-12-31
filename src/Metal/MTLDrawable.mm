@@ -22,7 +22,7 @@
 
 @implementation MTLDrawableInternal
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 @synthesize drawable = _drawable;
 
@@ -71,6 +71,9 @@
 }
 
 #else
+
+@dynamic drawableID;
+@dynamic presentedTime;
 
 MTL_UNSUPPORTED_CLASS
 

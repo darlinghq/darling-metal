@@ -26,7 +26,7 @@
 
 @implementation MTLComputePipelineDescriptor
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 - (instancetype)init
 {
@@ -112,6 +112,20 @@
 
 #else
 
+@dynamic computeFunction;
+@dynamic threadGroupSizeIsMultipleOfThreadExecutionWidth;
+@dynamic maxTotalThreadsPerThreadgroup;
+@dynamic maxCallStackDepth;
+@dynamic stageInputDescriptor;
+@dynamic buffers;
+@dynamic supportIndirectCommandBuffers;
+@dynamic preloadedLibraries;
+@dynamic insertLibraries;
+@dynamic linkedFunctions;
+@dynamic supportAddingBinaryFunctions;
+@dynamic binaryArchives;
+@dynamic label;
+
 MTL_UNSUPPORTED_CLASS
 
 #endif
@@ -120,7 +134,7 @@ MTL_UNSUPPORTED_CLASS
 
 @implementation MTLComputePipelineDescriptor (Internal)
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 - (Indium::ComputePipelineDescriptor)asIndiumDescriptor
 {
@@ -145,7 +159,7 @@ MTL_UNSUPPORTED_CLASS
 
 @implementation MTLComputePipelineStateInternal
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 @synthesize device = _device;
 @synthesize state = _pso;
@@ -222,6 +236,13 @@ MTL_UNSUPPORTED_CLASS
 }
 
 #else
+
+@dynamic maxTotalThreadsPerThreadgroup;
+@dynamic threadExecutionWidth;
+@dynamic staticThreadgroupMemoryLength;
+@dynamic device;
+@dynamic supportIndirectCommandBuffers;
+@dynamic label;
 
 MTL_UNSUPPORTED_CLASS
 

@@ -22,6 +22,7 @@
 
 #import <Metal/MTLTypes.h>
 
+#if DARLING_METAL_ENABLED
 #include <indium/indium.hpp>
 
 NS_INLINE
@@ -41,5 +42,6 @@ Indium::Region MTLRegionToIndium(MTLRegion region) {
 		Indium::Size { region.size.width, region.size.height, region.size.depth },
 	};
 };
+#endif
 
 #endif // _METAL_MTLTYPESINTERNAL_H_

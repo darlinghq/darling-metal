@@ -24,7 +24,7 @@
 
 @implementation MTLCommandQueueInternal
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 {
 	std::shared_ptr<Indium::CommandQueue> _queue;
@@ -61,6 +61,9 @@
 }
 
 #else
+
+@dynamic device;
+@dynamic label;
 
 MTL_UNSUPPORTED_CLASS
 

@@ -34,11 +34,14 @@
 		abort(); \
 	}
 
-#if !__OBJC2__
+#if !__OBJC2__ || !DARLING_METAL_ENABLED
 	// shut Clang up about unimplemented methods and properties
 	#pragma clang diagnostic ignored "-Wobjc-property-implementation"
 	#pragma clang diagnostic ignored "-Wprotocol"
 	#pragma clang diagnostic ignored "-Wincomplete-implementation"
+	#pragma clang diagnostic ignored "-Wobjc-protocol-property-synthesis"
+
+	#undef DARLING_METAL_ENABLED
 #endif
 
 #endif // _METAL_STUBS_H_

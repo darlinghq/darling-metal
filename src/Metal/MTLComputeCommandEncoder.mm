@@ -26,7 +26,7 @@
 
 @implementation MTLComputePassSampleBufferAttachmentDescriptor
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 - (id)copyWithZone: (NSZone*)zone
 {
@@ -46,6 +46,10 @@
 
 #else
 
+@dynamic sampleBuffer;
+@dynamic startOfEncoderSampleIndex;
+@dynamic endOfEncoderSampleIndex;
+
 MTL_UNSUPPORTED_CLASS
 
 #endif
@@ -54,7 +58,7 @@ MTL_UNSUPPORTED_CLASS
 
 @implementation MTLComputePassSampleBufferAttachmentDescriptorArray
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 {
 	NSMutableDictionary<NSNumber*, MTLComputePassSampleBufferAttachmentDescriptor*>* _dict;
@@ -108,7 +112,7 @@ MTL_UNSUPPORTED_CLASS
 
 @implementation MTLComputePassSampleBufferAttachmentDescriptorArray (Internal)
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 - (id)copyWithZone: (NSZone*)zone
 {
@@ -121,7 +125,7 @@ MTL_UNSUPPORTED_CLASS
 
 @implementation MTLComputePassDescriptor
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 + (MTLComputePassDescriptor*)computePassDescriptor
 {
@@ -154,6 +158,9 @@ MTL_UNSUPPORTED_CLASS
 
 #else
 
+@dynamic dispatchType;
+@dynamic sampleBufferAttachments;
+
 MTL_UNSUPPORTED_CLASS
 
 #endif
@@ -162,7 +169,7 @@ MTL_UNSUPPORTED_CLASS
 
 @implementation MTLComputePassDescriptor (Internal)
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 - (Indium::ComputePassDescriptor)asIndiumDescriptor
 {
@@ -178,7 +185,7 @@ MTL_UNSUPPORTED_CLASS
 
 @implementation MTLComputeCommandEncoderInternal
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 {
 	std::shared_ptr<Indium::ComputeCommandEncoder> _encoder;
@@ -268,6 +275,10 @@ MTL_UNSUPPORTED_CLASS
 }
 
 #else
+
+@dynamic dispatchType;
+@dynamic device;
+@dynamic label;
 
 MTL_UNSUPPORTED_CLASS
 

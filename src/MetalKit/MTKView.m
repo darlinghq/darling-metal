@@ -23,7 +23,7 @@
 
 @implementation MTKView
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 {
 	id<MTKViewDelegate> _delegate;
@@ -378,6 +378,32 @@
 }
 
 #else
+
+@dynamic delegate;
+@dynamic device;
+@dynamic preferredDevice;
+@dynamic colorPixelFormat;
+@dynamic colorspace;
+@dynamic framebufferOnly;
+@dynamic drawableSize;
+@dynamic preferredDrawableSize;
+@dynamic autoResizeDrawable;
+@dynamic clearColor;
+@dynamic depthStencilPixelFormat;
+@dynamic depthStencilAttachmentTextureUsage;
+@dynamic clearDepth;
+@dynamic clearStencil;
+@dynamic sampleCount;
+@dynamic multisampleColorAttachmentTextureUsage;
+@dynamic currentRenderPassDescriptor;
+@dynamic currentDrawable;
+@dynamic depthStencilTexture;
+@dynamic multisampleColorTexture;
+@dynamic preferredFramesPerSecond;
+@dynamic paused;
+@dynamic enableSetNeedsDisplay;
+@dynamic presentsWithTransaction;
+@dynamic depthStencilStorageMode;
 
 MTL_UNSUPPORTED_CLASS
 

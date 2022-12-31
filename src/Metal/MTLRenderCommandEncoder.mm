@@ -29,7 +29,7 @@
 
 @implementation MTLRenderPassAttachmentDescriptor
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 @synthesize texture = _texture;
 @synthesize level = _level;
@@ -87,6 +87,18 @@
 
 #else
 
+@dynamic texture;
+@dynamic level;
+@dynamic slice;
+@dynamic depthPlane;
+@dynamic loadAction;
+@dynamic storeAction;
+@dynamic storeActionOptions;
+@dynamic resolveTexture;
+@dynamic resolveLevel;
+@dynamic resolveSlice;
+@dynamic resolveDepthPlane;
+
 MTL_UNSUPPORTED_CLASS
 
 #endif
@@ -95,7 +107,7 @@ MTL_UNSUPPORTED_CLASS
 
 @implementation MTLRenderPassAttachmentDescriptor (Internal)
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 - (Indium::RenderPassAttachmentDescriptor)asIndiumDescriptor
 {
@@ -120,7 +132,7 @@ MTL_UNSUPPORTED_CLASS
 
 @implementation MTLRenderPassColorAttachmentDescriptor
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 @synthesize clearColor = _clearColor;
 
@@ -149,6 +161,8 @@ MTL_UNSUPPORTED_CLASS
 
 #else
 
+@dynamic clearColor;
+
 MTL_UNSUPPORTED_CLASS
 
 #endif
@@ -157,7 +171,7 @@ MTL_UNSUPPORTED_CLASS
 
 @implementation MTLRenderPassColorAttachmentDescriptor (Internal)
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 - (Indium::RenderPassColorAttachmentDescriptor)asIndiumDescriptor
 {
@@ -173,7 +187,7 @@ MTL_UNSUPPORTED_CLASS
 
 @implementation MTLRenderPassDepthAttachmentDescriptor
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 @synthesize clearDepth = _clearDepth;
 @synthesize depthResolveFilter = _depthResolveFilter;
@@ -204,6 +218,9 @@ MTL_UNSUPPORTED_CLASS
 
 #else
 
+@dynamic clearDepth;
+@dynamic depthResolveFilter;
+
 MTL_UNSUPPORTED_CLASS
 
 #endif
@@ -212,7 +229,7 @@ MTL_UNSUPPORTED_CLASS
 
 @implementation MTLRenderPassDepthAttachmentDescriptor (Internal)
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 - (Indium::RenderPassDepthAttachmentDescriptor)asIndiumDescriptor
 {
@@ -229,7 +246,7 @@ MTL_UNSUPPORTED_CLASS
 
 @implementation MTLRenderPassStencilAttachmentDescriptor
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 @synthesize stencilResolveFilter = _stencilResolveFilter;
 @synthesize clearStencil = _clearStencil;
@@ -259,6 +276,9 @@ MTL_UNSUPPORTED_CLASS
 
 #else
 
+@dynamic stencilResolveFilter;
+@dynamic clearStencil;
+
 MTL_UNSUPPORTED_CLASS
 
 #endif
@@ -267,7 +287,7 @@ MTL_UNSUPPORTED_CLASS
 
 @implementation MTLRenderPassStencilAttachmentDescriptor (Internal)
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 - (Indium::RenderPassStencilAttachmentDescriptor)asIndiumDescriptor
 {
@@ -284,7 +304,7 @@ MTL_UNSUPPORTED_CLASS
 
 @implementation MTLRenderPassColorAttachmentDescriptorArray
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 {
 	NSMutableDictionary<NSNumber*, MTLRenderPassColorAttachmentDescriptor*>* _dict;
@@ -338,7 +358,7 @@ MTL_UNSUPPORTED_CLASS
 
 @implementation MTLRenderPassColorAttachmentDescriptorArray (Internal)
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 - (id)copyWithZone: (NSZone*)zone
 {
@@ -375,7 +395,7 @@ MTL_UNSUPPORTED_CLASS
 
 @implementation MTLRenderPassDescriptor
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 @synthesize colorAttachments = _colorAttachments;
 @synthesize depthAttachment = _depthAttachment;
@@ -469,6 +489,21 @@ MTL_UNSUPPORTED_CLASS
 
 #else
 
+@dynamic colorAttachments;
+@dynamic depthAttachment;
+@dynamic stencilAttachment;
+@dynamic visibilityResultBuffer;
+@dynamic renderTargetArrayLength;
+@dynamic renderTargetWidth;
+@dynamic renderTargetHeight;
+@dynamic imageblockSampleLength;
+@dynamic threadgroupMemoryLength;
+@dynamic tileWidth;
+@dynamic tileHeight;
+@dynamic defaultRasterSampleCount;
+@dynamic rasterizationRateMap;
+@dynamic sampleBufferAttachments;
+
 MTL_UNSUPPORTED_CLASS
 
 #endif
@@ -477,7 +512,7 @@ MTL_UNSUPPORTED_CLASS
 
 @implementation MTLRenderPassDescriptor (Internal)
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 - (Indium::RenderPassDescriptor)asIndiumDescriptor
 {
@@ -506,7 +541,7 @@ MTL_UNSUPPORTED_CLASS
 
 @implementation MTLRenderCommandEncoderInternal
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 @synthesize device = _device;
 @synthesize encoder = _encoder;
@@ -713,6 +748,9 @@ MTL_UNSUPPORTED_CLASS
 }
 
 #else
+
+@dynamic device;
+@dynamic label;
 
 MTL_UNSUPPORTED_CLASS
 

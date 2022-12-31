@@ -25,7 +25,7 @@
 
 @implementation MTLTextureInternal
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 @synthesize texture = _texture;
 @synthesize device = _device;
@@ -214,6 +214,20 @@
 }
 
 #else
+
+@dynamic textureType;
+@dynamic pixelFormat;
+@dynamic width;
+@dynamic height;
+@dynamic depth;
+@dynamic mipmapLevelCount;
+@dynamic arrayLength;
+@dynamic sampleCount;
+@dynamic framebufferOnly;
+@dynamic usage;
+@dynamic allowGPUOptimizedContents;
+@dynamic shareable;
+@dynamic swizzle;
 
 MTL_UNSUPPORTED_CLASS
 

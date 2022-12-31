@@ -37,6 +37,12 @@ int main(int argc, char** argv) {
 	window.styleMask |= NSWindowStyleMaskResizable;
 
 	id<MTLDevice> device = [MTLCreateSystemDefaultDevice() autorelease];
+
+	if (!device) {
+		fprintf(stderr, "Failed to create system default device. Metal may not be supported on your system.\n");
+		exit(1);
+	}
+
 	MTKView* view = [[[MTKView alloc] initWithFrame: NSMakeRect(0, 0, 800, 600) device: device] autorelease];
 	AAPLRenderer* renderer = [[[AAPLRenderer alloc] initWithMetalKitView: view] autorelease];
 

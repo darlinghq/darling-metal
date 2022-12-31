@@ -23,7 +23,7 @@
 
 @implementation MTLFunctionInternal
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 @synthesize function = _function;
 @synthesize device = _device;
@@ -76,6 +76,17 @@
 
 #else
 
+@dynamic device;
+@dynamic functionType;
+@dynamic name;
+@dynamic options;
+@dynamic patchType;
+@dynamic patchControlPointCount;
+@dynamic vertexAttributes;
+@dynamic stageInputAttributes;
+@dynamic functionConstantsDictionary;
+@dynamic label;
+
 MTL_UNSUPPORTED_CLASS
 
 #endif
@@ -84,7 +95,7 @@ MTL_UNSUPPORTED_CLASS
 
 @implementation MTLLibraryInternal
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 {
 	std::shared_ptr<Indium::Library> _library;
@@ -134,6 +145,12 @@ MTL_UNSUPPORTED_CLASS
 }
 
 #else
+
+@dynamic installName;
+@dynamic type;
+@dynamic functionNames;
+@dynamic device;
+@dynamic label;
 
 MTL_UNSUPPORTED_CLASS
 

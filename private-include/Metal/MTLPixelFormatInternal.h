@@ -19,7 +19,9 @@
 
 #import <Metal/MTLPixelFormat.h>
 
+#if DARLING_METAL_ENABLED
 #include <indium/indium.hpp>
+#endif
 
 METAL_DECLARATIONS_BEGIN
 

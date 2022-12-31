@@ -27,7 +27,7 @@
 
 @implementation MTLRenderPipelineDescriptor
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 @synthesize vertexFunction = _vertexFunction;
 @synthesize fragmentFunction = _fragmentFunction;
@@ -169,6 +169,40 @@
 
 #else
 
+@dynamic vertexFunction;
+@dynamic fragmentFunction;
+@dynamic maxVertexCallStackDepth;
+@dynamic maxFragmentCallStackDepth;
+@dynamic vertexDescriptor;
+@dynamic vertexBuffers;
+@dynamic fragmentBuffers;
+@dynamic colorAttachments;
+@dynamic depthAttachmentPixelFormat;
+@dynamic stencilAttachmentPixelFormat;
+@dynamic sampleCount;
+@dynamic alphaToCoverageEnabled;
+@dynamic alphaToOneEnabled;
+@dynamic rasterizationEnabled;
+@dynamic inputPrimitiveTopology;
+@dynamic rasterSampleCount;
+@dynamic maxTessellationFactor;
+@dynamic tessellationFactorScaleEnabled;
+@dynamic tessellationFactorFormat;
+@dynamic tessellationControlPointIndexType;
+@dynamic tessellationFactorStepFunction;
+@dynamic tessellationOutputWindingOrder;
+@dynamic tessellationPartitionMode;
+@dynamic supportIndirectCommandBuffers;
+@dynamic maxVertexAmplificationCount;
+@dynamic supportAddingVertexBinaryFunctions;
+@dynamic supportAddingFragmentBinaryFunctions;
+@dynamic binaryArchives;
+@dynamic vertexLinkedFunctions;
+@dynamic fragmentLinkedFunctions;
+@dynamic fragmentPreloadedLibraries;
+@dynamic vertexPreloadedLibraries;
+@dynamic label;
+
 MTL_UNSUPPORTED_CLASS
 
 #endif
@@ -177,7 +211,7 @@ MTL_UNSUPPORTED_CLASS
 
 @implementation MTLRenderPipelineDescriptor (Internal)
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 - (Indium::RenderPipelineDescriptor)asIndiumDescriptor
 {
@@ -220,7 +254,7 @@ MTL_UNSUPPORTED_CLASS
 
 @implementation MTLRenderPipelineColorAttachmentDescriptorArray
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 {
 	NSMutableDictionary<NSNumber*, MTLRenderPipelineColorAttachmentDescriptor*>* _dict;
@@ -274,7 +308,7 @@ MTL_UNSUPPORTED_CLASS
 
 @implementation MTLRenderPipelineColorAttachmentDescriptorArray (Internal)
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 - (id)copyWithZone: (NSZone*)zone
 {
@@ -311,7 +345,7 @@ MTL_UNSUPPORTED_CLASS
 
 @implementation MTLRenderPipelineColorAttachmentDescriptor
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 @synthesize pixelFormat = _pixelFormat;
 @synthesize writeMask = _writeMask;
@@ -358,6 +392,16 @@ MTL_UNSUPPORTED_CLASS
 
 #else
 
+@dynamic pixelFormat;
+@dynamic writeMask;
+@dynamic blendingEnabled;
+@dynamic alphaBlendOperation;
+@dynamic rgbBlendOperation;
+@dynamic destinationAlphaBlendFactor;
+@dynamic destinationRGBBlendFactor;
+@dynamic sourceAlphaBlendFactor;
+@dynamic sourceRGBBlendFactor;
+
 MTL_UNSUPPORTED_CLASS
 
 #endif
@@ -366,7 +410,7 @@ MTL_UNSUPPORTED_CLASS
 
 @implementation MTLRenderPipelineColorAttachmentDescriptor (Internal)
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 - (Indium::RenderPipelineColorAttachmentDescriptor)asIndiumDescriptor
 {
@@ -389,7 +433,7 @@ MTL_UNSUPPORTED_CLASS
 
 @implementation MTLRenderPipelineStateInternal
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 @synthesize state = _state;
 @synthesize device = _device;
@@ -416,6 +460,9 @@ MTL_UNSUPPORTED_CLASS
 }
 
 #else
+
+@dynamic device;
+@dynamic label;
 
 MTL_UNSUPPORTED_CLASS
 

@@ -25,6 +25,7 @@
 #import <Metal/stubs.h>
 #import <Metal/MTLRenderCommandEncoderInternal.h>
 
+#if DARLING_METAL_ENABLED
 // used to take care of RR while passing the block around in C++ code
 struct MTLCommandBufferHandlerWrapper {
 	MTLCommandBufferHandler handler = nil;
@@ -59,10 +60,11 @@ struct MTLCommandBufferHandlerWrapper {
 		handler(commandBuffer);
 	};
 };
+#endif
 
 @implementation MTLCommandBufferInternal
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 {
 	std::shared_ptr<Indium::CommandBuffer> _commandBuffer;
@@ -149,6 +151,10 @@ struct MTLCommandBufferHandlerWrapper {
 }
 
 #else
+
+@dynamic commandQueue;
+@dynamic device;
+@dynamic label;
 
 MTL_UNSUPPORTED_CLASS
 

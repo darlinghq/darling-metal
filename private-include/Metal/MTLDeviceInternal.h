@@ -22,12 +22,15 @@
 
 #import <Metal/MTLDevice.h>
 
+#if DARLING_METAL_ENABLED
 #include <indium/indium.hpp>
+#endif
 
 void MTLDeviceDestroyAll(void);
 
 @interface MTLDeviceInternal : NSObject <MTLDevice>
 
+#if DARLING_METAL_ENABLED
 @property(readonly) std::shared_ptr<Indium::Device> device;
 
 - (instancetype)initWithDevice: (std::shared_ptr<Indium::Device>)device;
@@ -35,6 +38,7 @@ void MTLDeviceDestroyAll(void);
 - (void)stopPolling;
 
 - (void)waitUntilPollingIsStopped;
+#endif
 
 @end
 

@@ -22,8 +22,11 @@
 
 #import <Metal/MTLTexture.h>
 
+#if DARLING_METAL_ENABLED
 #include <indium/indium.hpp>
+#endif
 
+#if DARLING_METAL_ENABLED
 NS_INLINE
 Indium::TextureSwizzleChannels MTLTextureSwizzleChannelsToIndium(MTLTextureSwizzleChannels channels) {
 	return Indium::TextureSwizzleChannels {
@@ -43,16 +46,19 @@ MTLTextureSwizzleChannels MTLTextureSwizzleChannelsFromIndium(Indium::TextureSwi
 		static_cast<MTLTextureSwizzle>(channels.alpha),
 	};
 };
+#endif
 
 // private export
 MTL_EXPORT
 @interface MTLTextureInternal : NSObject <MTLTexture>
 
+#if DARLING_METAL_ENABLED
 @property(readonly) std::shared_ptr<Indium::Texture> texture;
 
 - (instancetype)initWithTexture: (std::shared_ptr<Indium::Texture>)texture
                          device: (id<MTLDevice>)device
                 resourceOptions: (MTLResourceOptions)options;
+#endif
 
 @end
 

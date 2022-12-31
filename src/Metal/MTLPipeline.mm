@@ -22,7 +22,7 @@
 
 @implementation MTLPipelineBufferDescriptor
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 - (instancetype)init
 {
@@ -45,6 +45,8 @@
 
 #else
 
+@dynamic mutability;
+
 MTL_UNSUPPORTED_CLASS
 
 #endif
@@ -53,7 +55,7 @@ MTL_UNSUPPORTED_CLASS
 
 @implementation MTLPipelineBufferDescriptor (Internal)
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 - (Indium::PipelineBufferDescriptor)asIndiumDescriptor
 {
@@ -68,7 +70,7 @@ MTL_UNSUPPORTED_CLASS
 
 @implementation MTLPipelineBufferDescriptorArray
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 {
 	NSMutableDictionary<NSNumber*, MTLPipelineBufferDescriptor*>* _dict;
@@ -122,7 +124,7 @@ MTL_UNSUPPORTED_CLASS
 
 @implementation MTLPipelineBufferDescriptorArray (Internal)
 
-#if __OBJC2__
+#if DARLING_METAL_ENABLED
 
 - (id)copyWithZone: (NSZone*)zone
 {
