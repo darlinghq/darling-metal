@@ -43,9 +43,11 @@ static void ensureDevices(void) {
 
 		// for now, we just have the system default device
 		auto indiumDevice = Indium::createSystemDefaultDevice();
-		systemDefaultDevice = [[MTLDeviceInternal alloc] initWithDevice: indiumDevice];
+		if (indiumDevice) {
+			systemDefaultDevice = [[MTLDeviceInternal alloc] initWithDevice: indiumDevice];
 
-		[devices addObject: systemDefaultDevice];
+			[devices addObject: systemDefaultDevice];
+		}
 	});
 };
 
