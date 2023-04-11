@@ -8,10 +8,27 @@
 
 #import "Renderer/AAPLRenderer.h"
 
+@interface WindowDelegate : NSObject<NSWindowDelegate>
+
+- (void)windowWillClose: (NSNotification*)note;
+
+@end
+
+@implementation WindowDelegate
+
+- (void)windowWillClose: (NSNotification*)note
+{
+	[[NSApplication sharedApplication] terminate: self];
+}
+
+@end
+
 int main(int argc, char** argv) {
 	[NSAutoreleasePool new];
 	[NSApplication sharedApplication];
 	[NSApp setActivationPolicy: NSApplicationActivationPolicyRegular];
+
+	WindowDelegate* winDelegate = [WindowDelegate new];
 
 	NSMenu* menubar = [[NSMenu new] autorelease];
 	NSMenuItem* appMenuItem = [[NSMenuItem new] autorelease];
@@ -52,6 +69,7 @@ int main(int argc, char** argv) {
 	view.delegate = renderer;
 
 	window.contentView = view;
+	window.delegate = winDelegate;
 
 	[NSApp run];
 
