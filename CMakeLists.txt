@@ -8,10 +8,6 @@ if (BUILD_METAL)
 	add_subdirectory(deps/indium)
 endif()
 
-add_compile_options(
-	-fvisibility=hidden
-)
-
 #
 # Metal
 #
