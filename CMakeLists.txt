@@ -8,10 +8,6 @@ if (BUILD_METAL)
 	add_subdirectory(deps/indium)
 endif()
 
-add_compile_options(
-	-fvisibility=hidden
-)
-
 #
 # Metal
 #
@@ -45,15 +41,21 @@ add_framework(Metal
 		src/Metal/MTLBuffer.mm
 		src/Metal/MTLCommandBuffer.mm
 		src/Metal/MTLCommandQueue.mm
+		src/Metal/MTLCompileOptions.mm
 		src/Metal/MTLComputeCommandEncoder.mm
 		src/Metal/MTLComputePipeline.mm
+		src/Metal/MTLDepthStencilDescriptor.mm
 		src/Metal/MTLDevice.mm
 		src/Metal/MTLDrawable.mm
 		src/Metal/MTLLibrary.mm
 		src/Metal/MTLPipeline.mm
 		src/Metal/MTLRenderCommandEncoder.mm
 		src/Metal/MTLRenderPipeline.mm
+		src/Metal/MTLSamplerDescriptor.mm
+		src/Metal/MTLStencilDescriptor.mm
 		src/Metal/MTLTexture.mm
+		src/Metal/MTLTextureDescriptor.mm
+		src/Metal/MTLVertexDescriptor.mm
 
 	DEPENDENCIES
 		system
