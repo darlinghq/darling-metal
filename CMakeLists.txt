@@ -39,6 +39,7 @@ add_framework(Metal
 	SOURCES
 		src/Metal/Metal.mm
 		src/Metal/MTLBuffer.mm
+		src/Metal/MTLCaptureManager.mm
 		src/Metal/MTLCommandBuffer.mm
 		src/Metal/MTLCommandQueue.mm
 		src/Metal/MTLCompileOptions.mm
