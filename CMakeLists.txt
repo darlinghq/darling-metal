@@ -159,7 +159,7 @@ add_framework(MetalPerformanceShaders
 	VERSION ${FRAMEWORK_VERSION}
 
 	SOURCES
-		src/dummy.c
+		src/MPSKernel.m
 
 	DEPENDENCIES
 		system
