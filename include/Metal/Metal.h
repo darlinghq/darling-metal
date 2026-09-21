@@ -15,6 +15,7 @@
 #import <Metal/MTLDepthStencilDescriptor.h>
 #import <Metal/MTLDevice.h>
 #import <Metal/MTLDrawable.h>
+#import <Metal/MTLFunctionConstantValues.h>
 #import <Metal/MTLLibrary.h>
 #import <Metal/MTLPipeline.h>
 #import <Metal/MTLPixelFormat.h>

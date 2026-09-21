@@ -10,6 +10,8 @@
 #import <Metal/MTLLibraryInternal.h>
 #import <Metal/stubs.h>
 #import <Metal/MTLRenderPipelineInternal.h>
+#import <Metal/MTLTextureDescriptorInternal.h>
+#import <Metal/MTLTextureInternal.h>
 
 MTL_EXTERN const MTLDeviceNotificationName MTLDeviceWasAddedNotification = @"MTLDeviceWasAdded";
 MTL_EXTERN const MTLDeviceNotificationName MTLDeviceRemovalRequestedNotification = @"MTLDeviceRemovalRequested";
@@ -206,6 +208,15 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 		return nil;
 	}
 	return [[MTLRenderPipelineStateInternal alloc] initWithState: pso device: self label: descriptor.label];
+}
+
+- (id<MTLTexture>)newTextureWithDescriptor: (MTLTextureDescriptor*)descriptor
+{
+	auto texture = _device->newTexture([descriptor asIndiumDescriptor]);
+	if (!texture) {
+		return nil;
+	}
+	return [[MTLTextureInternal alloc] initWithTexture: texture device: self resourceOptions: descriptor.resourceOptions];
 }
 
 - (id<MTLCommandQueue>)newCommandQueue

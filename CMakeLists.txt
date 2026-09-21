@@ -51,6 +51,7 @@ add_framework(Metal
 		src/Metal/MTLDepthStencilDescriptor.mm
 		src/Metal/MTLDevice.mm
 		src/Metal/MTLDrawable.mm
+		src/Metal/MTLFunctionConstantValues.mm
 		src/Metal/MTLLibrary.mm
 		src/Metal/MTLPipeline.mm
 		src/Metal/MTLRenderCommandEncoder.mm
@@ -119,6 +120,8 @@ add_framework(MetalKit
 	VERSION ${FRAMEWORK_VERSION}
 
 	SOURCES
+		src/MetalKit/MTKModel.m
+		src/MetalKit/MTKTextureLoader.m
 		src/MetalKit/MTKView.m
 
 	DEPENDENCIES
@@ -128,6 +131,8 @@ add_framework(MetalKit
 		Foundation
 		Metal
 		QuartzCore
+		CoreGraphics
+		ImageIO
 )
 
 target_include_directories(MetalKit PUBLIC
@@ -170,4 +175,8 @@ add_framework(MetalPerformanceShaders
 
 target_include_directories(MetalPerformanceShaders PUBLIC
 	include
+)
+
+target_include_directories(MetalPerformanceShaders PRIVATE
+	private-include
 )

@@ -18,10 +18,12 @@ METAL_DECLARATIONS_BEGIN
 @protocol MTLBuffer;
 @protocol MTLLibrary;
 @protocol MTLRenderPipelineState;
+@protocol MTLTexture;
 
 @class MTLComputePipelineDescriptor;
 @class MTLAutoreleasedComputePipelineReflection;
 @class MTLRenderPipelineDescriptor;
+@class MTLTextureDescriptor;
 
 typedef NS_OPTIONS(NSUInteger, MTLPipelineOption) {
 	MTLPipelineOptionNone = 0,
@@ -59,6 +61,8 @@ MTL_EXPORT void MTLRemoveDeviceObserver(id<NSObject> observer);
 
 - (id<MTLRenderPipelineState>)newRenderPipelineStateWithDescriptor: (MTLRenderPipelineDescriptor*)descriptor
                                                              error: (NSError**)error;
+
+- (id<MTLTexture>)newTextureWithDescriptor: (MTLTextureDescriptor*)descriptor;
 
 - (id<MTLCommandQueue>)newCommandQueue;
 
