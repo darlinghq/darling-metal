@@ -23,6 +23,7 @@
 #import <Metal/MTLRenderPipeline.h>
 #import <Metal/MTLResource.h>
 #import <Metal/MTLSamplerDescriptor.h>
+#import <Metal/MTLSamplerState.h>
 #import <Metal/MTLStencilDescriptor.h>
 #import <Metal/MTLTexture.h>
 #import <Metal/MTLTextureDescriptor.h>

@@ -19,10 +19,14 @@ METAL_DECLARATIONS_BEGIN
 @protocol MTLLibrary;
 @protocol MTLRenderPipelineState;
 @protocol MTLTexture;
+@protocol MTLDepthStencilState;
+@protocol MTLSamplerState;
 
 @class MTLComputePipelineDescriptor;
 @class MTLAutoreleasedComputePipelineReflection;
+@class MTLDepthStencilDescriptor;
 @class MTLRenderPipelineDescriptor;
+@class MTLSamplerDescriptor;
 @class MTLTextureDescriptor;
 
 typedef NS_OPTIONS(NSUInteger, MTLPipelineOption) {
@@ -63,6 +67,10 @@ MTL_EXPORT void MTLRemoveDeviceObserver(id<NSObject> observer);
                                                              error: (NSError**)error;
 
 - (id<MTLTexture>)newTextureWithDescriptor: (MTLTextureDescriptor*)descriptor;
+
+- (id<MTLSamplerState>)newSamplerStateWithDescriptor: (MTLSamplerDescriptor*)descriptor;
+
+- (id<MTLDepthStencilState>)newDepthStencilStateWithDescriptor: (MTLDepthStencilDescriptor*)descriptor;
 
 - (id<MTLCommandQueue>)newCommandQueue;
 

@@ -57,6 +57,7 @@ add_framework(Metal
 		src/Metal/MTLRenderCommandEncoder.mm
 		src/Metal/MTLRenderPipeline.mm
 		src/Metal/MTLSamplerDescriptor.mm
+		src/Metal/MTLSamplerState.mm
 		src/Metal/MTLStencilDescriptor.mm
 		src/Metal/MTLTexture.mm
 		src/Metal/MTLTextureDescriptor.mm
