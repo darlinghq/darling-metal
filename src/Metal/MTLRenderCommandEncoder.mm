@@ -8,6 +8,8 @@
 #import <Metal/MTLDevice.h>
 #import <Metal/MTLRenderPipelineInternal.h>
 #import <Metal/MTLTypesInternal.h>
+#import <Metal/MTLSamplerStateInternal.h>
+#import <Metal/MTLDepthStencilDescriptorInternal.h>
 
 #include <map>
 
@@ -607,6 +609,11 @@ MTL_UNSUPPORTED_CLASS
 	_encoder->setDepthBias(depthBias, slopeScale, clamp);
 }
 
+- (void)setDepthStencilState: (id<MTLDepthStencilState>)state
+{
+	_encoder->setDepthStencilState(((MTLDepthStencilStateInternal*)state).state);
+}
+
 - (void)setVisibilityResultMode: (MTLVisibilityResultMode)mode
                           offset: (NSUInteger)offset
 {
@@ -691,6 +698,42 @@ MTL_UNSUPPORTED_CLASS
 	_encoder->setVertexTextures(tmp, NSRangeToIndium(range));
 }
 
+- (void)setVertexSamplerState: (id<MTLSamplerState>)sampler
+                      atIndex: (NSUInteger)index
+{
+	_encoder->setVertexSamplerState(((MTLSamplerStateInternal*)sampler).state, index);
+}
+
+- (void)setVertexSamplerStates: (const id<MTLSamplerState>*)samplers
+                      withRange: (NSRange)range
+{
+	std::vector<std::shared_ptr<Indium::SamplerState>> tmp;
+	for (size_t i = 0; i < range.length; ++i) {
+		tmp.push_back(((MTLSamplerStateInternal*)samplers[i]).state);
+	}
+	_encoder->setVertexSamplerStates(tmp, NSRangeToIndium(range));
+}
+
+- (void)setVertexSamplerState: (id<MTLSamplerState>)sampler
+                   lodMinClamp: (float)lodMinClamp
+                   lodMaxClamp: (float)lodMaxClamp
+                      atIndex: (NSUInteger)index
+{
+	_encoder->setVertexSamplerState(((MTLSamplerStateInternal*)sampler).state, lodMinClamp, lodMaxClamp, index);
+}
+
+- (void)setVertexSamplerStates: (const id<MTLSamplerState>*)samplers
+                   lodMinClamps: (const float*)lodMinClamps
+                   lodMaxClamps: (const float*)lodMaxClamps
+                      withRange: (NSRange)range
+{
+	std::vector<std::shared_ptr<Indium::SamplerState>> tmp;
+	for (size_t i = 0; i < range.length; ++i) {
+		tmp.push_back(((MTLSamplerStateInternal*)samplers[i]).state);
+	}
+	_encoder->setVertexSamplerStates(tmp, std::vector<float>(lodMinClamps, lodMinClamps + range.length), std::vector<float>(lodMaxClamps, lodMaxClamps + range.length), NSRangeToIndium(range));
+}
+
 - (void)setFragmentBuffer: (id<MTLBuffer>)buffer
                    offset: (NSUInteger)offset
                   atIndex: (NSUInteger)index
@@ -738,6 +781,42 @@ MTL_UNSUPPORTED_CLASS
 		tmp.push_back(((MTLTextureInternal*)textures[i]).texture);
 	}
 	_encoder->setFragmentTextures(tmp, NSRangeToIndium(range));
+}
+
+- (void)setFragmentSamplerState: (id<MTLSamplerState>)sampler
+                        atIndex: (NSUInteger)index
+{
+	_encoder->setFragmentSamplerState(((MTLSamplerStateInternal*)sampler).state, index);
+}
+
+- (void)setFragmentSamplerStates: (const id<MTLSamplerState>*)samplers
+                        withRange: (NSRange)range
+{
+	std::vector<std::shared_ptr<Indium::SamplerState>> tmp;
+	for (size_t i = 0; i < range.length; ++i) {
+		tmp.push_back(((MTLSamplerStateInternal*)samplers[i]).state);
+	}
+	_encoder->setFragmentSamplerStates(tmp, NSRangeToIndium(range));
+}
+
+- (void)setFragmentSamplerState: (id<MTLSamplerState>)sampler
+                     lodMinClamp: (float)lodMinClamp
+                     lodMaxClamp: (float)lodMaxClamp
+                        atIndex: (NSUInteger)index
+{
+	_encoder->setFragmentSamplerState(((MTLSamplerStateInternal*)sampler).state, lodMinClamp, lodMaxClamp, index);
+}
+
+- (void)setFragmentSamplerStates: (const id<MTLSamplerState>*)samplers
+                     lodMinClamps: (const float*)lodMinClamps
+                     lodMaxClamps: (const float*)lodMaxClamps
+                        withRange: (NSRange)range
+{
+	std::vector<std::shared_ptr<Indium::SamplerState>> tmp;
+	for (size_t i = 0; i < range.length; ++i) {
+		tmp.push_back(((MTLSamplerStateInternal*)samplers[i]).state);
+	}
+	_encoder->setFragmentSamplerStates(tmp, std::vector<float>(lodMinClamps, lodMinClamps + range.length), std::vector<float>(lodMaxClamps, lodMaxClamps + range.length), NSRangeToIndium(range));
 }
 
 - (void)drawPrimitives: (MTLPrimitiveType)primitiveType

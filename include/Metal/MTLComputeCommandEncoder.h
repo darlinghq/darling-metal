@@ -14,6 +14,7 @@ METAL_DECLARATIONS_BEGIN
 @protocol MTLComputeCommandEncoder;
 @protocol MTLCounterSampleBuffer;
 @protocol MTLBuffer;
+@protocol MTLSamplerState;
 @protocol MTLTexture;
 
 @class MTLComputePassDescriptor;
@@ -80,7 +81,21 @@ MTL_EXPORT
 - (void)setTextures: (const id<MTLTexture>*)textures
           withRange: (NSRange)range;
 
-// TODO: setSamplerState:... (requires MTLSamplerState, which does not exist yet)
+- (void)setSamplerState: (id<MTLSamplerState>)sampler
+                atIndex: (NSUInteger)index;
+
+- (void)setSamplerStates: (const id<MTLSamplerState>*)samplers
+                withRange: (NSRange)range;
+
+- (void)setSamplerState: (id<MTLSamplerState>)sampler
+             lodMinClamp: (float)lodMinClamp
+             lodMaxClamp: (float)lodMaxClamp
+                atIndex: (NSUInteger)index;
+
+- (void)setSamplerStates: (const id<MTLSamplerState>*)samplers
+             lodMinClamps: (const float*)lodMinClamps
+             lodMaxClamps: (const float*)lodMaxClamps
+                withRange: (NSRange)range;
 
 - (void)setThreadgroupMemoryLength: (NSUInteger)length
                           atIndex: (NSUInteger)index;
