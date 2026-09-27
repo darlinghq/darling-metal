@@ -582,6 +582,37 @@ MTL_UNSUPPORTED_CLASS
 	_encoder->setCullMode(static_cast<Indium::CullMode>(cullMode));
 }
 
+- (void)setDepthClipMode: (MTLDepthClipMode)depthClipMode
+{
+	_encoder->setDepthClipMode(static_cast<Indium::DepthClipMode>(depthClipMode));
+}
+
+- (void)setBlendColorRed: (float)red
+                   green: (float)green
+                    blue: (float)blue
+                   alpha: (float)alpha
+{
+	_encoder->setBlendColor(red, green, blue, alpha);
+}
+
+- (void)setStencilReferenceValue: (uint32_t)refValue
+{
+	_encoder->setStencilReferenceValue(refValue);
+}
+
+- (void)setDepthBias: (float)depthBias
+          slopeScale: (float)slopeScale
+               clamp: (float)clamp
+{
+	_encoder->setDepthBias(depthBias, slopeScale, clamp);
+}
+
+- (void)setVisibilityResultMode: (MTLVisibilityResultMode)mode
+                          offset: (NSUInteger)offset
+{
+	_encoder->setVisibilityResultMode(static_cast<Indium::VisibilityResultMode>(mode), offset);
+}
+
 - (void)setViewport: (MTLViewport)viewport
 {
 	_encoder->setViewport(MTLViewportToIndium(viewport));
@@ -644,6 +675,22 @@ MTL_UNSUPPORTED_CLASS
 	_encoder->setVertexBytes(bytes, length, index);
 }
 
+- (void)setVertexTexture: (id<MTLTexture>)texture
+                atIndex: (NSUInteger)index
+{
+	_encoder->setVertexTexture(((MTLTextureInternal*)texture).texture, index);
+}
+
+- (void)setVertexTextures: (const id<MTLTexture>*)textures
+                withRange: (NSRange)range
+{
+	std::vector<std::shared_ptr<Indium::Texture>> tmp;
+	for (size_t i = 0; i < range.length; ++i) {
+		tmp.push_back(((MTLTextureInternal*)textures[i]).texture);
+	}
+	_encoder->setVertexTextures(tmp, NSRangeToIndium(range));
+}
+
 - (void)setFragmentBuffer: (id<MTLBuffer>)buffer
                    offset: (NSUInteger)offset
                   atIndex: (NSUInteger)index
@@ -674,6 +721,23 @@ MTL_UNSUPPORTED_CLASS
                  atIndex: (NSUInteger)index
 {
 	_encoder->setFragmentBytes(bytes, length, index);
+}
+
+- (void)setFragmentTexture: (id<MTLTexture>)texture
+                  atIndex: (NSUInteger)index
+{
+	_encoder->setFragmentTexture(((MTLTextureInternal*)texture).texture, index);
+}
+
+- (void)setFragmentTextures: (const id<MTLTexture>*)textures
+                  withRange: (NSRange)range
+{
+	// Indium takes this by non-const reference, unlike setVertexTextures.
+	std::vector<std::shared_ptr<Indium::Texture>> tmp;
+	for (size_t i = 0; i < range.length; ++i) {
+		tmp.push_back(((MTLTextureInternal*)textures[i]).texture);
+	}
+	_encoder->setFragmentTextures(tmp, NSRangeToIndium(range));
 }
 
 - (void)drawPrimitives: (MTLPrimitiveType)primitiveType

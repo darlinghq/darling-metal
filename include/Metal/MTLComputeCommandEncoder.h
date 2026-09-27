@@ -7,12 +7,14 @@
 #import <Metal/MTLCommandEncoder.h>
 #import <Metal/MTLComputePipeline.h>
 #import <Metal/MTLDefines.h>
+#import <Metal/MTLTypes.h>
 
 METAL_DECLARATIONS_BEGIN
 
 @protocol MTLComputeCommandEncoder;
 @protocol MTLCounterSampleBuffer;
 @protocol MTLBuffer;
+@protocol MTLTexture;
 
 @class MTLComputePassDescriptor;
 @class MTLComputePassSampleBufferAttachmentDescriptorArray;
@@ -55,6 +57,8 @@ MTL_EXPORT
 
 - (void)setComputePipelineState:(id<MTLComputePipelineState>)state;
 
+- (void)setStageInRegion:(MTLRegion)region;
+
 - (void)setBuffer: (id<MTLBuffer>)buffer
            offset: (NSUInteger)offset
           atIndex: (NSUInteger)index;
@@ -69,6 +73,17 @@ MTL_EXPORT
 - (void)setBytes: (const void*)bytes
           length: (NSUInteger)length
          atIndex: (NSUInteger)index;
+
+- (void)setTexture: (id<MTLTexture>)texture
+          atIndex: (NSUInteger)index;
+
+- (void)setTextures: (const id<MTLTexture>*)textures
+          withRange: (NSRange)range;
+
+// TODO: setSamplerState:... (requires MTLSamplerState, which does not exist yet)
+
+- (void)setThreadgroupMemoryLength: (NSUInteger)length
+                          atIndex: (NSUInteger)index;
 
 - (void)dispatchThreadgroups: (MTLSize)threadgroupsPerGrid
        threadsPerThreadgroup: (MTLSize)threadsPerThreadgroup;

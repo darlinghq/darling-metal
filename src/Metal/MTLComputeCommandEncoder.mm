@@ -6,6 +6,7 @@
 #import <Metal/MTLTypesInternal.h>
 #import <Metal/MTLComputePipelineInternal.h>
 #import <Metal/MTLBufferInternal.h>
+#import <Metal/MTLTextureInternal.h>
 #import <Metal/stubs.h>
 
 @implementation MTLComputePassSampleBufferAttachmentDescriptor
@@ -212,6 +213,11 @@ MTL_UNSUPPORTED_CLASS
 	_encoder->setComputePipelineState(((MTLComputePipelineStateInternal*)state).state);
 }
 
+- (void)setStageInRegion:(MTLRegion)region
+{
+	_encoder->setStageInRegion(MTLRegionToIndium(region));
+}
+
 - (void)setBuffer: (id<MTLBuffer>)buffer
            offset: (NSUInteger)offset
           atIndex: (NSUInteger)index
@@ -244,6 +250,28 @@ MTL_UNSUPPORTED_CLASS
          atIndex: (NSUInteger)index
 {
 	_encoder->setBytes(bytes, length, index);
+}
+
+- (void)setTexture: (id<MTLTexture>)texture
+          atIndex: (NSUInteger)index
+{
+	_encoder->setTexture(((MTLTextureInternal*)texture).texture, index);
+}
+
+- (void)setTextures: (const id<MTLTexture>*)textures
+          withRange: (NSRange)range
+{
+	std::vector<std::shared_ptr<Indium::Texture>> indiumTextures;
+	for (size_t i = 0; i < range.length; ++i) {
+		indiumTextures.push_back(((MTLTextureInternal*)textures[i]).texture);
+	}
+	_encoder->setTextures(indiumTextures, NSRangeToIndium(range));
+}
+
+- (void)setThreadgroupMemoryLength: (NSUInteger)length
+                          atIndex: (NSUInteger)index
+{
+	_encoder->setThreadgroupMemoryLength(length, index);
 }
 
 - (void)dispatchThreadgroups: (MTLSize)threadgroupsPerGrid
