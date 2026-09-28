@@ -97,6 +97,15 @@ static void makeMVP(float m[16], double z) {
 static std::vector<uint8_t> level0;
 static std::vector<uint8_t> level1;   // 4x4, a disjoint palette
 
+// A second texture for the anisotropy group. Level 0 is a 2-texel-tall stripe
+// pattern, constant along x, so a footprint that is long in x and one texel tall
+// in y has every anisotropic tap land on the same stripe: the weighted average
+// of N identical taps is that stripe, and the answer is predictable to the bit.
+// Box-filtering a 2-texel period gives one row of one colour, so level 1 is
+// still a stripe pattern (one texel per stripe) and levels 2 and up are flat.
+static const int STRIPE_W = 32, STRIPE_H = 32, STRIPE_LEVELS = 6;
+static std::vector<std::vector<uint8_t>> stripeLevel;
+
 static void buildTexture(void) {
 	level0.assign(TEX_W * TEX_H * 4, 0);
 	for (int y = 0; y < TEX_H; y++) {
@@ -121,6 +130,32 @@ static void buildTexture(void) {
 			t[2] = (uint8_t)(200 + (x * 5 + y * 2) % 55);
 			t[3] = 255;
 		}
+	}
+
+	stripeLevel.assign(STRIPE_LEVELS, {});
+	stripeLevel[0].assign(STRIPE_W * STRIPE_H * 4, 0);
+	for (int y = 0; y < STRIPE_H; y++)
+		for (int x = 0; x < STRIPE_W; x++) {
+			uint8_t* t = &stripeLevel[0][((size_t)y * STRIPE_W + x) * 4];
+			t[0] = t[1] = t[2] = ((y / 2) % 2) ? 255 : 0;
+			t[3] = 255;
+		}
+	for (int l = 1; l < STRIPE_LEVELS; l++) {
+		int n = STRIPE_W >> l;
+		stripeLevel[l].assign((size_t)n * n * 4, 0);
+		for (int y = 0; y < n; y++)
+			for (int x = 0; x < n; x++) {
+				unsigned acc[3] = { 0, 0, 0 };
+				for (int dy = 0; dy < 2; dy++)
+					for (int dx = 0; dx < 2; dx++) {
+						const uint8_t* s = &stripeLevel[l - 1]
+							[(((size_t)y * 2 + dy) * (n * 2) + (x * 2 + dx)) * 4];
+						for (int ch = 0; ch < 3; ch++) acc[ch] += s[ch];
+					}
+				uint8_t* t = &stripeLevel[l][((size_t)y * n + x) * 4];
+				for (int ch = 0; ch < 3; ch++) t[ch] = (uint8_t)((acc[ch] + 2) / 4);
+				t[3] = 255;
+			}
 	}
 }
 
@@ -218,6 +253,7 @@ struct Ctx {
 	std::shared_ptr<Indium::Library> library;
 	std::shared_ptr<Indium::RenderPipelineState> pipeline;
 	std::shared_ptr<Indium::Texture> source;
+	std::shared_ptr<Indium::Texture> striped;
 	std::shared_ptr<Indium::Texture> target;
 	std::shared_ptr<Indium::Texture> depth;
 };
@@ -238,8 +274,10 @@ static std::vector<uint8_t> render(Ctx& ctx, std::shared_ptr<Indium::Buffer> vbu
                                    std::shared_ptr<Indium::Buffer> ubuf,
                                    const std::vector<std::shared_ptr<Indium::SamplerState>>& samplers,
                                    bool usePluralForm, bool useLodClampForm,
-                                   float lodMin, float lodMax) {
+                                   float lodMin, float lodMax,
+                                   std::shared_ptr<Indium::Texture> src = nullptr) {
 	std::vector<uint8_t> image(W * H * 4, 0);
+	if (!src) src = ctx.source;
 	{
 		Indium::RenderPassDescriptor rp {};
 		rp.colorAttachments.emplace_back();
@@ -257,7 +295,7 @@ static std::vector<uint8_t> render(Ctx& ctx, std::shared_ptr<Indium::Buffer> vbu
 		enc->setVertexBuffer(vbuf, 0, 0);
 		enc->setVertexBuffer(ubuf, 0, 1);
 		enc->setFragmentBuffer(ubuf, 0, 0);
-		enc->setFragmentTexture(ctx.source, 0);
+		enc->setFragmentTexture(src, 0);
 		if (usePluralForm) {
 			enc->setFragmentSamplerStates(samplers, Indium::Range<size_t> { 0, samplers.size() });
 		} else if (useLodClampForm) {
@@ -395,6 +433,19 @@ int main(int argc, char** argv) {
 			ctx.source->replaceRegion(Indium::Region::make2D(0, 0, 4, 4), 1,
 				level1.data(), 4 * 4);
 		}
+		// The stripe texture the anisotropy group samples: 32x32, six mip levels.
+		{
+			Indium::TextureDescriptor td = Indium::TextureDescriptor::texture2DDescriptor(
+				Indium::PixelFormat::RGBA8Unorm, STRIPE_W, STRIPE_H, true);
+			td.mipmapLevelCount = STRIPE_LEVELS;
+			td.usage = Indium::TextureUsage::ShaderRead;
+			ctx.striped = device->newTexture(td);
+			for (int l = 0; l < STRIPE_LEVELS; l++) {
+				int n = STRIPE_W >> l;
+				ctx.striped->replaceRegion(Indium::Region::make2D(0, 0, n, n), l,
+					stripeLevel[l].data(), 4 * n);
+			}
+		}
 		{
 			Indium::TextureDescriptor td = Indium::TextureDescriptor::texture2DDescriptor(
 				Indium::PixelFormat::RGBA8Unorm, W, H, false);
@@ -484,46 +535,57 @@ int main(int argc, char** argv) {
 			checkExact(c, img, true);
 		}
 
-		// ---- group 3: min/mag filter, magnified and minified ----------------
+		// ---- group 3: min/mag filter selection -------------------------------
+		// Vulkan picks magFilter when the texel footprint is under one texel per
+		// pixel and minFilter when it is over one, so the *footprint* selects
+		// between them. uvScale is uv per pixel, so uvScale*TEX_W is texels/px.
+		//
+		// Which LOD that decision is made on matters as much as the footprint. The
+		// driver clamps the computed lambda to [minLod, maxLod] first, and picks
+		// the filter from the clamped value, so pinning maxLod to 0 pins lambda at
+		// 0 and every footprint is then treated as magnification. That is why the
+		// minification cases below have to leave the LOD free, and why the first
+		// two rows (which pin it) show magFilter being read at a 1.5 texel/px
+		// footprint instead.
+		//
 		// Linear filtering has no exact integer reference (Vulkan weights texels
-		// in fixed point), so the property checked is the one that actually
-		// discriminates: a nearest fetch can only ever produce a texel colour,
-		// a linear fetch of a gradient must produce blends that are not.
+		// in fixed point), so a linear case is only ever compared against a
+		// nearest case: a nearest fetch can only produce a texel colour, so any
+		// pixel that is not a texel colour proves a linear fetch happened.
 		std::cout << "\n[3] min/mag filter selection\n";
+		// 0.25 texels/px -> lambda = -2, magnified. 1.5 texels/px -> lambda = +0.585,
+		// minified, which rounds to mip level 1 under a nearest mipmap mode.
 		struct FilterCase {
 			const char* name;
 			Indium::SamplerMinMagFilter minF, magF;
 			double uvScale;
-			const char* which;
+			float lodMax;
+			// true = the case must differ from the all-nearest baseline (a filter
+			// was read), false = it must be byte-identical to it (no filter was
+			// read). This is the property under test, so it is stated as a field
+			// rather than inferred from the name.
+			bool expectFilterRead;
 		};
-		// Vulkan picks magFilter when the texel footprint is under one texel per
-		// pixel (lambda < 0) and minFilter when it is over one (lambda > 0), so the
-		// footprint per pixel is what selects between them. uvScale is in uv units
-		// per pixel, so uvScale*TEX_W is texels per pixel.
-		//   0.25 texels/pixel -> lambda = -2, magnified -> magFilter
-		//   1.50 texels/pixel -> lambda = +0.58, minified  -> minFilter
-		// The linear cases also get a fractional footprint so the bilinear weights
-		// are not all zero or all one, which is what makes a blend appear.
 		static const FilterCase filterCases[] = {
-			{ "magnified magFilter=nearest", Indium::SamplerMinMagFilter::Nearest, Indium::SamplerMinMagFilter::Nearest, 0.25 / TEX_W, "magFilter" },
-			{ "magnified magFilter=linear",  Indium::SamplerMinMagFilter::Nearest, Indium::SamplerMinMagFilter::Linear,  0.25 / TEX_W, "magFilter" },
-			{ "minified  minFilter=nearest", Indium::SamplerMinMagFilter::Nearest, Indium::SamplerMinMagFilter::Nearest, 1.50 / TEX_W, "minFilter" },
-			{ "minified  minFilter=linear",  Indium::SamplerMinMagFilter::Linear,  Indium::SamplerMinMagFilter::Nearest, 1.50 / TEX_W, "minFilter" },
-			{ "minified 8x minFilter=nearest", Indium::SamplerMinMagFilter::Nearest, Indium::SamplerMinMagFilter::Nearest, 8.00 / TEX_W, "minFilter" },
-			{ "minified 8x minFilter=linear",  Indium::SamplerMinMagFilter::Linear,  Indium::SamplerMinMagFilter::Nearest, 8.00 / TEX_W, "minFilter" },
+			{ "magnified lod free  minFilter=linear has no effect", Indium::SamplerMinMagFilter::Linear,  Indium::SamplerMinMagFilter::Nearest, 0.25 / TEX_W, 3.4e38f, false },
+			{ "magnified lod free  magFilter=linear blends",        Indium::SamplerMinMagFilter::Nearest, Indium::SamplerMinMagFilter::Linear,  0.25 / TEX_W, 3.4e38f, true  },
+			{ "minified  lod free  minFilter=linear blends",        Indium::SamplerMinMagFilter::Linear,  Indium::SamplerMinMagFilter::Nearest, 1.50 / TEX_W, 3.4e38f, true  },
+			{ "minified  lod free  magFilter=linear has no effect",  Indium::SamplerMinMagFilter::Nearest, Indium::SamplerMinMagFilter::Linear,  1.50 / TEX_W, 3.4e38f, false },
+			{ "minified  lodMax=0   minFilter=linear has no effect", Indium::SamplerMinMagFilter::Linear,  Indium::SamplerMinMagFilter::Nearest, 1.50 / TEX_W, 0.0f,   false },
+			{ "minified  lodMax=0   magFilter=linear blends",        Indium::SamplerMinMagFilter::Nearest, Indium::SamplerMinMagFilter::Linear,  1.50 / TEX_W, 0.0f,   true  },
 		};
-		std::vector<std::vector<uint8_t>> filterImages;
+		// The baseline each "has no effect" row is compared against: same footprint
+		// and LOD, both filters nearest.
 		for (const auto& f : filterCases) {
 			Case c {};
 			c.name = f.name;
 			c.desc = Indium::SamplerDescriptor {};
 			c.desc.minFilter = f.minF;
 			c.desc.magFilter = f.magF;
-			c.desc.mipFilter = Indium::SamplerMipFilter::NotMipmapped;
+			c.desc.mipFilter = Indium::SamplerMipFilter::Nearest;
 			c.desc.sAddressMode = Indium::SamplerAddressMode::Repeat;
 			c.desc.tAddressMode = Indium::SamplerAddressMode::Repeat;
-			// Force LOD 0 so this group measures the min/mag choice only.
-			c.desc.lodMaxClamp = 0;
+			c.desc.lodMaxClamp = f.lodMax;
 			c.uvOriginX = 0.0; c.uvScaleX = f.uvScale;
 			c.uvOriginY = 0.0; c.uvScaleY = f.uvScale;
 			c.sMode = AddrMode::Repeat; c.tMode = AddrMode::Repeat;
@@ -535,28 +597,145 @@ int main(int argc, char** argv) {
 			auto ubuf = makeUBuf(0.5);
 			auto samp = device->newSamplerState(c.desc);
 			auto img = render(ctx, vbuf, ubuf, { samp }, false, false, 0, 0);
-			filterImages.push_back(img);
 
-			size_t offPalette = 0;
+			auto nn = c; nn.desc.minFilter = Indium::SamplerMinMagFilter::Nearest;
+			nn.desc.magFilter = Indium::SamplerMinMagFilter::Nearest;
+			auto base = device->newSamplerState(nn.desc);
+			auto imgBase = render(ctx, vbuf, ubuf, { base }, false, false, 0, 0);
+
+			size_t blends = 0, differing = 0;
 			std::map<uint32_t, size_t> hist;
+			for (size_t i = 0; i < W * H; i++) {
+				const uint8_t* p4 = &img[i * 4];
+				if (!inPalette(p4, level0, TEX_W, TEX_H) &&
+				    !inPalette(p4, level1, 4, 4)) blends++;
+				if (memcmp(&img[i * 4], &imgBase[i * 4], 4) != 0) differing++;
+				hist[(uint32_t)p4[0] << 16 | (uint32_t)p4[1] << 8 | p4[2]]++;
+			}
+			// A row that expects no filter to be read must match the all-nearest
+			// baseline byte for byte; a row that expects one must differ from it in
+			// every pixel and produce at least one colour that is not a texel.
+			bool pass = f.expectFilterRead
+				? (differing == W * H && blends > 0)
+				: (differing == 0);
+			char detail[200];
+			std::snprintf(detail, sizeof(detail),
+				"texels/px=%.2f lodMax=%s: %zu/%zu pixels differ from the all-nearest baseline, "
+				"%zu are bilinear blends, %zu distinct colours",
+				f.uvScale * TEX_W,
+				f.lodMax == 0.0f ? "0" : "FLT_MAX",
+				differing, W * H, blends, hist.size());
+			report(pass ? "ok" : "FAIL", f.name, detail);
+			if (!pass) gErrors++;
+			gChecks++;
+		}
+
+		// The same minified fetch with both filters nearest, against the exact
+		// reference for the mip level the LOD selects. lambda = log2(1.5) = 0.585
+		// rounds to level 1, so every pixel must be a level-1 texel fetched with
+		// the texel-centre rule, under Repeat.
+		{
+			Case c {};
+			c.name = "minified  lod free   both nearest = level 1 exactly";
+			c.desc = Indium::SamplerDescriptor {};
+			c.desc.minFilter = Indium::SamplerMinMagFilter::Nearest;
+			c.desc.magFilter = Indium::SamplerMinMagFilter::Nearest;
+			c.desc.mipFilter = Indium::SamplerMipFilter::Nearest;
+			c.desc.sAddressMode = Indium::SamplerAddressMode::Repeat;
+			c.desc.tAddressMode = Indium::SamplerAddressMode::Repeat;
+			c.desc.lodMaxClamp = 3.4e38f;
+			c.uvOriginX = 0.0; c.uvScaleX = 1.5 / TEX_W;
+			c.uvOriginY = 0.0; c.uvScaleY = 1.5 / TEX_W;
+			c.sMode = AddrMode::Repeat; c.tMode = AddrMode::Repeat;
+			c.normalized = true;
+
+			Vertex verts[3];
+			makeQuad(verts, c.uvOriginX, c.uvOriginY, c.uvScaleX, c.uvScaleY, 0.5);
+			auto vbuf = device->newBuffer(verts, sizeof(verts), Indium::ResourceOptions::StorageModeShared);
+			auto ubuf = makeUBuf(0.5);
+			auto samp = device->newSamplerState(c.desc);
+			auto img = render(ctx, vbuf, ubuf, { samp }, false, false, 0, 0);
+
+			size_t bad = 0, worst = 0;
+			uint8_t border[4] = { 0, 0, 0, 0 };
 			for (size_t y = 0; y < H; y++)
 				for (size_t x = 0; x < W; x++) {
-					const uint8_t* p4 = &img[(y * W + x) * 4];
-					if (!inPalette(p4, level0, TEX_W, TEX_H)) offPalette++;
-					hist[(uint32_t)p4[0] << 16 | (uint32_t)p4[1] << 8 | p4[2]]++;
+					double u = c.uvOriginX + c.uvScaleX * ((double)x + 0.5);
+					double v = c.uvOriginY + c.uvScaleY * ((double)y + 0.5);
+					auto rp = referenceNearest(u, v, level1, 4, 4,
+						AddrMode::Repeat, AddrMode::Repeat, border, true);
+					const uint8_t* p4 = &img[((y * W) + x) * 4];
+					for (int ch = 0; ch < 4; ch++) {
+						double d = std::abs((double)p4[ch] - (double)rp.rgba[ch]);
+						if (d > 0) { bad++; worst = std::max(worst, (size_t)d); }
+					}
 				}
-			report("ok", f.name, std::to_string(offPalette) + " / " + std::to_string(W * H) +
-				" pixels are not a level-0 texel; " + std::to_string(hist.size()) +
-				" distinct colours; texels/px=" + std::to_string(f.uvScale * TEX_W));
-			if (getenv("SAMPLER_DIAG")) {
-				std::printf("        row0:");
-				for (int x = 0; x < 24; x++)
-					std::printf(" (%3u,%3u,%3u)", img[x*4], img[x*4+1], img[x*4+2]);
-				std::printf("\n        texel(0,0)=(%u,%u,%u) texel(1,0)=(%u,%u,%u) texel(7,7)=(%u,%u,%u)\n",
-					level0[0], level0[1], level0[2], level0[4], level0[5], level0[6],
-					level0[(63)*4], level0[(63)*4+1], level0[(63)*4+2]);
-			}
+			char detail[200];
+			std::snprintf(detail, sizeof(detail), "%zu/%zu channels differ from the level-1 nearest reference, worst %zu",
+				bad, W * H * 4, worst);
+			report(bad == 0 ? "ok" : "FAIL", c.name, detail);
+			if (bad != 0) gErrors++;
 			gChecks++;
+		}
+
+		// Raising minLod above 0 moves even a deep magnification into the
+		// minifying regime, which is the mechanism behind the lodMax=0 rows above:
+		// the driver chooses between minFilter and magFilter on the clamped LOD.
+		{
+			std::cout << "[3b] which filter the clamped LOD selects (0.25 texels/px, lambda = -2)\n";
+			struct RegimeCase { const char* name; float lodMin; Indium::SamplerMinMagFilter minF; };
+			static const RegimeCase regimes[] = {
+				{ "lodMin=0    minFilter=linear", 0.0f, Indium::SamplerMinMagFilter::Linear  },
+				{ "lodMin=0.5  minFilter=linear", 0.5f, Indium::SamplerMinMagFilter::Linear  },
+				{ "lodMin=0.5  magFilter=linear", 0.5f, Indium::SamplerMinMagFilter::Nearest },
+			};
+			std::vector<std::vector<uint8_t>> regimeImages;
+			for (const auto& r : regimes) {
+				Case c {};
+				c.desc = Indium::SamplerDescriptor {};
+				c.desc.minFilter = r.minF;
+				c.desc.magFilter = (r.minF == Indium::SamplerMinMagFilter::Linear)
+					? Indium::SamplerMinMagFilter::Nearest : Indium::SamplerMinMagFilter::Linear;
+				c.desc.mipFilter = Indium::SamplerMipFilter::Nearest;
+				c.desc.sAddressMode = Indium::SamplerAddressMode::Repeat;
+				c.desc.tAddressMode = Indium::SamplerAddressMode::Repeat;
+				c.desc.lodMinClamp = r.lodMin;
+				c.desc.lodMaxClamp = 3.4e38f;
+				c.uvOriginX = 0.0; c.uvScaleX = 0.25 / TEX_W;
+				c.uvOriginY = 0.0; c.uvScaleY = 0.25 / TEX_W;
+				c.sMode = AddrMode::Repeat; c.tMode = AddrMode::Repeat;
+				c.normalized = true;
+
+				Vertex verts[3];
+				makeQuad(verts, c.uvOriginX, c.uvOriginY, c.uvScaleX, c.uvScaleY, 0.5);
+				auto vbuf = device->newBuffer(verts, sizeof(verts), Indium::ResourceOptions::StorageModeShared);
+				auto ubuf = makeUBuf(0.5);
+				auto samp = device->newSamplerState(c.desc);
+				auto img = render(ctx, vbuf, ubuf, { samp }, false, false, 0, 0);
+				regimeImages.push_back(img);
+
+				size_t blends = 0;
+				for (size_t i = 0; i < W * H; i++) {
+					const uint8_t* p4 = &img[i * 4];
+					if (!inPalette(p4, level0, TEX_W, TEX_H) &&
+					    !inPalette(p4, level1, 4, 4)) blends++;
+				}
+				char detail[160];
+				std::snprintf(detail, sizeof(detail), "%zu/%zu pixels are bilinear blends", blends, W * H);
+				report("INFO", r.name, detail);
+				gChecks++;
+			}
+			// The minified-regime row (lodMin=0.5, minFilter=linear) must differ
+			// from the magnified-regime one (lodMin=0, minFilter=linear): the same
+			// descriptor field is read in one and not in the other.
+			{
+				bool differ = memcmp(regimeImages[0].data(), regimeImages[1].data(), W * H * 4) != 0;
+				report(differ ? "ok" : "FAIL", "raising lodMinClamp switches which filter is read",
+					differ ? "lodMin=0 and lodMin=0.5 differ at the same footprint"
+					       : "identical, so the clamped LOD does not select the filter");
+				if (!differ) gErrors++;
+				gChecks++;
+			}
 		}
 
 		// ---- group 4: mip filter and LOD clamps -----------------------------
@@ -1048,6 +1227,148 @@ int main(int argc, char** argv) {
 			cmp("setFragmentSamplerState:atIndex:", singular);
 			cmp("setFragmentSamplerStates:withRange:", plural);
 			cmp("setFragmentSamplerState:lodMinClamp:lodMaxClamp:atIndex:", lodClamps);
+		}
+
+		// ---- group 10: anisotropic filtering ---------------------------------
+		// The footprint is long in x and one texel tall in y, over the stripe
+		// texture, whose level 0 is constant along x. Every anisotropic tap
+		// therefore lands on the same stripe, so the weighted average of N taps is
+		// that stripe and the expected result is exact: 0 or 255, the level-0
+		// texel values. Isotropic filtering cannot do this: it takes the LOD from
+		// the long axis, log2(16) = 4, which lands on a flat level, so the answer
+		// is a single mid-grey and no level-0 detail survives.
+		std::cout << "\n[10] anisotropic filtering at a grazing footprint (16:1)\n";
+		{
+			auto pd = std::dynamic_pointer_cast<Indium::PrivateDevice>(device);
+			size_t deviceLimit = (size_t)pd->properties().limits.maxSamplerAnisotropy;
+
+			auto anisoShot = [&](size_t maxAnisotropy) {
+				Case c {};
+				c.desc = Indium::SamplerDescriptor {};
+				c.desc.minFilter = Indium::SamplerMinMagFilter::Linear;
+				c.desc.magFilter = Indium::SamplerMinMagFilter::Linear;
+				c.desc.mipFilter = Indium::SamplerMipFilter::Nearest;
+				c.desc.sAddressMode = Indium::SamplerAddressMode::Repeat;
+				c.desc.tAddressMode = Indium::SamplerAddressMode::Repeat;
+				c.desc.maxAnisotropy = maxAnisotropy;
+				c.uvOriginX = 0.0; c.uvScaleX = 16.0 / STRIPE_W;
+				c.uvOriginY = 0.0; c.uvScaleY = 1.0 / STRIPE_H;
+				c.sMode = AddrMode::Repeat; c.tMode = AddrMode::Repeat;
+				c.normalized = true;
+
+				Vertex verts[3];
+				makeQuad(verts, c.uvOriginX, c.uvOriginY, c.uvScaleX, c.uvScaleY, 0.5);
+				auto vbuf = device->newBuffer(verts, sizeof(verts), Indium::ResourceOptions::StorageModeShared);
+				auto ubuf = makeUBuf(0.5);
+				auto samp = device->newSamplerState(c.desc);
+				return render(ctx, vbuf, ubuf, { samp }, false, false, 0, 0, ctx.striped);
+			};
+
+			// The exact reference: every pixel is one of the two level-0 stripe
+			// values. Any colour that is neither is a blend or a coarser level.
+			auto countLevel0 = [](const std::vector<uint8_t>& img, size_t& other, size_t& midGrey) {
+				size_t lv0 = 0; other = 0; midGrey = 0;
+				for (size_t i = 0; i < W * H; i++) {
+					const uint8_t* p4 = &img[i * 4];
+					bool grey = (p4[0] == p4[1] && p4[1] == p4[2]);
+					if (p4[0] == 0 || p4[0] == 255) lv0++;
+					else if (grey && p4[0] >= 126 && p4[0] <= 129) midGrey++;
+					else other++;
+				}
+				return lv0;
+			};
+
+			size_t other = 0, grey = 0;
+			auto iso = anisoShot(1);
+			if (getenv("SAMPLER_DIAG")) {
+				for (int an : { 1, 2, 4, 8, 16 }) {
+					auto t = anisoShot((size_t)an);
+					std::map<uint32_t, size_t> hh;
+					for (size_t i = 0; i < W * H; i++)
+						hh[(uint32_t)t[i*4] << 16 | (uint32_t)t[i*4+1] << 8 | t[i*4+2]]++;
+					std::printf("      aniso=%2d:", an);
+					int shown = 0;
+					for (auto& kv : hh) { std::printf(" (%06x)x%zu", kv.first, kv.second); if (++shown > 5) break; }
+					std::printf("  [%zu buckets]\n", hh.size());
+				}
+			}
+			size_t isoLevel0 = countLevel0(iso, other, grey);
+			{
+				char detail[200];
+				std::snprintf(detail, sizeof(detail),
+					"level0=%zu flatgrey=%zu other=%zu of %zu; isotropic takes the LOD from the long axis",
+					isoLevel0, grey, other, W * H);
+				// Isotropic must lose every level-0 pixel and land on a flat level.
+				bool pass = (isoLevel0 == 0) && (grey == W * H);
+				report(pass ? "ok" : "FAIL", "maxAnisotropy=1 is flat grey", detail);
+				if (!pass) gErrors++;
+				gChecks++;
+			}
+
+			auto sharp = anisoShot(deviceLimit);
+			size_t sharpOther = 0, sharpGrey = 0;
+			size_t sharpLevel0 = countLevel0(sharp, sharpOther, sharpGrey);
+			{
+				char detail[200];
+				std::snprintf(detail, sizeof(detail),
+					"level0=%zu flatgrey=%zu other=%zu of %zu; expected every pixel to be a level-0 stripe",
+					sharpLevel0, sharpGrey, sharpOther, W * H);
+				bool pass = (sharpLevel0 == W * H);
+				report(pass ? "ok" : "FAIL", "maxAnisotropy=device limit is sharp", detail);
+				if (!pass) gErrors++;
+				gChecks++;
+			}
+
+			// Negative controls, both directions. If either of these passed, the
+			// two checks above could not be telling anisotropy apart.
+			{
+				size_t o1 = 0, g1 = 0;
+				bool isoFailsSharp = (countLevel0(iso, o1, g1) != W * H);
+				report(isoFailsSharp ? "ok" : "FAIL", "isotropic image fails the sharp test",
+					isoFailsSharp ? "the sharp check rejects the isotropic result"
+					              : "the isotropic image satisfied the sharp test, so it is vacuous");
+				if (!isoFailsSharp) gErrors++;
+				gChecks++;
+
+				// The sharp image must not be classifiable as the flat coarse level,
+				// otherwise the "flat" check would be measuring nothing.
+				bool sharpFailsFlat = (sharpGrey == 0) && (sharpLevel0 == W * H);
+				report(sharpFailsFlat ? "ok" : "FAIL", "anisotropic image fails the flat test",
+					sharpFailsFlat ? "no pixel of it is the flat coarse level, so the flat check rejects it"
+					               : "the anisotropic image also reads as the flat level, so the flat check is vacuous");
+				if (!sharpFailsFlat) gErrors++;
+				gChecks++;
+			}
+
+			// A descriptor asking for more than the device supports must land on
+			// the device's maximum, not silently below it. Vulkan leaves the result
+			// undefined; on asahi an unclamped 1024 against a limit of 16 came back
+			// fully isotropic, so the anisotropy was lost rather than clamped.
+			{
+				auto over = anisoShot(deviceLimit * 64);
+				char detail[200];
+				std::snprintf(detail, sizeof(detail),
+					"maxAnisotropy=%zu gives %zu level-0 pixels; maxAnisotropy=%zu gives %zu",
+					deviceLimit * 64, countLevel0(over, other, grey), deviceLimit, sharpLevel0);
+				bool pass = (over == sharp);
+				report(pass ? "ok" : "FAIL", "maxAnisotropy past the limit is clamped to it", detail);
+				if (!pass) gErrors++;
+				gChecks++;
+			}
+
+			// Metal requires maxAnisotropy >= 1. Zero is out of range, and must not
+			// be more anisotropic than one.
+			{
+				auto zero = anisoShot(0);
+				bool pass = (zero == iso);
+				char detail[200];
+				std::snprintf(detail, sizeof(detail),
+					"maxAnisotropy=0 gives %zu level-0 pixels, maxAnisotropy=1 gives %zu",
+					countLevel0(zero, other, grey), isoLevel0);
+				report(pass ? "ok" : "FAIL", "maxAnisotropy=0 matches maxAnisotropy=1", detail);
+				if (!pass) gErrors++;
+				gChecks++;
+			}
 		}
 
 		keepPolling = false;
