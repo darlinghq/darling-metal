@@ -50,7 +50,7 @@ MTL_UNSUPPORTED_CLASS
 	// there is no format to forward here.
 	return Indium::DepthStencilDescriptor {
 		static_cast<Indium::CompareFunction>(_depthCompareFunction),
-		_depthWriteEnabled,
+		static_cast<bool>(_depthWriteEnabled),
 		// MTLStencilDescriptor is still a stub, so there is no stencil to forward.
 		std::nullopt,
 		std::nullopt,
