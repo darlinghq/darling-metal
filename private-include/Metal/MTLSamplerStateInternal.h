@@ -20,6 +20,10 @@ MTL_EXPORT
 #if DARLING_METAL_ENABLED
 @property(readonly) std::shared_ptr<Indium::SamplerState> state;
 
+// readwrite internally so -newSamplerStateWithDescriptor: can copy the
+// descriptor's label over; the public protocol keeps it readonly.
+@property(readwrite, nullable, copy, nonatomic) NSString* label;
+
 - (instancetype)initWithState: (std::shared_ptr<Indium::SamplerState>)state
                        device: (id<MTLDevice>)device;
 #endif

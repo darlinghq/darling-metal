@@ -228,7 +228,9 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 	if (!state) {
 		return nil;
 	}
-	return [[MTLSamplerStateInternal alloc] initWithState: state device: self];
+	MTLSamplerStateInternal* sampler = [[MTLSamplerStateInternal alloc] initWithState: state device: self];
+	sampler.label = descriptor.label;
+	return sampler;
 }
 
 - (id<MTLDepthStencilState>)newDepthStencilStateWithDescriptor: (MTLDepthStencilDescriptor*)descriptor
