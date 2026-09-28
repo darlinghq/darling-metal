@@ -13,6 +13,7 @@ METAL_DECLARATIONS_BEGIN
 @protocol MTLDevice;
 @protocol MTLCommandBuffer;
 @protocol MTLDrawable;
+@protocol MTLBlitCommandEncoder;
 @protocol MTLComputeCommandEncoder;
 @protocol MTLCommandQueue;
 @protocol MTLRenderCommandEncoder;
@@ -38,6 +39,8 @@ typedef void (^MTLCommandBufferHandler)(id<MTLCommandBuffer>);
 - (id<MTLComputeCommandEncoder>)computeCommandEncoder;
 
 - (id<MTLRenderCommandEncoder>)renderCommandEncoderWithDescriptor: (MTLRenderPassDescriptor*)renderPassDescriptor;
+
+- (id<MTLBlitCommandEncoder>)blitCommandEncoder;
 
 - (void)addCompletedHandler: (MTLCommandBufferHandler)block;
 - (void)waitUntilCompleted;

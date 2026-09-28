@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MPL-2.0
 
 #import <Metal/MTLCommandBufferInternal.h>
+#import <Metal/MTLBlitCommandEncoderInternal.h>
 #import <Metal/MTLComputeCommandEncoderInternal.h>
 #import <Metal/MTLDevice.h>
 #import <Metal/MTLCommandQueue.h>
@@ -112,6 +113,15 @@ struct MTLCommandBufferHandlerWrapper {
 		return nil;
 	}
 	return [[[MTLRenderCommandEncoderInternal alloc] initWithEncoder: encoder device: _device] autorelease];
+}
+
+- (id<MTLBlitCommandEncoder>)blitCommandEncoder
+{
+	auto encoder = _commandBuffer->blitCommandEncoder();
+	if (!encoder) {
+		return nil;
+	}
+	return [[[MTLBlitCommandEncoderInternal alloc] initWithEncoder: encoder device: _device] autorelease];
 }
 
 - (void)addCompletedHandler: (MTLCommandBufferHandler)block

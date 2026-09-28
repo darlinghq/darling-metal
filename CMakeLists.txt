@@ -41,6 +41,7 @@ add_framework(Metal
 
 	SOURCES
 		src/Metal/Metal.mm
+		src/Metal/MTLBlitCommandEncoder.mm
 		src/Metal/MTLBuffer.mm
 		src/Metal/MTLCaptureManager.mm
 		src/Metal/MTLCommandBuffer.mm

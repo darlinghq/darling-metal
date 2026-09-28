@@ -5,6 +5,7 @@
 #define _METAL_METAL_H_
 
 #import <Metal/MTLBuffer.h>
+#import <Metal/MTLBlitCommandEncoder.h>
 #import <Metal/MTLCommandBuffer.h>
 #import <Metal/MTLCommandEncoder.h>
 #import <Metal/MTLCommandQueue.h>
