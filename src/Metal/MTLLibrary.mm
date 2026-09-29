@@ -5,6 +5,8 @@
 #import <Metal/MTLDevice.h>
 #import <Metal/stubs.h>
 
+MTL_EXTERN NSErrorDomain const MTLLibraryErrorDomain = @"MTLLibraryErrorDomain";
+
 @implementation MTLFunctionInternal
 
 #if DARLING_METAL_ENABLED
