@@ -56,7 +56,26 @@ MTL_EXTERN NSErrorDomain const MTLLibraryErrorDomain = @"MTLLibraryErrorDomain";
 - (id<MTLArgumentEncoder>)newArgumentEncoderWithBufferIndex: (NSUInteger)bufferIndex
                                                  reflection: (MTLAutoreleasedArgument*)reflection
 {
-	// TODO
+	// An argument encoder is a writer: it lays arguments out in a buffer at
+	// offsets and alignments the shader dictates. indium's BindingDescriptor
+	// carries an argument index and a kind and nothing else - no data type, no
+	// size, no alignment, no name, and an internalIndex that is a Vulkan
+	// descriptor binding rather than a Metal buffer index - so any offset this
+	// produced would be invented, and the shader would read the wrong bytes.
+	//
+	// MTLArgumentDescriptor is implemented because it only holds what the caller
+	// sets. This is not, because it would have to hold an answer.
+	//
+	// nil is what Apple declares for this method when there is no encoder to
+	// give, so a caller that checks keeps working; the log is what makes the
+	// absence visible instead of leaving the caller to wonder.
+	NSLog(@"MTLFunction: -newArgumentEncoderWithBufferIndex:%lu returns nil. indium does not "
+		@"expose the buffer layout an argument encoder needs (its BindingDescriptor has no "
+		@"dataType, size or alignment, and its internalIndex is a Vulkan descriptor binding, not "
+		@"a Metal buffer index). Reading arguments through setArgumentBuffer:offset: is not "
+		@"available either for the same reason.",
+		(unsigned long)bufferIndex);
+
 	return nil;
 }
 
