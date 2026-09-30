@@ -24,7 +24,8 @@ if (BUILD_METAL)
 	# The public surface is a C ABI declared in deps/mslc/include/mslc/mslc.h, which
 	# is what Metal.framework includes. No C++ of mslc's is visible past it.
 	#
-	add_library(mslc
+	set(DYLIB_INSTALL_NAME "/usr/lib/darling/libmslc.dylib")
+	add_darling_library(mslc
 		deps/mslc/src/lexer.cpp
 		deps/mslc/src/ast.cpp
 		deps/mslc/src/parser.cpp
@@ -32,9 +33,6 @@ if (BUILD_METAL)
 		deps/mslc/src/spirv.cpp
 		deps/mslc/src/mslc.cpp
 	)
-
-	set(DYLIB_INSTALL_NAME "/usr/lib/darling/libmslc.dylib")
-	add_darling_library(mslc)
 	make_fat(mslc)
 
 	install(TARGETS mslc DESTINATION libexec/darling/usr/lib/darling)
