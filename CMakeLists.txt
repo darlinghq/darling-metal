@@ -9,6 +9,54 @@ remove_sdk_framework(MetalPerformanceShaders)
 
 if (BUILD_METAL)
 	add_subdirectory(deps/indium)
+
+	#
+	# mslc, an MSL to Vulkan SPIR-V compiler, linked into Metal.framework so that
+	# -[MTLDevice newLibraryWithSource:options:error:] has a front end to call.
+	#
+	# mslc's own CMakeLists.txt is deliberately not used. It builds a CLI driver
+	# and a corpus runner that fork/exec spirv-val, neither of which belongs in a
+	# guest address space with no host exec path, and mslc is a repository other
+	# people work on, so a target appearing there must not become a reason this
+	# one stops building. The six sources below are the whole library; main.cpp is
+	# the driver.
+	#
+	# The public surface is a C ABI declared in deps/mslc/include/mslc/mslc.h, which
+	# is what Metal.framework includes. No C++ of mslc's is visible past it.
+	#
+	add_library(mslc
+		deps/mslc/src/lexer.cpp
+		deps/mslc/src/ast.cpp
+		deps/mslc/src/parser.cpp
+		deps/mslc/src/sema.cpp
+		deps/mslc/src/spirv.cpp
+		deps/mslc/src/mslc.cpp
+	)
+
+	set(DYLIB_INSTALL_NAME "/usr/lib/darling/libmslc.dylib")
+	add_darling_library(mslc)
+	make_fat(mslc)
+
+	install(TARGETS mslc DESTINATION libexec/darling/usr/lib/darling)
+
+	target_include_directories(mslc PUBLIC
+		deps/mslc/include
+	)
+
+	target_include_directories(mslc PRIVATE
+		deps/mslc/src
+	)
+
+	set_target_properties(mslc PROPERTIES
+		CXX_STANDARD 17
+		CXX_STANDARD_REQUIRED ON
+		CXX_EXTENSIONS OFF
+	)
+
+	target_link_libraries(mslc PRIVATE
+		cxx
+		system
+	)
 endif()
 
 #
@@ -27,8 +75,10 @@ generate_sdk_framework(Metal
 
 if (BUILD_METAL)
 	set(METAL_LINK_INDIUM indium)
+	set(METAL_LINK_MSLC mslc)
 else()
 	set(METAL_LINK_INDIUM "")
+	set(METAL_LINK_MSLC "")
 endif()
 
 add_framework(Metal
@@ -85,6 +135,7 @@ add_framework(Metal
 		Foundation
 		IOSurface
 		${METAL_LINK_INDIUM}
+		${METAL_LINK_MSLC}
 		cxx
 )
 
