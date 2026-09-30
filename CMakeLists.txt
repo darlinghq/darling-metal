@@ -40,8 +40,11 @@ add_framework(Metal
 	VERSION ${FRAMEWORK_VERSION}
 
 	SOURCES
-		src/Metal/Metal.mm
+		src/Metal/MTLAccelerationStructure.mm
+		src/Metal/MTLAccelerationStructureDescriptor.mm
+		src/Metal/MTLAccelerationStructureGeometryDescriptor.mm
 		src/Metal/MTLArgumentDescriptor.mm
+		src/Metal/MTLBinaryArchive.mm
 		src/Metal/MTLBlitCommandEncoder.mm
 		src/Metal/MTLBuffer.mm
 		src/Metal/MTLCaptureManager.mm
@@ -50,20 +53,28 @@ add_framework(Metal
 		src/Metal/MTLCompileOptions.mm
 		src/Metal/MTLComputeCommandEncoder.mm
 		src/Metal/MTLComputePipeline.mm
+		src/Metal/MTLCounterSampleBuffer.mm
 		src/Metal/MTLDepthStencilDescriptor.mm
 		src/Metal/MTLDevice.mm
 		src/Metal/MTLDrawable.mm
 		src/Metal/MTLFunctionConstantValues.mm
+		src/Metal/MTLHeap.mm
+		src/Metal/MTLIndirectCommandBuffer.mm
+		src/Metal/MTLIntersectionFunctionTable.mm
 		src/Metal/MTLLibrary.mm
+		src/Metal/MTLLinkedFunctions.mm
 		src/Metal/MTLPipeline.mm
 		src/Metal/MTLRenderCommandEncoder.mm
 		src/Metal/MTLRenderPipeline.mm
 		src/Metal/MTLSamplerDescriptor.mm
 		src/Metal/MTLSamplerState.mm
+		src/Metal/MTLSharedEvent.mm
 		src/Metal/MTLStencilDescriptor.mm
 		src/Metal/MTLTexture.mm
 		src/Metal/MTLTextureDescriptor.mm
+		src/Metal/MTLTileRenderPipeline.mm
 		src/Metal/MTLVertexDescriptor.mm
+		src/Metal/Metal.mm
 
 	DEPENDENCIES
 		system

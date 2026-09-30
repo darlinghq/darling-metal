@@ -4,21 +4,31 @@
 #ifndef _METAL_METAL_H_
 #define _METAL_METAL_H_
 
+#import <Metal/MTLAccelerationStructure.h>
+#import <Metal/MTLAccelerationStructureDescriptor.h>
+#import <Metal/MTLAccelerationStructureGeometryDescriptor.h>
+#import <Metal/MTLBinaryArchive.h>
 #import <Metal/MTLBuffer.h>
 #import <Metal/MTLArgumentDescriptor.h>
 #import <Metal/MTLBlitCommandEncoder.h>
+#import <Metal/MTLCaptureManager.h>
 #import <Metal/MTLCommandBuffer.h>
 #import <Metal/MTLCommandEncoder.h>
 #import <Metal/MTLCommandQueue.h>
 #import <Metal/MTLCompileOptions.h>
 #import <Metal/MTLComputeCommandEncoder.h>
 #import <Metal/MTLComputePipeline.h>
+#import <Metal/MTLCounterSampleBuffer.h>
 #import <Metal/MTLDefines.h>
 #import <Metal/MTLDepthStencilDescriptor.h>
 #import <Metal/MTLDevice.h>
 #import <Metal/MTLDrawable.h>
 #import <Metal/MTLFunctionConstantValues.h>
+#import <Metal/MTLHeap.h>
+#import <Metal/MTLIndirectCommandBuffer.h>
+#import <Metal/MTLIntersectionFunctionTable.h>
 #import <Metal/MTLLibrary.h>
+#import <Metal/MTLLinkedFunctions.h>
 #import <Metal/MTLPipeline.h>
 #import <Metal/MTLPixelFormat.h>
 #import <Metal/MTLRenderCommandEncoder.h>
@@ -26,9 +36,11 @@
 #import <Metal/MTLResource.h>
 #import <Metal/MTLSamplerDescriptor.h>
 #import <Metal/MTLSamplerState.h>
+#import <Metal/MTLSharedEvent.h>
 #import <Metal/MTLStencilDescriptor.h>
 #import <Metal/MTLTexture.h>
 #import <Metal/MTLTextureDescriptor.h>
+#import <Metal/MTLTileRenderPipeline.h>
 #import <Metal/MTLTypes.h>
 #import <Metal/MTLVertexDescriptor.h>
 
