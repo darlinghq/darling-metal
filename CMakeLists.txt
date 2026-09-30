@@ -116,6 +116,7 @@ add_framework(Metal
 		src/Metal/MTLIOSurfaceCopy.mm
 		src/Metal/MTLLibrary.mm
 		src/Metal/MTLLinkedFunctions.mm
+		src/Metal/MTLMSLReflection.mm
 		src/Metal/MTLPipeline.mm
 		src/Metal/MTLRenderCommandEncoder.mm
 		src/Metal/MTLRenderPipeline.mm
