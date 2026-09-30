@@ -28,6 +28,32 @@ typedef NS_ENUM(NSUInteger, MTLDispatchType) {
 
 typedef void (^MTLCommandBufferHandler)(id<MTLCommandBuffer>);
 
+@protocol MTLLogState;
+
+typedef NS_OPTIONS(NSUInteger, MTLCommandBufferErrorOption) {
+	MTLCommandBufferErrorOptionNone = 0,
+	MTLCommandBufferErrorOptionEncoderExecutionStatus = 1,
+};
+
+/**
+ * Says how a command buffer should behave.
+ *
+ * Each stored value is returned unchanged. Only these three properties are
+ * declared, because only these three could be confirmed against a reference on
+ * this machine: the descriptor's `type` property takes an MTLCommandBufferType
+ * whose enumerators are in no header or generated reference available here, and
+ * an enum invented to fill a gap would be a wrong answer that looks right.
+ * Callers that set `type` get an unrecognised selector.
+ */
+MTL_EXPORT
+@interface MTLCommandBufferDescriptor : NSObject <NSCopying>
+
+@property(nullable, nonatomic, retain) id<MTLLogState> logState;
+@property(nonatomic) BOOL retainedReferences;
+@property(nonatomic) MTLCommandBufferErrorOption errorOptions;
+
+@end
+
 @protocol MTLCommandBuffer <NSObject>
 
 @property(readonly) id<MTLCommandQueue> commandQueue;
