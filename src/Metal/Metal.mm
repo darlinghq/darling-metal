@@ -22,15 +22,17 @@ static const char* additionalExtensions[] = {
 	//"VK_KHR_swapchain",
 };
 
-__attribute__((constructor))
-static void initMetal(void) {
-	bool enableValidation = false;
+void ensureMetalInitialized(void) {
+	static dispatch_once_t onceToken = 0;
+	dispatch_once(&onceToken, ^{
+		bool enableValidation = false;
 
-	if (getenv("METAL_INDIUM_VALIDATION")) {
-		enableValidation = true;
-	}
+		if (getenv("METAL_INDIUM_VALIDATION")) {
+			enableValidation = true;
+		}
 
-	Indium::init(additionalExtensions, sizeof(additionalExtensions) / sizeof(*additionalExtensions), enableValidation);
+		Indium::init(additionalExtensions, sizeof(additionalExtensions) / sizeof(*additionalExtensions), enableValidation);
+	});
 };
 
 __attribute__((destructor))
