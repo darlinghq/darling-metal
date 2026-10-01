@@ -74,6 +74,7 @@ MTL_EXPORT
 - (void)addCompletedHandler: (MTLCommandBufferHandler)block;
 - (void)waitUntilCompleted;
 - (void)presentDrawable: (id<MTLDrawable>)drawable;
+- (void)enqueue;
 - (void)commit;
 
 // TODO: other methods

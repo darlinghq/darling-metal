@@ -156,6 +156,11 @@ struct MTLCommandBufferHandlerWrapper {
 	_commandBuffer->presentDrawable(((id<MTLDrawableInternal>)drawable).drawable);
 }
 
+- (void)enqueue
+{
+	// Enqueue reserves a place on the command queue before commit
+}
+
 - (void)commit
 {
 	// Textures that copy IOSurface planes get the CPU's writes before the GPU runs the work, and
