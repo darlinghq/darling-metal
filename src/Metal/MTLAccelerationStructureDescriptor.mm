@@ -3,6 +3,9 @@
 
 #import <Metal/MTLAccelerationStructureDescriptor.h>
 
+#if __LP64__
+
+
 @implementation MTLPrimitiveAccelerationStructureDescriptor
 
 @synthesize geometryDescriptors = _geometryDescriptors;
@@ -86,3 +89,5 @@
 }
 
 @end
+
+#endif // __LP64__

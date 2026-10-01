@@ -3,6 +3,9 @@
 
 #import <Metal/MTLBinaryArchive.h>
 
+#if __LP64__
+
+
 @implementation MTLBinaryArchiveDescriptor
 
 @synthesize url = _url;
@@ -17,3 +20,5 @@
 }
 
 @end
+
+#endif // __LP64__

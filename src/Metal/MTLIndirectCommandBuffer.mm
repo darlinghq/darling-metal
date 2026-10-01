@@ -3,6 +3,9 @@
 
 #import <Metal/MTLIndirectCommandBuffer.h>
 
+#if __LP64__
+
+
 @implementation MTLIndirectCommandBufferDescriptor
 
 @synthesize inheritPipelineState = _inheritPipelineState;
@@ -28,3 +31,5 @@
 }
 
 @end
+
+#endif // __LP64__

@@ -3,6 +3,9 @@
 
 #import <Metal/MTLLinkedFunctions.h>
 
+#if __LP64__
+
+
 @implementation MTLLinkedFunctions
 
 @synthesize functions = _functions;
@@ -32,3 +35,5 @@
 }
 
 @end
+
+#endif // __LP64__

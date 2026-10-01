@@ -3,6 +3,9 @@
 
 #import <Metal/MTLArgumentDescriptor.h>
 
+#if __LP64__
+
+
 @implementation MTLArgumentDescriptor
 
 + (MTLArgumentDescriptor*)argumentDescriptor
@@ -25,3 +28,5 @@
 }
 
 @end
+
+#endif // __LP64__

@@ -5,6 +5,9 @@
 #import <Foundation/NSMethodSignature.h>
 #import <Foundation/NSInvocation.h>
 
+#if __LP64__
+
+
 MTL_EXTERN NSErrorDomain const MTLCaptureErrorDomain = @"MTLCaptureErrorDomain";
 
 @implementation MTLCaptureDescriptor
@@ -89,3 +92,5 @@ MTL_EXTERN NSErrorDomain const MTLCaptureErrorDomain = @"MTLCaptureErrorDomain";
 }
 
 @end
+
+#endif // __LP64__

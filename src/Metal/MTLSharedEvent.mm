@@ -3,6 +3,9 @@
 
 #import <Metal/MTLSharedEvent.h>
 
+#if __LP64__
+
+
 @implementation MTLSharedEventListener
 
 - (instancetype)init
@@ -44,3 +47,5 @@
 }
 
 @end
+
+#endif // __LP64__

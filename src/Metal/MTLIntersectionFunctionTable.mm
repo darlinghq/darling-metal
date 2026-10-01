@@ -3,6 +3,9 @@
 
 #import <Metal/MTLIntersectionFunctionTable.h>
 
+#if __LP64__
+
+
 @implementation MTLIntersectionFunctionDescriptor
 
 - (id)copyWithZone: (NSZone*)zone
@@ -32,3 +35,5 @@
 }
 
 @end
+
+#endif // __LP64__

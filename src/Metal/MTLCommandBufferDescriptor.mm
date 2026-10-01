@@ -3,6 +3,9 @@
 
 #import <Metal/MTLCommandBuffer.h>
 
+#if __LP64__
+
+
 @implementation MTLCommandBufferDescriptor
 
 @synthesize logState = _logState;
@@ -27,3 +30,5 @@
 }
 
 @end
+
+#endif // __LP64__

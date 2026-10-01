@@ -3,6 +3,9 @@
 
 #import <Metal/MTLAccelerationStructureGeometryDescriptor.h>
 
+#if __LP64__
+
+
 @implementation MTLAccelerationStructureGeometryDescriptor
 
 - (id)copyWithZone: (NSZone*)zone
@@ -269,3 +272,5 @@
 }
 
 @end
+
+#endif // __LP64__

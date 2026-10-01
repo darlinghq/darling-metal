@@ -3,6 +3,9 @@
 
 #import <Metal/MTLCounterSampleBuffer.h>
 
+#if __LP64__
+
+
 @implementation MTLCounterSampleBufferDescriptor
 
 @synthesize label = _label;
@@ -31,3 +34,5 @@
 }
 
 @end
+
+#endif // __LP64__

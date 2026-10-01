@@ -3,6 +3,9 @@
 
 #import <Metal/MTLTileRenderPipeline.h>
 
+#if __LP64__
+
+
 @implementation MTLTileRenderPipelineColorAttachmentDescriptor
 
 @synthesize pixelFormat = _pixelFormat;
@@ -197,3 +200,5 @@
 }
 
 @end
+
+#endif // __LP64__

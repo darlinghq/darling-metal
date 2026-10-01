@@ -3,6 +3,9 @@
 
 #import <Metal/MTLAccelerationStructure.h>
 
+#if __LP64__
+
+
 @implementation MTLMotionKeyframeData
 
 @synthesize buffer = _buffer;
@@ -46,3 +49,5 @@
 }
 
 @end
+
+#endif // __LP64__

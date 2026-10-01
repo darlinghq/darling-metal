@@ -3,6 +3,9 @@
 
 #import <Metal/MTLHeap.h>
 
+#if __LP64__
+
+
 // resourceOptions is not stored. Apple documents the two views as reflecting
 // each other, and deriving the packed value from the three mode properties is
 // the only way to keep that true without a second copy that can go stale: a
@@ -47,3 +50,5 @@ static MTLResourceOptions MTLHeapDescriptorResourceOptions(MTLHeapDescriptor* de
 }
 
 @end
+
+#endif // __LP64__
