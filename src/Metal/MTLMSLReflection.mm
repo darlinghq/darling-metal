@@ -9,31 +9,53 @@
 #if DARLING_METAL_ENABLED
 
 /*
- * mslc's reflection document, as of mslc 0.1.0, described in one place because
- * everything here is read off that shape and nothing else is guessed at:
+ * mslc's reflection document, as of mslc master at 413bf6c, described in one
+ * place because everything here is read off that shape and nothing else is
+ * guessed at:
  *
  *   {
- *       "reflection_version": 1,
- *       "stage": "kernel",
- *       "entry_point": "add_arrays",
- *       "local_size": [1, 1, 1],
- *       "bindings": [
- *           { "kind": "Buffer", "metal_index": 0,
- *             "descriptor": { "set": 0, "binding": 0 },
- *             "member": 0, "param_index": 0, "name": "inA" },
+ *       "reflection_version": 2,
+ *       "entry_points": [
+ *           {
+ *               "name": "add_arrays",
+ *               "stage": "compute",
+ *               "local_size": [1, 1, 1],
+ *               "bindings": [
+ *                   { "kind": "Buffer", "metal_index": 0,
+ *                     "descriptor": { "set": 0, "binding": 0 },
+ *                     "member": 0, "param_index": 0, "name": "inA" },
+ *                   ...
+ *               ]
+ *           }
  *           ...
  *       ]
  *   }
  *
+ * The stage vocabulary is "compute", "vertex" and "fragment". Note that a kernel
+ * reports "compute", not "kernel": mslc's --stage option takes kernel/vertex/
+ * fragment, but the stage it writes into the document is the SPIR-V execution
+ * model, which is called compute. Reading "kernel" would never match a document
+ * mslc actually produces.
+ *
+ * Version 2 is the shape mslc emits today. Version 1 was flat -- stage,
+ * entry_point and bindings at the top level -- because a Metal source held a
+ * single entry point, which is not true: newLibraryWithSource: is handed a file
+ * carrying a vertex and a fragment function and compiles both. One document per
+ * module with the entry points arrayed inside it is what that requires, so the
+ * version went with it. The version is required to be exactly 2 rather than
+ * parsed permissively, because a document whose shape is not known is a document
+ * whose fields cannot be read, and reading it as if it were v1 would look for
+ * keys that are not there and fail on the first one.
+ *
  * Two things about it are worth stating rather than leaving to be discovered:
  *
- * The document is not strict JSON. mslc writes a comma after the last binding,
- * which a strict parser rejects. Cocotron's NSJSONSerialization accepts it and
- * reads every binding correctly, verified under darlingserver, so the trailing
- * comma is handled by the parser being lenient rather than by anything here
- * rewriting the text. That is a fact about the guest's Foundation, not about
- * indium, and a stricter Foundation would turn this into a hard failure. Fixing
- * it belongs in mslc: cristim/mslc#33 is where that decision is being made.
+ * The document is strict JSON. It was not: mslc wrote a comma after the last
+ * binding, which a strict parser rejects, and cocotron's NSJSONSerialization was
+ * lenient enough to accept it, so reading it depended on that leniency rather than
+ * on the document being valid. mslc writes the separator before each entry instead
+ * now (cristim/mslc#33), and every document checked here loads under a strict
+ * parser. The leniency is no longer relied on, but nothing here depends on it
+ * either way.
  *
  * Only buffers are described. Every entry mslc emits is "kind": "Buffer", from
  * the one place it writes reflection (src/sema.cpp, the buffer branch of the
@@ -98,7 +120,7 @@ static bool MTLReadString(NSDictionary* object, NSString* key, NSString*& outVal
 }
 
 static bool MTLReadStageType(NSString* stage, Indium::FunctionType& outType) {
-	if ([stage isEqualToString: @"kernel"]) {
+	if ([stage isEqualToString: @"compute"]) {
 		outType = Indium::FunctionType::Kernel;
 	} else if ([stage isEqualToString: @"vertex"]) {
 		outType = Indium::FunctionType::Vertex;
@@ -213,37 +235,64 @@ bool MTLReadMSLReflection(const char* document, size_t length,
 	}
 
 	NSDictionary* object = (NSDictionary*)root;
-	Indium::FunctionReflection functionReflection;
 
-	NSString* stage = nil;
-	if (!MTLReadString(object, @"stage", stage)) {
-		outError = MTLReflectionError(@"mslc's reflection has no string stage");
+	size_t version = 0;
+	if (!MTLReadIndex([object objectForKey: @"reflection_version"], version) || version != 2) {
+		outError = MTLReflectionError(@"mslc's reflection is version %lu, not the version 2 "
+			@"document this reader knows how to read", (unsigned long)version);
 		return false;
 	}
 
-	if (!MTLReadStageType(stage, functionReflection.functionType)) {
-		outError = MTLReflectionError(@"mslc reported the stage '%@', which indium cannot run", stage);
+	id entryPoints = [object objectForKey: @"entry_points"];
+	if (![entryPoints isKindOfClass: [NSArray class]]) {
+		outError = MTLReflectionError(@"mslc's reflection has no entry_points array");
 		return false;
 	}
 
-	id bindings = [object objectForKey: @"bindings"];
-	if (![bindings isKindOfClass: [NSArray class]]) {
-		outError = MTLReflectionError(@"mslc's reflection has no bindings array");
-		return false;
+	for (id entry in (NSArray*)entryPoints) {
+		if (![entry isKindOfClass: [NSDictionary class]]) {
+			outError = MTLReflectionError(@"mslc's reflection has an entry point that is not an object");
+			return false;
+		}
+
+		NSDictionary* entryObject = (NSDictionary*)entry;
+		Indium::FunctionReflection functionReflection;
+
+		NSString* stage = nil;
+		if (!MTLReadString(entryObject, @"stage", stage)) {
+			outError = MTLReflectionError(@"mslc's reflection has no string stage");
+			return false;
+		}
+
+		if (!MTLReadStageType(stage, functionReflection.functionType)) {
+			outError = MTLReflectionError(@"mslc reported the stage '%@', which indium cannot run", stage);
+			return false;
+		}
+
+		id bindings = [entryObject objectForKey: @"bindings"];
+		if (![bindings isKindOfClass: [NSArray class]]) {
+			outError = MTLReflectionError(@"mslc's reflection has no bindings array");
+			return false;
+		}
+
+		if (!MTLReadBindings((NSArray*)bindings, functionReflection, outError)) {
+			return false;
+		}
+
+		NSString* entryPoint = nil;
+		if (!MTLReadString(entryObject, @"name", entryPoint) || [entryPoint length] == 0) {
+			outError = MTLReflectionError(@"mslc's reflection has no entry point name");
+			return false;
+		}
+
+		outReflection.functions.emplace(
+			std::string([entryPoint UTF8String]), std::move(functionReflection));
 	}
 
-	if (!MTLReadBindings((NSArray*)bindings, functionReflection, outError)) {
+	if (outReflection.functions.empty()) {
+		outError = MTLReflectionError(@"mslc's reflection describes no entry point");
 		return false;
 	}
-
-	NSString* entryPoint = nil;
-	if (!MTLReadString(object, @"entry_point", entryPoint) || [entryPoint length] == 0) {
-		outError = MTLReflectionError(@"mslc's reflection has no entry point name");
-		return false;
-	}
-
-	outReflection.functions.emplace(
-		std::string([entryPoint UTF8String]), std::move(functionReflection));
 
 	return true;
 }
