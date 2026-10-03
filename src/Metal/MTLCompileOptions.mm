@@ -4,6 +4,7 @@
 #import <Metal/MTLCompileOptions.h>
 #import <Foundation/NSMethodSignature.h>
 #import <Foundation/NSInvocation.h>
+#import <Metal/stubs.h>
 
 @implementation MTLCompileOptions
 
@@ -11,7 +12,7 @@
 
 - (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector
 {
-    return [NSMethodSignature signatureWithObjCTypes: "v@:"];
+    return MTLStubSignature(aSelector);
 }
 
 - (void)forwardInvocation:(NSInvocation *)anInvocation

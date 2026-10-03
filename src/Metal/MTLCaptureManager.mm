@@ -4,6 +4,7 @@
 #import <Metal/MTLCaptureManager.h>
 #import <Foundation/NSMethodSignature.h>
 #import <Foundation/NSInvocation.h>
+#import <Metal/stubs.h>
 
 #if __LP64__
 
@@ -83,7 +84,7 @@ MTL_EXTERN NSErrorDomain const MTLCaptureErrorDomain = @"MTLCaptureErrorDomain";
 
 - (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector
 {
-    return [NSMethodSignature signatureWithObjCTypes: "v@:"];
+    return MTLStubSignature(aSelector);
 }
 
 - (void)forwardInvocation:(NSInvocation *)anInvocation
