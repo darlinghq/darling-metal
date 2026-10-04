@@ -357,6 +357,20 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 	return MTLDeviceInfo::supportsFeatureSet(featureSet);
 }
 
+- (BOOL)supportsShaderBarycentricCoordinates
+{
+	// See the note in MTLDevice.h: Vulkan has no barycentric decoration to lower
+	// onto, so this says what the backend implements.
+	return NO;
+}
+
+- (BOOL)argumentBuffersSupport
+{
+	// See the note in MTLDevice.h: indium does not implement argument buffers, so
+	// this reports what the backend can do rather than what the GPU is.
+	return NO;
+}
+
 - (BOOL)supportsTextureSampleCount: (NSUInteger)sampleCount
 {
 	return sampleCount <= UINT32_MAX && _device->supportsTextureSampleCount(static_cast<uint32_t>(sampleCount));
