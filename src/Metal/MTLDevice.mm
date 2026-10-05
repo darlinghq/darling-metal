@@ -364,11 +364,9 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 	return NO;
 }
 
-- (BOOL)argumentBuffersSupport
+- (MTLArgumentBuffersTier)argumentBuffersSupport
 {
-	// See the note in MTLDevice.h: indium does not implement argument buffers, so
-	// this reports what the backend can do rather than what the GPU is.
-	return NO;
+	return MTLArgumentBuffersTier1;
 }
 
 - (BOOL)supportsTextureSampleCount: (NSUInteger)sampleCount

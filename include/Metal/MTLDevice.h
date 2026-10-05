@@ -118,6 +118,11 @@ typedef NS_ENUM(NSInteger, MTLGPUFamily) {
 	MTLGPUFamilyMetal4 = 5002,
 };
 
+typedef NS_ENUM(NSUInteger, MTLArgumentBuffersTier) {
+	MTLArgumentBuffersTier1 = 0,
+	MTLArgumentBuffersTier2 = 1,
+};
+
 typedef NS_ENUM(NSUInteger, MTLReadWriteTextureTier) {
 	MTLReadWriteTextureTierNone = 0,
 	MTLReadWriteTextureTier1 = 1,
@@ -141,13 +146,9 @@ typedef NS_ENUM(NSUInteger, MTLReadWriteTextureTier) {
 - (BOOL)supportsFeatureSet: (MTLFeatureSet)featureSet;
 - (BOOL)supportsTextureSampleCount: (NSUInteger)sampleCount;
 
-/* NO, and not because the hardware lacks them: Apple Silicon supports argument
- * buffers. indium carries the answer already --
- * SamplerDescriptor::supportArgumentBuffers is false and library.cpp sets it
- * false -- and there is no argument buffer implementation behind it. Answering
- * YES would send a caller down an MTLArgumentBuffer path with no encoder at the
- * end of it, converting a clear NO here into a failure at the first encode. */
-- (BOOL)argumentBuffersSupport;
+/* Reports Tier 1 argument buffers support (baseline tier). indium does not
+ * implement Tier 2 argument buffers. */
+- (MTLArgumentBuffersTier)argumentBuffersSupport;
 
 /* Also NO for want of an implementation rather than for want of hardware.
  * Barycentric coordinates are a fragment-shader interpolation decoration, and
