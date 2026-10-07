@@ -154,6 +154,10 @@ destinationBytesPerImage: (NSUInteger)destinationBytesPerImage
     destinationLevel: (NSUInteger)destinationLevel
    destinationOrigin: (MTLOrigin)destinationOrigin
 {
+	// An empty initial layer has no texels to copy; do not dereference its
+	// not-yet-created source texture or encode a zero-extent Vulkan copy.
+	if (sourceSize.width == 0 || sourceSize.height == 0 || sourceSize.depth == 0)
+		return;
 	_encoder->copy(((MTLTextureInternal*)sourceTexture).texture, sourceSlice, sourceLevel,
 	               MTLOriginToIndium(sourceOrigin), MTLSizeToIndium(sourceSize),
 	               ((MTLTextureInternal*)destinationTexture).texture, destinationSlice,

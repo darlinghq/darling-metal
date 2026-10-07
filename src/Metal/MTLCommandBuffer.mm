@@ -129,6 +129,12 @@ struct MTLCommandBufferHandlerWrapper {
 	_commandBuffer->addCompletedHandler(MTLCommandBufferHandlerWrapper(block, self));
 }
 
+// Indium currently has no command-buffer error result to translate.
+- (NSError *)error
+{
+	return nil;
+}
+
 - (void)waitUntilCompleted
 {
 	_commandBuffer->waitUntilCompleted();

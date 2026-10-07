@@ -59,6 +59,7 @@ MTL_EXPORT
 @property(readonly) id<MTLCommandQueue> commandQueue;
 @property (readonly) id<MTLDevice> device;
 @property(nullable, copy, atomic) NSString* label;
+@property(nullable, readonly) NSError* error;
 
 - (id<MTLComputeCommandEncoder>)computeCommandEncoderWithDescriptor: (MTLComputePassDescriptor*)computePassDescriptor;
 - (id<MTLComputeCommandEncoder>)computeCommandEncoderWithDispatchType: (MTLDispatchType)dispatchType;
