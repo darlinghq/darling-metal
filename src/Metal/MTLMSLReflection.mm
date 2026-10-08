@@ -5,79 +5,14 @@
 #import <Metal/stubs.h>
 #import <CoreFoundation/CoreFoundation.h>
 #import <stdarg.h>
+#include <cmath>
+#include <initializer_list>
 
 #if DARLING_METAL_ENABLED
 
-/*
- * mslc's reflection document, as of mslc master at 413bf6c, described in one
- * place because everything here is read off that shape and nothing else is
- * guessed at:
- *
- *   {
- *       "reflection_version": 2,
- *       "entry_points": [
- *           {
- *               "name": "add_arrays",
- *               "stage": "compute",
- *               "local_size": [1, 1, 1],
- *               "bindings": [
- *                   { "kind": "Buffer", "metal_index": 0,
- *                     "descriptor": { "set": 0, "binding": 0 },
- *                     "member": 0, "param_index": 0, "name": "inA" },
- *                   ...
- *               ]
- *           }
- *           ...
- *       ]
- *   }
- *
- * The stage vocabulary is "compute", "vertex" and "fragment". Note that a kernel
- * reports "compute", not "kernel": mslc's --stage option takes kernel/vertex/
- * fragment, but the stage it writes into the document is the SPIR-V execution
- * model, which is called compute. Reading "kernel" would never match a document
- * mslc actually produces.
- *
- * Version 2 is the shape mslc emits today. Version 1 was flat -- stage,
- * entry_point and bindings at the top level -- because a Metal source held a
- * single entry point, which is not true: newLibraryWithSource: is handed a file
- * carrying a vertex and a fragment function and compiles both. One document per
- * module with the entry points arrayed inside it is what that requires, so the
- * version went with it. The version is required to be exactly 2 rather than
- * parsed permissively, because a document whose shape is not known is a document
- * whose fields cannot be read, and reading it as if it were v1 would look for
- * keys that are not there and fail on the first one.
- *
- * Two things about it are worth stating rather than leaving to be discovered:
- *
- * The document is strict JSON. It was not: mslc wrote a comma after the last
- * binding, which a strict parser rejects, and cocotron's NSJSONSerialization was
- * lenient enough to accept it, so reading it depended on that leniency rather than
- * on the document being valid. mslc writes the separator before each entry instead
- * now (cristim/mslc#33), and every document checked here loads under a strict
- * parser. The leniency is no longer relied on, but nothing here depends on it
- * either way.
- *
- * Only buffers are described. Every entry mslc emits is "kind": "Buffer", from
- * the one place it writes reflection (src/sema.cpp, the buffer branch of the
- * parameter loop), and that string is a literal at that one site: there is no
- * code path in mslc that can emit a Texture, a Sampler or a VertexInput, and no
- * "embeddedSamplers" key in the document at all. A shader with a texture in it
- * therefore has no entry for that resource, and indium would build a descriptor
- * set layout it cannot satisfy. Reading a kind other than Buffer is refused
- * rather than mapped onto something, because the document carries no texture
- * access type and mapping it would mean guessing.
- *
- * That gap is currently behind an earlier one: mslc rejects a texture or sampler
- * parameter in its sema ("texture and sampler parameters are not lowered yet")
- * before it ever writes reflection, and its parser rejects the templated type
- * syntax real MSL uses. So fixing mslc's lowering alone would not make a textured
- * shader work here; the reflection has to grow at the same time.
- *
- * local_size is not read. indium takes the workgroup size from the module's
- * OpExecutionModeId LocalSizeId over SpecId 0, 1 and 2, which is what
- * dispatchThreads supplies, so a value here that disagreed with the module would
- * be a second answer to a question the module already answers.
- */
+// Schema: mslc c745234 src/sema.cpp resource and embedded sampler emission.
+// Descriptor sets are stage-owned in Indium; embedded sampler indices are local
+// to each entry point. Buffer-only version 2 documents remain supported.
 
 static NSString* MTLReflectionError(NSString* format, ...) {
 	va_list args;
@@ -90,7 +25,8 @@ static NSString* MTLReflectionError(NSString* format, ...) {
 // A JSON number that is not an integer. Reading 2.5 as 2 would put a binding at
 // an index the shader never asked for, so it is refused rather than rounded.
 static bool MTLReadIndex(id value, size_t& outIndex) {
-	if (![value isKindOfClass: [NSNumber class]]) {
+	if (![value isKindOfClass: [NSNumber class]] ||
+		value == (id)kCFBooleanTrue || value == (id)kCFBooleanFalse) {
 		return false;
 	}
 
@@ -133,19 +69,85 @@ static bool MTLReadStageType(NSString* stage, Indium::FunctionType& outType) {
 	return true;
 }
 
-static bool MTLReadBindingType(NSString* kind, Indium::BindingType& outType) {
-	// Buffer is the only kind mslc emits, and it is the only one that can be read
-	// correctly: the document carries no texture access type, so accepting a
-	// Texture here would mean guessing between sampling and storage access from a
-	// document that does not say, and guessing wrong binds a sampled texture as a
-	// storage image. Adding a kind is a deliberate act that has to bring the
-	// fields indium needs for it, at the point mslc starts emitting it.
-	if ([kind isEqualToString: @"Buffer"]) {
-		outType = Indium::BindingType::Buffer;
-		return true;
+template<typename T>
+static bool MTLReadEnum(NSDictionary* object, NSString* key, T& value,
+	std::initializer_list<std::pair<NSString*, T>> names)
+{
+	NSString* name = nil;
+	if (!MTLReadString(object, key, name)) return false;
+	for (const auto& item : names) {
+		if ([name isEqualToString: item.first]) {
+			value = item.second;
+			return true;
+		}
 	}
-
 	return false;
+}
+
+static bool MTLReadLOD(id value, float& outValue) {
+	if (![value isKindOfClass: [NSNumber class]] ||
+		value == (id)kCFBooleanTrue || value == (id)kCFBooleanFalse) return false;
+	double number = [value doubleValue];
+	outValue = (float)number;
+	return std::isfinite(number) && std::isfinite(outValue) && number >= 0;
+}
+
+static bool MTLReadEmbeddedSamplers(id entries, Indium::FunctionReflection& function,
+	NSString*& error)
+{
+	if (entries == nil) return true;
+	if (![entries isKindOfClass: [NSArray class]]) {
+		error = MTLReflectionError(@"embedded_samplers is not an array");
+		return false;
+	}
+	using Sampler = Indium::EmbeddedSamplerDescriptor;
+	for (id entry in (NSArray*)entries) {
+		if (![entry isKindOfClass: [NSDictionary class]]) {
+			error = MTLReflectionError(@"an embedded sampler is not an object");
+			return false;
+		}
+		NSDictionary* object = entry;
+		Sampler sampler;
+		auto address = [&](NSString* key, Sampler::AddressMode& mode) {
+			return MTLReadEnum(object, key, mode, {
+				{@"ClampToZero", Sampler::AddressMode::ClampToZero},
+				{@"ClampToEdge", Sampler::AddressMode::ClampToEdge},
+				{@"Repeat", Sampler::AddressMode::Repeat},
+				{@"MirrorRepeat", Sampler::AddressMode::MirrorRepeat}});
+		};
+		auto filter = [&](NSString* key, Sampler::Filter& mode) {
+			return MTLReadEnum(object, key, mode, {
+				{@"Nearest", Sampler::Filter::Nearest}, {@"Linear", Sampler::Filter::Linear}});
+		};
+		id normalized = [object objectForKey: @"normalized_coordinates"];
+		size_t anisotropy = 0;
+		NSString* compare = nil;
+		NSString* border = nil;
+		if (!address(@"s_address", sampler.widthAddressMode) ||
+			!address(@"t_address", sampler.heightAddressMode) ||
+			!address(@"r_address", sampler.depthAddressMode) ||
+			!filter(@"mag_filter", sampler.magnificationFilter) ||
+			!filter(@"min_filter", sampler.minificationFilter) ||
+			!MTLReadEnum(object, @"mip_filter", sampler.mipmapFilter, {
+				{@"None", Sampler::MipFilter::None}, {@"Nearest", Sampler::MipFilter::Nearest},
+				{@"Linear", Sampler::MipFilter::Linear}}) ||
+			(normalized != (id)kCFBooleanTrue && normalized != (id)kCFBooleanFalse) ||
+			!MTLReadString(object, @"compare_function", compare) || ![compare isEqualToString: @"Never"] ||
+			!MTLReadString(object, @"border_color", border) || ![border isEqualToString: @"TransparentBlack"] ||
+			!MTLReadIndex([object objectForKey: @"anisotropy"], anisotropy) || anisotropy != 1 ||
+			!MTLReadLOD([object objectForKey: @"lod_min"], sampler.lodMin) ||
+			!MTLReadLOD([object objectForKey: @"lod_max"], sampler.lodMax) || sampler.lodMin > sampler.lodMax)
+		{
+			error = MTLReflectionError(@"an embedded sampler has missing or unsupported state");
+			return false;
+		}
+		sampler.usesNormalizedCoordinates = normalized == (id)kCFBooleanTrue;
+		sampler.compareFunction = Sampler::CompareFunction::Never;
+		sampler.borderColor = Sampler::BorderColor::TransparentBlack;
+		sampler.anisotropyLevel = (uint8_t)anisotropy;
+		function.embeddedSamplers.push_back(sampler);
+	}
+	return true;
 }
 
 static bool MTLReadBindings(NSArray* bindings, Indium::FunctionReflection& outFunction,
@@ -166,17 +168,34 @@ static bool MTLReadBindings(NSArray* bindings, Indium::FunctionReflection& outFu
 			return false;
 		}
 
-		if (!MTLReadBindingType(kind, binding.type)) {
-			outError = MTLReflectionError(
-				@"mslc described a binding of kind '%@'; only Buffer bindings are "
-				@"described yet, and this cannot be turned into a descriptor layout",
-				kind);
+		if ([kind isEqualToString: @"Buffer"]) binding.type = Indium::BindingType::Buffer;
+		else if ([kind isEqualToString: @"Texture"]) binding.type = Indium::BindingType::Texture;
+		else if ([kind isEqualToString: @"Sampler"]) binding.type = Indium::BindingType::Sampler;
+		else {
+			outError = MTLReflectionError(@"unsupported reflection binding kind '%@'", kind);
 			return false;
 		}
 
-		if (!MTLReadIndex([object objectForKey: @"metal_index"], binding.index)) {
-			outError = MTLReflectionError(
-				@"binding '%@' has no integer metal_index", kind);
+		id embedded = [object objectForKey: @"embedded_sampler"];
+		if (embedded != nil) {
+			if (binding.type != Indium::BindingType::Sampler ||
+				[object objectForKey: @"metal_index"] != nil ||
+				!MTLReadIndex(embedded, binding.embeddedSamplerIndex) ||
+				binding.embeddedSamplerIndex >= outFunction.embeddedSamplers.size())
+			{
+				outError = MTLReflectionError(@"invalid embedded sampler binding");
+				return false;
+			}
+			binding.index = SIZE_MAX;
+		} else if (!MTLReadIndex([object objectForKey: @"metal_index"], binding.index)) {
+			outError = MTLReflectionError(@"binding '%@' has no integer metal_index", kind);
+			return false;
+		}
+		if (binding.type == Indium::BindingType::Texture &&
+			!MTLReadEnum(object, @"texture_access", binding.textureAccessType, {
+				{@"Sample", Indium::TextureAccessType::Sample}, {@"Write", Indium::TextureAccessType::Write}}))
+		{
+			outError = MTLReflectionError(@"texture binding has missing or unsupported texture_access");
 			return false;
 		}
 
@@ -197,9 +216,14 @@ static bool MTLReadBindings(NSArray* bindings, Indium::FunctionReflection& outFu
 			return false;
 		}
 
-		// textureAccessType and embeddedSamplerIndex keep their defaults: mslc
-		// emits no embedded samplers, so embeddedSamplerIndex stays SIZE_MAX, and
-		// a sampled texture is the only access type indium's defaults describe.
+		if (binding.type != Indium::BindingType::Buffer) {
+			size_t set = 0;
+			size_t expected = outFunction.functionType == Indium::FunctionType::Fragment ? 1 : 0;
+			if (!MTLReadIndex([(NSDictionary*)descriptor objectForKey: @"set"], set) || set != expected) {
+				outError = MTLReflectionError(@"resource descriptor set does not match its stage");
+				return false;
+			}
+		}
 		outFunction.bindings.push_back(binding);
 	}
 
@@ -275,7 +299,9 @@ bool MTLReadMSLReflection(const char* document, size_t length,
 			return false;
 		}
 
-		if (!MTLReadBindings((NSArray*)bindings, functionReflection, outError)) {
+		if (!MTLReadEmbeddedSamplers([entryObject objectForKey: @"embedded_samplers"],
+			functionReflection, outError) ||
+			!MTLReadBindings((NSArray*)bindings, functionReflection, outError)) {
 			return false;
 		}
 
