@@ -130,6 +130,11 @@ struct MTLCommandBufferHandlerWrapper {
 	_commandBuffer->addScheduledHandler(MTLCommandBufferHandlerWrapper(block, self));
 }
 
+- (void)waitUntilScheduled
+{
+	_commandBuffer->waitUntilScheduled();
+}
+
 - (void)addCompletedHandler: (MTLCommandBufferHandler)block
 {
 	_commandBuffer->addCompletedHandler(MTLCommandBufferHandlerWrapper(block, self));
