@@ -408,6 +408,24 @@ MTL_UNSUPPORTED_CLASS
 	_colorAttachments = [MTLRenderPassColorAttachmentDescriptorArray new];
 }
 
+// Like the color attachments, the depth and stencil attachment descriptors always exist, so
+// that `descriptor.depthAttachment.texture = texture` configures the descriptor.
+- (MTLRenderPassDepthAttachmentDescriptor*)depthAttachment
+{
+	if (_depthAttachment == nil) {
+		_depthAttachment = [MTLRenderPassDepthAttachmentDescriptor new];
+	}
+	return _depthAttachment;
+}
+
+- (MTLRenderPassStencilAttachmentDescriptor*)stencilAttachment
+{
+	if (_stencilAttachment == nil) {
+		_stencilAttachment = [MTLRenderPassStencilAttachmentDescriptor new];
+	}
+	return _stencilAttachment;
+}
+
 - (void)_doDealloc
 {
 	[_colorAttachments release];
@@ -504,8 +522,8 @@ MTL_UNSUPPORTED_CLASS
 {
 	return Indium::RenderPassDescriptor {
 		[_colorAttachments asContiguousIndiumDescriptors],
-		(_depthAttachment == nil) ? std::nullopt : std::make_optional([_depthAttachment asIndiumDescriptor]),
-		(_stencilAttachment == nil) ? std::nullopt : std::make_optional([_stencilAttachment asIndiumDescriptor]),
+		(_depthAttachment.texture == nil) ? std::nullopt : std::make_optional([_depthAttachment asIndiumDescriptor]),
+		(_stencilAttachment.texture == nil) ? std::nullopt : std::make_optional([_stencilAttachment asIndiumDescriptor]),
 		((MTLBufferInternal*)_visibilityResultBuffer).buffer,
 		_renderTargetArrayLength,
 		_imageblockSampleLength,
