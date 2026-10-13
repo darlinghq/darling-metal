@@ -56,7 +56,7 @@ static bool MTLReadString(NSDictionary* object, NSString* key, NSString*& outVal
 }
 
 static bool MTLReadStageType(NSString* stage, Indium::FunctionType& outType) {
-	if ([stage isEqualToString: @"compute"]) {
+	if ([stage isEqualToString: @"compute"] || [stage isEqualToString: @"kernel"]) {
 		outType = Indium::FunctionType::Kernel;
 	} else if ([stage isEqualToString: @"vertex"]) {
 		outType = Indium::FunctionType::Vertex;
@@ -261,19 +261,24 @@ bool MTLReadMSLReflection(const char* document, size_t length,
 	NSDictionary* object = (NSDictionary*)root;
 
 	size_t version = 0;
-	if (!MTLReadIndex([object objectForKey: @"reflection_version"], version) || version != 2) {
-		outError = MTLReflectionError(@"mslc's reflection is version %lu, not the version 2 "
-			@"document this reader knows how to read", (unsigned long)version);
+	if (!MTLReadIndex([object objectForKey: @"reflection_version"], version) || (version != 1 && version != 2)) {
+		outError = MTLReflectionError(@"mslc's reflection is version %lu, not a supported version (1 or 2)", (unsigned long)version);
 		return false;
 	}
 
-	id entryPoints = [object objectForKey: @"entry_points"];
-	if (![entryPoints isKindOfClass: [NSArray class]]) {
-		outError = MTLReflectionError(@"mslc's reflection has no entry_points array");
-		return false;
+	NSArray* entryPoints = nil;
+	if (version == 1) {
+		entryPoints = [NSArray arrayWithObject: object];
+	} else {
+		id ep = [object objectForKey: @"entry_points"];
+		if (![ep isKindOfClass: [NSArray class]]) {
+			outError = MTLReflectionError(@"mslc's reflection has no entry_points array");
+			return false;
+		}
+		entryPoints = (NSArray*)ep;
 	}
 
-	for (id entry in (NSArray*)entryPoints) {
+	for (id entry in entryPoints) {
 		if (![entry isKindOfClass: [NSDictionary class]]) {
 			outError = MTLReflectionError(@"mslc's reflection has an entry point that is not an object");
 			return false;
@@ -307,8 +312,10 @@ bool MTLReadMSLReflection(const char* document, size_t length,
 
 		NSString* entryPoint = nil;
 		if (!MTLReadString(entryObject, @"name", entryPoint) || [entryPoint length] == 0) {
-			outError = MTLReflectionError(@"mslc's reflection has no entry point name");
-			return false;
+			if (!MTLReadString(entryObject, @"entry_point", entryPoint) || [entryPoint length] == 0) {
+				outError = MTLReflectionError(@"mslc's reflection has no entry point name");
+				return false;
+			}
 		}
 
 		outReflection.functions.emplace(
