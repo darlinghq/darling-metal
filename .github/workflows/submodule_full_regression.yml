@@ -15,4 +15,4 @@ jobs:
       - name: Run Shared Action
         uses: darlinghq/darling-shared_github_actions@submodule_full_regression_v1
         with:
-          submodule-path: src/external/[submodule]
+          submodule-path: src/external/metal
