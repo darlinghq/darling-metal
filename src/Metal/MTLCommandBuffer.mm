@@ -65,7 +65,7 @@ struct MTLCommandBufferHandlerWrapper {
 	if (self != nil) {
 		_commandBuffer = commandBuffer;
 		_device = [commandQueue.device retain];
-		_commandQueue = [_commandQueue retain];
+		_commandQueue = [commandQueue retain];
 	}
 	return self;
 }

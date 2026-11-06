@@ -30,7 +30,7 @@
 		_device = [device retain];
 
 		// cache the name
-		_name = [NSString stringWithUTF8String: _function->name().c_str()];
+		_name = [[NSString alloc] initWithUTF8String: _function->name().c_str()];
 	}
 	return self;
 }
