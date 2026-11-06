@@ -98,10 +98,10 @@ typedef struct MTLViewport {
 } MTLViewport;
 
 typedef struct MTLScissorRect {
-	size_t height;
-	size_t width;
-	size_t x;
-	size_t y;
+	NSUInteger x;
+	NSUInteger y;
+	NSUInteger width;
+	NSUInteger height;
 } MTLScissorRect;
 
 NS_INLINE
