@@ -5,6 +5,7 @@
 #define _METAL_MTLDEVICE_H_
 
 #import <Foundation/Foundation.h>
+#import <IOSurface/IOSurfaceRef.h>
 
 #import <Metal/MTLResource.h>
 #import <Metal/MTLDefines.h>
@@ -163,6 +164,10 @@ typedef NS_ENUM(NSUInteger, MTLReadWriteTextureTier) {
                                                              error: (NSError**)error;
 
 - (id<MTLTexture>)newTextureWithDescriptor: (MTLTextureDescriptor*)descriptor;
+
+- (id<MTLTexture>)newTextureWithDescriptor: (MTLTextureDescriptor*)descriptor
+                                 iosurface: (IOSurfaceRef)iosurface
+                                     plane: (NSUInteger)plane;
 
 - (id<MTLSamplerState>)newSamplerStateWithDescriptor: (MTLSamplerDescriptor*)descriptor;
 

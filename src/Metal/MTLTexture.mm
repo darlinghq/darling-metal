@@ -26,22 +26,42 @@ const std::shared_ptr<Indium::Texture>& MTLTextureGetIndium(id<MTLTexture> objec
 @synthesize device = _device;
 @synthesize resourceOptions = _resourceOptions;
 @synthesize label = _label;
+@synthesize iosurface = _iosurface;
+@synthesize iosurfacePlane = _iosurfacePlane;
 
 - (instancetype)initWithTexture: (std::shared_ptr<Indium::Texture>)texture
                          device: (id<MTLDevice>)device
                 resourceOptions: (MTLResourceOptions)options
+{
+	return [self initWithTexture: texture device: device resourceOptions: options iosurface: NULL plane: 0];
+}
+
+- (instancetype)initWithTexture: (std::shared_ptr<Indium::Texture>)texture
+                         device: (id<MTLDevice>)device
+                resourceOptions: (MTLResourceOptions)options
+                      iosurface: (IOSurfaceRef)iosurface
+                          plane: (NSUInteger)plane
 {
 	self = [super init];
 	if (self != nil) {
 		_texture = texture;
 		_device = [device retain];
 		_resourceOptions = options;
+		if (iosurface != NULL) {
+			_iosurface = (IOSurfaceRef)CFRetain(iosurface);
+			_iosurfacePlane = plane;
+		}
 	}
 	return self;
 }
 
 - (void)dealloc
 {
+	// The Indium texture holds the surface's memory; drop it before the surface.
+	_texture.reset();
+	if (_iosurface != NULL) {
+		CFRelease(_iosurface);
+	}
 	[_device release];
 	[_label release];
 	[super dealloc];
@@ -257,6 +277,8 @@ static void raiseIndiumFailure(const std::exception& e) {
 @dynamic allowGPUOptimizedContents;
 @dynamic shareable;
 @dynamic swizzle;
+@dynamic iosurface;
+@dynamic iosurfacePlane;
 
 MTL_UNSUPPORTED_CLASS
 
