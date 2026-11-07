@@ -18,6 +18,7 @@
 #import <Metal/MTLSamplerStateInternal.h>
 #import <Metal/MTLDepthStencilDescriptorInternal.h>
 #import <Metal/MTLDeviceInfo.h>
+#include <string>
 
 MTL_EXTERN const MTLDeviceNotificationName MTLDeviceWasAddedNotification = @"MTLDeviceWasAdded";
 MTL_EXTERN const MTLDeviceNotificationName MTLDeviceRemovalRequestedNotification = @"MTLDeviceRemovalRequested";
@@ -28,6 +29,78 @@ MTL_EXTERN const MTLDeviceNotificationName MTLDeviceWasRemovedNotification = @"M
 static NSMutableArray<MTLDeviceInternal*>* devices = nil;
 static dispatch_once_t devicesInitToken = 0;
 static MTLDeviceInternal* systemDefaultDevice = nil;
+
+// Platform identity settings (org.darlinghq.platform, as for the rest of the system's identity).
+// They are read once, when the device list is made.
+static CFPropertyListRef copyPlatformPreference(CFStringRef key) {
+	return CFPreferencesCopyValue(key, CFSTR("org.darlinghq.platform"), kCFPreferencesAnyUser, kCFPreferencesCurrentHost);
+}
+
+// PreferredGPU: the index of a device in MTLCopyAllDevices() or a part of its name.
+static std::string preferredGPU(void) {
+	std::string preference;
+	CFPropertyListRef value = copyPlatformPreference(CFSTR("PreferredGPU"));
+	if (!value) {
+		return preference;
+	}
+	if (CFGetTypeID(value) == CFStringGetTypeID()) {
+		preference = [(NSString*)value UTF8String] ?: "";
+	} else if (CFGetTypeID(value) == CFNumberGetTypeID()) {
+		long long index = -1;
+		if (CFNumberGetValue((CFNumberRef)value, kCFNumberLongLongType, &index) && index >= 0) {
+			preference = std::to_string(index);
+		}
+	}
+	CFRelease(value);
+	return preference;
+}
+
+static BOOL copyBoolPreference(CFStringRef key, BOOL* result) {
+	CFPropertyListRef value = copyPlatformPreference(key);
+	if (!value) {
+		return NO;
+	}
+	BOOL found = NO;
+	if (CFGetTypeID(value) == CFBooleanGetTypeID()) {
+		*result = CFBooleanGetValue((CFBooleanRef)value);
+		found = YES;
+	} else if (CFGetTypeID(value) == CFNumberGetTypeID()) {
+		long long number = 0;
+		if (CFNumberGetValue((CFNumberRef)value, kCFNumberLongLongType, &number)) {
+			*result = number != 0;
+			found = YES;
+		}
+	}
+	CFRelease(value);
+	return found;
+}
+
+static void applyPlatformIdentity(MTLDeviceInternal* defaultDevice) {
+	CFPropertyListRef name = copyPlatformPreference(CFSTR("GPUName"));
+	if (name) {
+		if (CFGetTypeID(name) == CFStringGetTypeID() && CFStringGetLength((CFStringRef)name) > 0) {
+			[defaultDevice setReportedName: (NSString*)name];
+		}
+		CFRelease(name);
+	}
+
+	CFPropertyListRef memory = copyPlatformPreference(CFSTR("GPUMemoryMB"));
+	if (memory) {
+		long long megabytes = 0;
+		if (CFGetTypeID(memory) == CFNumberGetTypeID() && CFNumberGetValue((CFNumberRef)memory, kCFNumberLongLongType, &megabytes) &&
+		    megabytes > 0 && static_cast<unsigned long long>(megabytes) <= UINT64_MAX / (1024 * 1024)) {
+			[defaultDevice setReportedWorkingSetSize: static_cast<uint64_t>(megabytes) * 1024 * 1024];
+		}
+		CFRelease(memory);
+	}
+
+	BOOL unifiedMemory = YES;
+	if (copyBoolPreference(CFSTR("GPUHasUnifiedMemory"), &unifiedMemory)) {
+		for (MTLDeviceInternal* device in devices) {
+			[device setReportedUnifiedMemory: unifiedMemory];
+		}
+	}
+}
 
 static void ensureDevices(void) {
 	dispatch_once(&devicesInitToken, ^{
@@ -41,9 +114,22 @@ static void ensureDevices(void) {
 			[device release];
 		}
 
-		if (devices.count > 0) {
+		if (devices.count == 0) {
+			return;
+		}
+
+		auto chosen = Indium::createSystemDefaultDevice(preferredGPU());
+		for (MTLDeviceInternal* device in devices) {
+			if (device.device == chosen) {
+				systemDefaultDevice = [device retain];
+				break;
+			}
+		}
+		if (!systemDefaultDevice) {
 			systemDefaultDevice = [devices[0] retain];
 		}
+
+		applyPlatformIdentity(systemDefaultDevice);
 	});
 };
 
@@ -110,6 +196,8 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 	BOOL _threadIsRunning;
 	NSString* _name;
 	BOOL _lowPower;
+	uint64_t _reportedWorkingSetSize;
+	BOOL _unifiedMemory;
 }
 
 @synthesize device = _device;
@@ -146,6 +234,12 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 				}
 			}
 		}
+
+		// Implementation limit: Indium does not complete the Managed (didModifyRange:,
+		// synchronizeResource:) and Private upload paths that applications take on a GPU without
+		// unified memory, so every device reports unified memory until they work, unless the
+		// GPUHasUnifiedMemory setting says otherwise.
+		_unifiedMemory = YES;
 
 		_threadExitCondition = [NSCondition new];
 		_threadIsRunning = NO;
@@ -209,15 +303,29 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 
 - (BOOL)hasUnifiedMemory
 {
-	// Implementation limit: Indium does not complete the Managed (didModifyRange:,
-	// synchronizeResource:) and Private upload paths that applications take on a GPU without
-	// unified memory, so every device reports unified memory until they work.
-	return YES;
+	return _unifiedMemory;
 }
 
 - (uint64_t)recommendedMaxWorkingSetSize
 {
-	return _device->recommendedMaxWorkingSetSize();
+	return _reportedWorkingSetSize != 0 ? _reportedWorkingSetSize : _device->recommendedMaxWorkingSetSize();
+}
+
+- (void)setReportedName: (NSString*)name
+{
+	NSString* copy = [name copy];
+	[_name release];
+	_name = copy;
+}
+
+- (void)setReportedWorkingSetSize: (uint64_t)size
+{
+	_reportedWorkingSetSize = size;
+}
+
+- (void)setReportedUnifiedMemory: (BOOL)unifiedMemory
+{
+	_unifiedMemory = unifiedMemory;
 }
 
 - (NSUInteger)maxBufferLength
