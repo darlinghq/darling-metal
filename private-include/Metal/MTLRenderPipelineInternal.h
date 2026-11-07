@@ -39,7 +39,7 @@ METAL_DECLARATIONS_BEGIN
 @interface MTLRenderPipelineStateInternal : NSObject <MTLRenderPipelineState>
 
 #if DARLING_METAL_ENABLED
-@property(readonly) std::shared_ptr<Indium::RenderPipelineState> state;
+@property(nonatomic, readonly) std::shared_ptr<Indium::RenderPipelineState> state;
 
 - (instancetype)initWithState: (std::shared_ptr<Indium::RenderPipelineState>)state
                        device: (id<MTLDevice>)device
@@ -49,5 +49,12 @@ METAL_DECLARATIONS_BEGIN
 @end
 
 METAL_DECLARATIONS_END
+
+#if DARLING_METAL_ENABLED
+// The Indium object behind `object`, read without a message send or a copy of
+// the shared pointer, for the command encoders. Empty for nil and for objects
+// this framework did not create.
+const std::shared_ptr<Indium::RenderPipelineState>& MTLRenderPipelineStateGetIndium(id<MTLRenderPipelineState> object);
+#endif
 
 #endif // _METAL_MTLRENDERPIPELINEINTERNAL_H_

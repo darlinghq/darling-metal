@@ -11,6 +11,17 @@
 #if DARLING_METAL_ENABLED
 
 @synthesize buffer = _buffer;
+
+const std::shared_ptr<Indium::Buffer>& MTLBufferGetIndium(id<MTLBuffer> object)
+{
+	static const std::shared_ptr<Indium::Buffer> none;
+	static const Class internalClass = [MTLBufferInternal class];
+
+	if (!MTLObjectIsInstanceOf(object, internalClass)) {
+		return none;
+	}
+	return ((MTLBufferInternal*)object)->_buffer;
+}
 @synthesize device = _device;
 @synthesize resourceOptions = _resourceOptions;
 @synthesize label = _label;

@@ -37,7 +37,7 @@ MTL_EXPORT
 @interface MTLTextureInternal : NSObject <MTLTexture>
 
 #if DARLING_METAL_ENABLED
-@property(readonly) std::shared_ptr<Indium::Texture> texture;
+@property(nonatomic, readonly) std::shared_ptr<Indium::Texture> texture;
 
 - (instancetype)initWithTexture: (std::shared_ptr<Indium::Texture>)texture
                          device: (id<MTLDevice>)device
@@ -45,5 +45,12 @@ MTL_EXPORT
 #endif
 
 @end
+
+#if DARLING_METAL_ENABLED
+// The Indium object behind `object`, read without a message send or a copy of
+// the shared pointer, for the command encoders. Empty for nil and for objects
+// this framework did not create.
+const std::shared_ptr<Indium::Texture>& MTLTextureGetIndium(id<MTLTexture> object);
+#endif
 
 #endif // _METAL_MTLTEXTUREINTERNAL_H_

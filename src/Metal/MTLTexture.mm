@@ -12,6 +12,17 @@
 #if DARLING_METAL_ENABLED
 
 @synthesize texture = _texture;
+
+const std::shared_ptr<Indium::Texture>& MTLTextureGetIndium(id<MTLTexture> object)
+{
+	static const std::shared_ptr<Indium::Texture> none;
+	static const Class internalClass = [MTLTextureInternal class];
+
+	if (!MTLObjectIsInstanceOf(object, internalClass)) {
+		return none;
+	}
+	return ((MTLTextureInternal*)object)->_texture;
+}
 @synthesize device = _device;
 @synthesize resourceOptions = _resourceOptions;
 @synthesize label = _label;

@@ -8,6 +8,20 @@
 
 #if DARLING_METAL_ENABLED
 #include <indium/indium.hpp>
+#include <objc/runtime.h>
+
+// Whether `object` is an instance of `cls` or of one of its subclasses, found
+// without sending the object a message. The encoders use it to read the Indium
+// object behind a Metal object directly.
+NS_INLINE
+bool MTLObjectIsInstanceOf(id object, Class cls) {
+	for (Class c = object_getClass(object); c != Nil; c = class_getSuperclass(c)) {
+		if (c == cls) {
+			return true;
+		}
+	}
+	return false;
+};
 
 NS_INLINE
 Indium::Size MTLSizeToIndium(MTLSize size) {

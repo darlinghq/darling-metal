@@ -13,7 +13,7 @@
 @interface MTLBufferInternal : NSObject <MTLBuffer>
 
 #if DARLING_METAL_ENABLED
-@property(readonly) std::shared_ptr<Indium::Buffer> buffer;
+@property(nonatomic, readonly) std::shared_ptr<Indium::Buffer> buffer;
 
 - (instancetype)initWithBuffer: (std::shared_ptr<Indium::Buffer>)buffer
                         device: (id<MTLDevice>)device
@@ -21,5 +21,12 @@
 #endif
 
 @end
+
+#if DARLING_METAL_ENABLED
+// The Indium object behind `object`, read without a message send or a copy of
+// the shared pointer, for the command encoders. Empty for nil and for objects
+// this framework did not create.
+const std::shared_ptr<Indium::Buffer>& MTLBufferGetIndium(id<MTLBuffer> object);
+#endif
 
 #endif // _METAL_MTLBUFFERINTERNAL_H_

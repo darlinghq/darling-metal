@@ -56,8 +56,8 @@
      destinationOffset: (NSUInteger)destinationOffset
                  size: (NSUInteger)size
 {
-	_encoder->copy(((MTLBufferInternal*)sourceBuffer).buffer, sourceOffset,
-	               ((MTLBufferInternal*)destinationBuffer).buffer, destinationOffset, size);
+	_encoder->copy(MTLBufferGetIndium(sourceBuffer), sourceOffset,
+	               MTLBufferGetIndium(destinationBuffer), destinationOffset, size);
 }
 
 - (void)copyFromBuffer: (id<MTLBuffer>)sourceBuffer
@@ -93,9 +93,9 @@
  destinationOrigin: (MTLOrigin)destinationOrigin
                options: (MTLBlitOption)options
 {
-	_encoder->copy(((MTLBufferInternal*)sourceBuffer).buffer, sourceOffset,
+	_encoder->copy(MTLBufferGetIndium(sourceBuffer), sourceOffset,
 	               sourceBytesPerRow, sourceBytesPerImage, MTLSizeToIndium(sourceSize),
-	               ((MTLTextureInternal*)destinationTexture).texture, destinationSlice,
+	               MTLTextureGetIndium(destinationTexture), destinationSlice,
 	               destinationLevel, MTLOriginToIndium(destinationOrigin),
 	               static_cast<Indium::BlitOption>(options));
 }
@@ -137,9 +137,9 @@ destinationBytesPerImage: (NSUInteger)destinationBytesPerImage
 {
 	// indium takes a single option set for the whole copy, and it has no way to
 	// express the source-side options, so those are dropped here.
-	_encoder->copy(((MTLTextureInternal*)sourceTexture).texture, sourceSlice, sourceLevel,
+	_encoder->copy(MTLTextureGetIndium(sourceTexture), sourceSlice, sourceLevel,
 	               MTLOriginToIndium(sourceOrigin), MTLSizeToIndium(sourceSize),
-	               ((MTLBufferInternal*)destinationBuffer).buffer, destinationOffset,
+	               MTLBufferGetIndium(destinationBuffer), destinationOffset,
 	               destinationBytesPerRow, destinationBytesPerImage,
 	               static_cast<Indium::BlitOption>(options));
 }
@@ -158,17 +158,17 @@ destinationBytesPerImage: (NSUInteger)destinationBytesPerImage
 	// not-yet-created source texture or encode a zero-extent Vulkan copy.
 	if (sourceSize.width == 0 || sourceSize.height == 0 || sourceSize.depth == 0)
 		return;
-	_encoder->copy(((MTLTextureInternal*)sourceTexture).texture, sourceSlice, sourceLevel,
+	_encoder->copy(MTLTextureGetIndium(sourceTexture), sourceSlice, sourceLevel,
 	               MTLOriginToIndium(sourceOrigin), MTLSizeToIndium(sourceSize),
-	               ((MTLTextureInternal*)destinationTexture).texture, destinationSlice,
+	               MTLTextureGetIndium(destinationTexture), destinationSlice,
 	               destinationLevel, MTLOriginToIndium(destinationOrigin));
 }
 
 - (void)copyFromTexture: (id<MTLTexture>)sourceTexture
               toTexture: (id<MTLTexture>)destinationTexture
 {
-	_encoder->copy(((MTLTextureInternal*)sourceTexture).texture,
-	               ((MTLTextureInternal*)destinationTexture).texture);
+	_encoder->copy(MTLTextureGetIndium(sourceTexture),
+	               MTLTextureGetIndium(destinationTexture));
 }
 
 - (void)copyFromTexture: (id<MTLTexture>)sourceTexture
@@ -180,8 +180,8 @@ destinationBytesPerImage: (NSUInteger)destinationBytesPerImage
             sliceCount: (NSUInteger)sliceCount
             levelCount: (NSUInteger)levelCount
 {
-	_encoder->copy(((MTLTextureInternal*)sourceTexture).texture, sourceSlice, sourceLevel,
-	               ((MTLTextureInternal*)destinationTexture).texture, destinationSlice,
+	_encoder->copy(MTLTextureGetIndium(sourceTexture), sourceSlice, sourceLevel,
+	               MTLTextureGetIndium(destinationTexture), destinationSlice,
 	               destinationLevel, sliceCount, levelCount);
 }
 
@@ -189,12 +189,12 @@ destinationBytesPerImage: (NSUInteger)destinationBytesPerImage
               range: (NSRange)range
              value: (uint8_t)value
 {
-	_encoder->fillBuffer(((MTLBufferInternal*)buffer).buffer, NSRangeToIndium(range), value);
+	_encoder->fillBuffer(MTLBufferGetIndium(buffer), NSRangeToIndium(range), value);
 }
 
 - (void)generateMipmapsForTexture: (id<MTLTexture>)texture
 {
-	_encoder->generateMipmapsForTexture(((MTLTextureInternal*)texture).texture);
+	_encoder->generateMipmapsForTexture(MTLTextureGetIndium(texture));
 }
 
 #else

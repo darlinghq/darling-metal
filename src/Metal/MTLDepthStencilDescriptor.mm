@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Darling Developers
 // SPDX-License-Identifier: MPL-2.0
 
+#import <Metal/MTLTypesInternal.h>
 #import <Metal/MTLDepthStencilDescriptorInternal.h>
 #import <Metal/stubs.h>
 
@@ -68,6 +69,17 @@ MTL_UNSUPPORTED_CLASS
 @synthesize device = _device;
 @synthesize label = _label;
 @synthesize state = _state;
+
+const std::shared_ptr<Indium::DepthStencilState>& MTLDepthStencilStateGetIndium(id<MTLDepthStencilState> object)
+{
+	static const std::shared_ptr<Indium::DepthStencilState> none;
+	static const Class internalClass = [MTLDepthStencilStateInternal class];
+
+	if (!MTLObjectIsInstanceOf(object, internalClass)) {
+		return none;
+	}
+	return ((MTLDepthStencilStateInternal*)object)->_state;
+}
 
 - (instancetype)initWithState: (std::shared_ptr<Indium::DepthStencilState>)state
                        device: (id<MTLDevice>)device
