@@ -210,8 +210,11 @@ static void raiseIndiumFailure(const std::exception& e) {
       fromRegion: (MTLRegion)region
      mipmapLevel: (NSUInteger)level
 {
-	(void)pixelBytes; (void)bytesPerRow; (void)region; (void)level;
-	NSLog(@"STUB: -[MTLTexture getBytes:bytesPerRow:fromRegion:mipmapLevel:]");
+	try {
+		_texture->getBytes(MTLRegionToIndium(region), level, pixelBytes, bytesPerRow);
+	} catch (const std::exception& e) {
+		raiseIndiumFailure(e);
+	}
 }
 
 - (void)getBytes: (void*)pixelBytes
@@ -221,8 +224,11 @@ static void raiseIndiumFailure(const std::exception& e) {
      mipmapLevel: (NSUInteger)level
            slice: (NSUInteger)slice
 {
-	(void)pixelBytes; (void)bytesPerRow; (void)bytesPerImage; (void)region; (void)level; (void)slice;
-	NSLog(@"STUB: -[MTLTexture getBytes:bytesPerRow:bytesPerImage:fromRegion:mipmapLevel:slice:]");
+	try {
+		_texture->getBytes(MTLRegionToIndium(region), level, slice, pixelBytes, bytesPerRow, bytesPerImage);
+	} catch (const std::exception& e) {
+		raiseIndiumFailure(e);
+	}
 }
 
 #else
