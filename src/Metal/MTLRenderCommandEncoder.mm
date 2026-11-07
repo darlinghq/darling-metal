@@ -98,11 +98,11 @@ MTL_UNSUPPORTED_CLASS
 - (Indium::RenderPassAttachmentDescriptor)asIndiumDescriptor
 {
 	return Indium::RenderPassAttachmentDescriptor {
-		((MTLTextureInternal*)_texture).texture,
+		MTLTextureGetIndium(_texture),
 		_level,
 		_slice,
 		_depthPlane,
-		((MTLTextureInternal*)_resolveTexture).texture,
+		MTLTextureGetIndium(_resolveTexture),
 		_resolveLevel,
 		_resolveSlice,
 		_resolveDepthPlane,
@@ -529,7 +529,7 @@ MTL_UNSUPPORTED_CLASS
 		[_colorAttachments asContiguousIndiumDescriptors],
 		(_depthAttachment.texture == nil) ? std::nullopt : std::make_optional([_depthAttachment asIndiumDescriptor]),
 		(_stencilAttachment.texture == nil) ? std::nullopt : std::make_optional([_stencilAttachment asIndiumDescriptor]),
-		((MTLBufferInternal*)_visibilityResultBuffer).buffer,
+		MTLBufferGetIndium(_visibilityResultBuffer),
 		_renderTargetArrayLength,
 		_imageblockSampleLength,
 		_threadgroupMemoryLength,
@@ -589,7 +589,7 @@ MTL_UNSUPPORTED_CLASS
 
 - (void)setRenderPipelineState: (id<MTLRenderPipelineState>)pipelineState
 {
-	_encoder->setRenderPipelineState(((MTLRenderPipelineStateInternal*)pipelineState).state);
+	_encoder->setRenderPipelineState(MTLRenderPipelineStateGetIndium(pipelineState));
 }
 
 - (void)setTriangleFillMode: (MTLTriangleFillMode)fillMode
@@ -634,7 +634,7 @@ MTL_UNSUPPORTED_CLASS
 
 - (void)setDepthStencilState: (id<MTLDepthStencilState>)state
 {
-	_encoder->setDepthStencilState(((MTLDepthStencilStateInternal*)state).state);
+	_encoder->setDepthStencilState(MTLDepthStencilStateGetIndium(state));
 }
 
 - (void)memoryBarrierWithScope: (MTLBarrierScope)scope
@@ -685,7 +685,7 @@ MTL_UNSUPPORTED_CLASS
                  offset: (NSUInteger)offset
                 atIndex: (NSUInteger)index
 {
-	_encoder->setVertexBuffer(((MTLBufferInternal*)buffer).buffer, offset, index);
+	_encoder->setVertexBuffer(MTLBufferGetIndium(buffer), offset, index);
 }
 
 - (void)setVertexBuffers: (const id<MTLBuffer>*)buffers
@@ -695,7 +695,7 @@ MTL_UNSUPPORTED_CLASS
 	std::vector<std::shared_ptr<Indium::Buffer>> tmp;
 	std::vector<size_t> tmp2(offsets, offsets + range.length);
 	for (size_t i = 0; i < range.length; ++i) {
-		tmp.push_back(((MTLBufferInternal*)buffers[i]).buffer);
+		tmp.push_back(MTLBufferGetIndium(buffers[i]));
 	}
 	_encoder->setVertexBuffers(tmp, tmp2, NSRangeToIndium(range));
 }
@@ -716,7 +716,7 @@ MTL_UNSUPPORTED_CLASS
 - (void)setVertexTexture: (id<MTLTexture>)texture
                 atIndex: (NSUInteger)index
 {
-	_encoder->setVertexTexture(((MTLTextureInternal*)texture).texture, index);
+	_encoder->setVertexTexture(MTLTextureGetIndium(texture), index);
 }
 
 - (void)setVertexTextures: (const id<MTLTexture>*)textures
@@ -724,7 +724,7 @@ MTL_UNSUPPORTED_CLASS
 {
 	std::vector<std::shared_ptr<Indium::Texture>> tmp;
 	for (size_t i = 0; i < range.length; ++i) {
-		tmp.push_back(((MTLTextureInternal*)textures[i]).texture);
+		tmp.push_back(MTLTextureGetIndium(textures[i]));
 	}
 	_encoder->setVertexTextures(tmp, NSRangeToIndium(range));
 }
@@ -732,7 +732,7 @@ MTL_UNSUPPORTED_CLASS
 - (void)setVertexSamplerState: (id<MTLSamplerState>)sampler
                       atIndex: (NSUInteger)index
 {
-	_encoder->setVertexSamplerState(((MTLSamplerStateInternal*)sampler).state, index);
+	_encoder->setVertexSamplerState(MTLSamplerStateGetIndium(sampler), index);
 }
 
 - (void)setVertexSamplerStates: (const id<MTLSamplerState>*)samplers
@@ -740,7 +740,7 @@ MTL_UNSUPPORTED_CLASS
 {
 	std::vector<std::shared_ptr<Indium::SamplerState>> tmp;
 	for (size_t i = 0; i < range.length; ++i) {
-		tmp.push_back(((MTLSamplerStateInternal*)samplers[i]).state);
+		tmp.push_back(MTLSamplerStateGetIndium(samplers[i]));
 	}
 	_encoder->setVertexSamplerStates(tmp, NSRangeToIndium(range));
 }
@@ -750,7 +750,7 @@ MTL_UNSUPPORTED_CLASS
                    lodMaxClamp: (float)lodMaxClamp
                       atIndex: (NSUInteger)index
 {
-	_encoder->setVertexSamplerState(((MTLSamplerStateInternal*)sampler).state, lodMinClamp, lodMaxClamp, index);
+	_encoder->setVertexSamplerState(MTLSamplerStateGetIndium(sampler), lodMinClamp, lodMaxClamp, index);
 }
 
 - (void)setVertexSamplerStates: (const id<MTLSamplerState>*)samplers
@@ -760,7 +760,7 @@ MTL_UNSUPPORTED_CLASS
 {
 	std::vector<std::shared_ptr<Indium::SamplerState>> tmp;
 	for (size_t i = 0; i < range.length; ++i) {
-		tmp.push_back(((MTLSamplerStateInternal*)samplers[i]).state);
+		tmp.push_back(MTLSamplerStateGetIndium(samplers[i]));
 	}
 	_encoder->setVertexSamplerStates(tmp, std::vector<float>(lodMinClamps, lodMinClamps + range.length), std::vector<float>(lodMaxClamps, lodMaxClamps + range.length), NSRangeToIndium(range));
 }
@@ -769,7 +769,7 @@ MTL_UNSUPPORTED_CLASS
                    offset: (NSUInteger)offset
                   atIndex: (NSUInteger)index
 {
-	_encoder->setFragmentBuffer(((MTLBufferInternal*)buffer).buffer, offset, index);
+	_encoder->setFragmentBuffer(MTLBufferGetIndium(buffer), offset, index);
 }
 
 - (void)setFragmentBuffers: (const id<MTLBuffer>*)buffers
@@ -779,7 +779,7 @@ MTL_UNSUPPORTED_CLASS
 	std::vector<std::shared_ptr<Indium::Buffer>> tmp;
 	std::vector<size_t> tmp2(offsets, offsets + range.length);
 	for (size_t i = 0; i < range.length; ++i) {
-		tmp.push_back(((MTLBufferInternal*)buffers[i]).buffer);
+		tmp.push_back(MTLBufferGetIndium(buffers[i]));
 	}
 	_encoder->setFragmentBuffers(tmp, tmp2, NSRangeToIndium(range));
 }
@@ -800,7 +800,7 @@ MTL_UNSUPPORTED_CLASS
 - (void)setFragmentTexture: (id<MTLTexture>)texture
                   atIndex: (NSUInteger)index
 {
-	_encoder->setFragmentTexture(((MTLTextureInternal*)texture).texture, index);
+	_encoder->setFragmentTexture(MTLTextureGetIndium(texture), index);
 }
 
 - (void)setFragmentTextures: (const id<MTLTexture>*)textures
@@ -809,7 +809,7 @@ MTL_UNSUPPORTED_CLASS
 	// Indium takes this by non-const reference, unlike setVertexTextures.
 	std::vector<std::shared_ptr<Indium::Texture>> tmp;
 	for (size_t i = 0; i < range.length; ++i) {
-		tmp.push_back(((MTLTextureInternal*)textures[i]).texture);
+		tmp.push_back(MTLTextureGetIndium(textures[i]));
 	}
 	_encoder->setFragmentTextures(tmp, NSRangeToIndium(range));
 }
@@ -817,7 +817,7 @@ MTL_UNSUPPORTED_CLASS
 - (void)setFragmentSamplerState: (id<MTLSamplerState>)sampler
                         atIndex: (NSUInteger)index
 {
-	_encoder->setFragmentSamplerState(((MTLSamplerStateInternal*)sampler).state, index);
+	_encoder->setFragmentSamplerState(MTLSamplerStateGetIndium(sampler), index);
 }
 
 - (void)setFragmentSamplerStates: (const id<MTLSamplerState>*)samplers
@@ -825,7 +825,7 @@ MTL_UNSUPPORTED_CLASS
 {
 	std::vector<std::shared_ptr<Indium::SamplerState>> tmp;
 	for (size_t i = 0; i < range.length; ++i) {
-		tmp.push_back(((MTLSamplerStateInternal*)samplers[i]).state);
+		tmp.push_back(MTLSamplerStateGetIndium(samplers[i]));
 	}
 	_encoder->setFragmentSamplerStates(tmp, NSRangeToIndium(range));
 }
@@ -835,7 +835,7 @@ MTL_UNSUPPORTED_CLASS
                      lodMaxClamp: (float)lodMaxClamp
                         atIndex: (NSUInteger)index
 {
-	_encoder->setFragmentSamplerState(((MTLSamplerStateInternal*)sampler).state, lodMinClamp, lodMaxClamp, index);
+	_encoder->setFragmentSamplerState(MTLSamplerStateGetIndium(sampler), lodMinClamp, lodMaxClamp, index);
 }
 
 - (void)setFragmentSamplerStates: (const id<MTLSamplerState>*)samplers
@@ -845,7 +845,7 @@ MTL_UNSUPPORTED_CLASS
 {
 	std::vector<std::shared_ptr<Indium::SamplerState>> tmp;
 	for (size_t i = 0; i < range.length; ++i) {
-		tmp.push_back(((MTLSamplerStateInternal*)samplers[i]).state);
+		tmp.push_back(MTLSamplerStateGetIndium(samplers[i]));
 	}
 	_encoder->setFragmentSamplerStates(tmp, std::vector<float>(lodMinClamps, lodMinClamps + range.length), std::vector<float>(lodMaxClamps, lodMaxClamps + range.length), NSRangeToIndium(range));
 }
@@ -883,7 +883,7 @@ MTL_UNSUPPORTED_CLASS
                    baseVertex: (NSInteger)baseVertex
                  baseInstance: (NSUInteger)baseInstance
 {
-	_encoder->drawIndexedPrimitives(static_cast<Indium::PrimitiveType>(primitiveType), indexCount, static_cast<Indium::IndexType>(indexType), ((MTLBufferInternal*)indexBuffer).buffer, indexBufferOffset, instanceCount, baseVertex, baseInstance);
+	_encoder->drawIndexedPrimitives(static_cast<Indium::PrimitiveType>(primitiveType), indexCount, static_cast<Indium::IndexType>(indexType), MTLBufferGetIndium(indexBuffer), indexBufferOffset, instanceCount, baseVertex, baseInstance);
 }
 
 - (void)drawIndexedPrimitives: (MTLPrimitiveType)primitiveType
@@ -893,7 +893,7 @@ MTL_UNSUPPORTED_CLASS
             indexBufferOffset: (NSUInteger)indexBufferOffset
                 instanceCount: (NSUInteger)instanceCount
 {
-	_encoder->drawIndexedPrimitives(static_cast<Indium::PrimitiveType>(primitiveType), indexCount, static_cast<Indium::IndexType>(indexType), ((MTLBufferInternal*)indexBuffer).buffer, indexBufferOffset, instanceCount);
+	_encoder->drawIndexedPrimitives(static_cast<Indium::PrimitiveType>(primitiveType), indexCount, static_cast<Indium::IndexType>(indexType), MTLBufferGetIndium(indexBuffer), indexBufferOffset, instanceCount);
 }
 
 - (void)drawIndexedPrimitives: (MTLPrimitiveType)primitiveType
@@ -902,7 +902,7 @@ MTL_UNSUPPORTED_CLASS
                   indexBuffer: (id<MTLBuffer>)indexBuffer
             indexBufferOffset: (NSUInteger)indexBufferOffset
 {
-	_encoder->drawIndexedPrimitives(static_cast<Indium::PrimitiveType>(primitiveType), indexCount, static_cast<Indium::IndexType>(indexType), ((MTLBufferInternal*)indexBuffer).buffer, indexBufferOffset);
+	_encoder->drawIndexedPrimitives(static_cast<Indium::PrimitiveType>(primitiveType), indexCount, static_cast<Indium::IndexType>(indexType), MTLBufferGetIndium(indexBuffer), indexBufferOffset);
 }
 
 #else

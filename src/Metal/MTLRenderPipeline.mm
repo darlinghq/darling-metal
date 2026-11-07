@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Darling Developers
 // SPDX-License-Identifier: MPL-2.0
 
+#import <Metal/MTLTypesInternal.h>
 #import <Metal/MTLRenderPipelineInternal.h>
 #import <Metal/MTLVertexDescriptorInternal.h>
 #import <Metal/stubs.h>
@@ -429,6 +430,17 @@ MTL_UNSUPPORTED_CLASS
 @synthesize state = _state;
 @synthesize device = _device;
 @synthesize label = _label;
+
+const std::shared_ptr<Indium::RenderPipelineState>& MTLRenderPipelineStateGetIndium(id<MTLRenderPipelineState> object)
+{
+	static const std::shared_ptr<Indium::RenderPipelineState> none;
+	static const Class internalClass = [MTLRenderPipelineStateInternal class];
+
+	if (!MTLObjectIsInstanceOf(object, internalClass)) {
+		return none;
+	}
+	return ((MTLRenderPipelineStateInternal*)object)->_state;
+}
 
 - (instancetype)initWithState: (std::shared_ptr<Indium::RenderPipelineState>)state
                        device: (id<MTLDevice>)device

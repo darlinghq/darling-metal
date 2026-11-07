@@ -147,6 +147,17 @@ MTL_UNSUPPORTED_CLASS
 
 @synthesize device = _device;
 @synthesize state = _pso;
+
+const std::shared_ptr<Indium::ComputePipelineState>& MTLComputePipelineStateGetIndium(id<MTLComputePipelineState> object)
+{
+	static const std::shared_ptr<Indium::ComputePipelineState> none;
+	static const Class internalClass = [MTLComputePipelineStateInternal class];
+
+	if (!MTLObjectIsInstanceOf(object, internalClass)) {
+		return none;
+	}
+	return ((MTLComputePipelineStateInternal*)object)->_pso;
+}
 @synthesize label = _label;
 
 - (instancetype)initWithState: (std::shared_ptr<Indium::ComputePipelineState>)state

@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Darling Developers
 // SPDX-License-Identifier: MPL-2.0
 
+#import <Metal/MTLTypesInternal.h>
 #import <Metal/MTLSamplerStateInternal.h>
 #import <Metal/stubs.h>
 
@@ -11,6 +12,17 @@
 @synthesize device = _device;
 @synthesize label = _label;
 @synthesize state = _state;
+
+const std::shared_ptr<Indium::SamplerState>& MTLSamplerStateGetIndium(id<MTLSamplerState> object)
+{
+	static const std::shared_ptr<Indium::SamplerState> none;
+	static const Class internalClass = [MTLSamplerStateInternal class];
+
+	if (!MTLObjectIsInstanceOf(object, internalClass)) {
+		return none;
+	}
+	return ((MTLSamplerStateInternal*)object)->_state;
+}
 
 - (instancetype)initWithState: (std::shared_ptr<Indium::SamplerState>)state
                        device: (id<MTLDevice>)device

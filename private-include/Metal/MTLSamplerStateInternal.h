@@ -18,7 +18,7 @@ MTL_EXPORT
 @interface MTLSamplerStateInternal : NSObject <MTLSamplerState>
 
 #if DARLING_METAL_ENABLED
-@property(readonly) std::shared_ptr<Indium::SamplerState> state;
+@property(nonatomic, readonly) std::shared_ptr<Indium::SamplerState> state;
 
 // readwrite internally so -newSamplerStateWithDescriptor: can copy the
 // descriptor's label over; the public protocol keeps it readonly.
@@ -31,5 +31,12 @@ MTL_EXPORT
 @end
 
 METAL_DECLARATIONS_END
+
+#if DARLING_METAL_ENABLED
+// The Indium object behind `object`, read without a message send or a copy of
+// the shared pointer, for the command encoders. Empty for nil and for objects
+// this framework did not create.
+const std::shared_ptr<Indium::SamplerState>& MTLSamplerStateGetIndium(id<MTLSamplerState> object);
+#endif
 
 #endif // _METAL_MTLSAMPLERSTATEINTERNAL_H_

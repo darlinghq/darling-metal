@@ -211,7 +211,7 @@ MTL_UNSUPPORTED_CLASS
 - (void)setComputePipelineState:(id<MTLComputePipelineState>)state
 {
 	// XXX: do we need to retain the ObjC state object? i.e. is it required by the API/ABI?
-	_encoder->setComputePipelineState(((MTLComputePipelineStateInternal*)state).state);
+	_encoder->setComputePipelineState(MTLComputePipelineStateGetIndium(state));
 }
 
 - (void)setStageInRegion:(MTLRegion)region
@@ -223,7 +223,7 @@ MTL_UNSUPPORTED_CLASS
            offset: (NSUInteger)offset
           atIndex: (NSUInteger)index
 {
-	_encoder->setBuffer(((MTLBufferInternal*)buffer).buffer, offset, index);
+	_encoder->setBuffer(MTLBufferGetIndium(buffer), offset, index);
 }
 
 - (void)setBuffers: (const id<MTLBuffer>*)buffers
@@ -234,7 +234,7 @@ MTL_UNSUPPORTED_CLASS
 	std::vector<std::shared_ptr<Indium::Buffer>> indiumBuffers;
 	std::vector<size_t> indiumOffsets;
 	for (size_t i = 0; i < range.length; ++i) {
-		indiumBuffers.push_back(((MTLBufferInternal*)buffers[i]).buffer);
+		indiumBuffers.push_back(MTLBufferGetIndium(buffers[i]));
 		indiumOffsets.push_back(offsets[i]);
 	}
 	_encoder->setBuffers(indiumBuffers, indiumOffsets, NSRangeToIndium(range));
@@ -256,7 +256,7 @@ MTL_UNSUPPORTED_CLASS
 - (void)setTexture: (id<MTLTexture>)texture
           atIndex: (NSUInteger)index
 {
-	_encoder->setTexture(((MTLTextureInternal*)texture).texture, index);
+	_encoder->setTexture(MTLTextureGetIndium(texture), index);
 }
 
 - (void)setTextures: (const id<MTLTexture>*)textures
@@ -264,7 +264,7 @@ MTL_UNSUPPORTED_CLASS
 {
 	std::vector<std::shared_ptr<Indium::Texture>> indiumTextures;
 	for (size_t i = 0; i < range.length; ++i) {
-		indiumTextures.push_back(((MTLTextureInternal*)textures[i]).texture);
+		indiumTextures.push_back(MTLTextureGetIndium(textures[i]));
 	}
 	_encoder->setTextures(indiumTextures, NSRangeToIndium(range));
 }
@@ -272,7 +272,7 @@ MTL_UNSUPPORTED_CLASS
 - (void)setSamplerState: (id<MTLSamplerState>)sampler
                 atIndex: (NSUInteger)index
 {
-	_encoder->setSamplerState(((MTLSamplerStateInternal*)sampler).state, index);
+	_encoder->setSamplerState(MTLSamplerStateGetIndium(sampler), index);
 }
 
 - (void)setSamplerStates: (const id<MTLSamplerState>*)samplers
@@ -280,7 +280,7 @@ MTL_UNSUPPORTED_CLASS
 {
 	std::vector<std::shared_ptr<Indium::SamplerState>> indiumSamplers;
 	for (size_t i = 0; i < range.length; ++i) {
-		indiumSamplers.push_back(((MTLSamplerStateInternal*)samplers[i]).state);
+		indiumSamplers.push_back(MTLSamplerStateGetIndium(samplers[i]));
 	}
 	_encoder->setSamplerStates(indiumSamplers, NSRangeToIndium(range));
 }
@@ -290,7 +290,7 @@ MTL_UNSUPPORTED_CLASS
              lodMaxClamp: (float)lodMaxClamp
                 atIndex: (NSUInteger)index
 {
-	_encoder->setSamplerState(((MTLSamplerStateInternal*)sampler).state, lodMinClamp, lodMaxClamp, index);
+	_encoder->setSamplerState(MTLSamplerStateGetIndium(sampler), lodMinClamp, lodMaxClamp, index);
 }
 
 - (void)setSamplerStates: (const id<MTLSamplerState>*)samplers
@@ -300,7 +300,7 @@ MTL_UNSUPPORTED_CLASS
 {
 	std::vector<std::shared_ptr<Indium::SamplerState>> indiumSamplers;
 	for (size_t i = 0; i < range.length; ++i) {
-		indiumSamplers.push_back(((MTLSamplerStateInternal*)samplers[i]).state);
+		indiumSamplers.push_back(MTLSamplerStateGetIndium(samplers[i]));
 	}
 	_encoder->setSamplerStates(indiumSamplers, std::vector<float>(lodMinClamps, lodMinClamps + range.length), std::vector<float>(lodMaxClamps, lodMaxClamps + range.length), NSRangeToIndium(range));
 }
