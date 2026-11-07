@@ -63,6 +63,7 @@ add_framework(Metal
 		src/Metal/MTLHeap.mm
 		src/Metal/MTLIndirectCommandBuffer.mm
 		src/Metal/MTLIntersectionFunctionTable.mm
+		src/Metal/MTLIOSurfaceCopy.mm
 		src/Metal/MTLLibrary.mm
 		src/Metal/MTLLinkedFunctions.mm
 		src/Metal/MTLPipeline.mm
