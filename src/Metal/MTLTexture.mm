@@ -7,7 +7,12 @@
 #import <Metal/MTLPixelFormatInternal.h>
 #import <Metal/MTLTypesInternal.h>
 
-@implementation MTLTextureInternal
+@implementation MTLTextureInternal {
+#if DARLING_METAL_ENABLED
+	// Set when the texture holds a copy of its IOSurface plane.
+	MTLIOSurfaceCopy* _iosurfaceCopy;
+#endif
+}
 
 #if DARLING_METAL_ENABLED
 
@@ -33,7 +38,7 @@ const std::shared_ptr<Indium::Texture>& MTLTextureGetIndium(id<MTLTexture> objec
                          device: (id<MTLDevice>)device
                 resourceOptions: (MTLResourceOptions)options
 {
-	return [self initWithTexture: texture device: device resourceOptions: options iosurface: NULL plane: 0];
+	return [self initWithTexture: texture device: device resourceOptions: options iosurface: NULL plane: 0 copy: nullptr];
 }
 
 - (instancetype)initWithTexture: (std::shared_ptr<Indium::Texture>)texture
@@ -41,6 +46,7 @@ const std::shared_ptr<Indium::Texture>& MTLTextureGetIndium(id<MTLTexture> objec
                 resourceOptions: (MTLResourceOptions)options
                       iosurface: (IOSurfaceRef)iosurface
                           plane: (NSUInteger)plane
+                           copy: (MTLIOSurfaceCopy*)copy
 {
 	self = [super init];
 	if (self != nil) {
@@ -50,6 +56,7 @@ const std::shared_ptr<Indium::Texture>& MTLTextureGetIndium(id<MTLTexture> objec
 		if (iosurface != NULL) {
 			_iosurface = (IOSurfaceRef)CFRetain(iosurface);
 			_iosurfacePlane = plane;
+			_iosurfaceCopy = copy;
 		}
 	}
 	return self;
@@ -57,7 +64,9 @@ const std::shared_ptr<Indium::Texture>& MTLTextureGetIndium(id<MTLTexture> objec
 
 - (void)dealloc
 {
-	// The Indium texture holds the surface's memory; drop it before the surface.
+	// The copy refers to the surface, and the Indium texture may hold the surface's memory;
+	// drop both before the surface.
+	MTLIOSurfaceCopyDestroy(_iosurfaceCopy);
 	_texture.reset();
 	if (_iosurface != NULL) {
 		CFRelease(_iosurface);
@@ -208,10 +217,16 @@ static void raiseIndiumFailure(const std::exception& e) {
             withBytes: (const void*)pixelBytes
             bytesPerRow: (NSUInteger)bytesPerRow
 {
+	if (_iosurfaceCopy != nullptr) {
+		MTLIOSurfaceCopyBeforeTextureAccess(_iosurfaceCopy);
+	}
 	try {
 		_texture->replaceRegion(MTLRegionToIndium(region), level, pixelBytes, bytesPerRow);
 	} catch (const std::exception& e) {
 		raiseIndiumFailure(e);
+	}
+	if (_iosurfaceCopy != nullptr) {
+		MTLIOSurfaceCopyGPUMayHaveWritten();
 	}
 }
 
@@ -222,10 +237,16 @@ static void raiseIndiumFailure(const std::exception& e) {
             bytesPerRow: (NSUInteger)bytesPerRow
           bytesPerImage: (NSUInteger)bytesPerImage
 {
+	if (_iosurfaceCopy != nullptr) {
+		MTLIOSurfaceCopyBeforeTextureAccess(_iosurfaceCopy);
+	}
 	try {
 		_texture->replaceRegion(MTLRegionToIndium(region), level, slice, pixelBytes, bytesPerRow, bytesPerImage);
 	} catch (const std::exception& e) {
 		raiseIndiumFailure(e);
+	}
+	if (_iosurfaceCopy != nullptr) {
+		MTLIOSurfaceCopyGPUMayHaveWritten();
 	}
 }
 
@@ -241,6 +262,9 @@ static void raiseIndiumFailure(const std::exception& e) {
       fromRegion: (MTLRegion)region
      mipmapLevel: (NSUInteger)level
 {
+	if (_iosurfaceCopy != nullptr) {
+		MTLIOSurfaceCopyBeforeTextureAccess(_iosurfaceCopy);
+	}
 	try {
 		_texture->getBytes(MTLRegionToIndium(region), level, pixelBytes, bytesPerRow);
 	} catch (const std::exception& e) {
@@ -255,6 +279,9 @@ static void raiseIndiumFailure(const std::exception& e) {
      mipmapLevel: (NSUInteger)level
            slice: (NSUInteger)slice
 {
+	if (_iosurfaceCopy != nullptr) {
+		MTLIOSurfaceCopyBeforeTextureAccess(_iosurfaceCopy);
+	}
 	try {
 		_texture->getBytes(MTLRegionToIndium(region), level, slice, pixelBytes, bytesPerRow, bytesPerImage);
 	} catch (const std::exception& e) {
