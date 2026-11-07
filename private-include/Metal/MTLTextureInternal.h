@@ -8,6 +8,7 @@
 
 #if DARLING_METAL_ENABLED
 #include <indium/indium.hpp>
+#include <Metal/MTLIOSurfaceCopy.h>
 #endif
 
 #if DARLING_METAL_ENABLED
@@ -43,12 +44,15 @@ MTL_EXPORT
                          device: (id<MTLDevice>)device
                 resourceOptions: (MTLResourceOptions)options;
 
-// A texture whose storage is the given plane of iosurface, which it retains.
+// A texture of the given plane of iosurface, which it retains. Its storage is the plane's
+// memory, or, with `copy`, a copy that `copy` keeps in step with the plane; the texture owns
+// `copy` and destroys it.
 - (instancetype)initWithTexture: (std::shared_ptr<Indium::Texture>)texture
                          device: (id<MTLDevice>)device
                 resourceOptions: (MTLResourceOptions)options
                       iosurface: (IOSurfaceRef)iosurface
-                          plane: (NSUInteger)plane;
+                          plane: (NSUInteger)plane
+                           copy: (struct MTLIOSurfaceCopy*)copy;
 #endif
 
 @end

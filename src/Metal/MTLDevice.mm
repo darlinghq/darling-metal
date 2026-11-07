@@ -491,12 +491,12 @@ static size_t iosurfacePixelSize(MTLPixelFormat format)
 	}
 }
 
-// The texture uses the plane's memory itself: CPU writes made under an IOSurface lock are what
-// the GPU reads, and GPU writes are what the CPU sees under the next lock once the command
-// buffer that made them has completed. The memory reaches the GPU as the DMA-BUF that
-// IOSurface exports. Without one (the host or its driver cannot share memory that way, or it
-// was turned off) there is no texture: a copy could not be kept in step with the surface,
-// because IOSurface lets only one GPU API register for writeback on lock.
+// CPU writes made under an IOSurface lock are what the GPU reads, and GPU writes are what the
+// CPU sees under the next lock once the command buffer that made them has completed. Where
+// IOSurface exports the plane as a DMA-BUF and the device imports it, the texture uses the
+// plane's memory itself. Otherwise (the host or its driver cannot share memory that way, or it
+// was turned off) the texture holds a copy, which MTLIOSurfaceCopy keeps in step with the
+// plane: uploaded before GPU use after CPU writes, and written back on lock.
 - (id<MTLTexture>)newTextureWithDescriptor: (MTLTextureDescriptor*)descriptor
                                  iosurface: (IOSurfaceRef)iosurface
                                      plane: (NSUInteger)plane
@@ -523,25 +523,37 @@ static size_t iosurfacePixelSize(MTLPixelFormat format)
 		return nil;
 	}
 
-	if (!_device->supportsDMABufImport()) {
-		return nil;
-	}
-
+	std::shared_ptr<Indium::Texture> texture;
 	_IOSurfaceDMABuf buffer {};
 	buffer.version = _IOSURFACE_DMABUF_VERSION;
-	if (!_IOSurfaceGetDMABuf(iosurface, plane, &buffer)) {
-		return nil;
+	if (_device->supportsDMABufImport() && _IOSurfaceGetDMABuf(iosurface, plane, &buffer)) {
+		texture = _device->newTextureWithDMABuf([descriptor asIndiumDescriptor], buffer.fd, buffer.offset, buffer.bytesPerRow);
 	}
 
-	auto texture = _device->newTextureWithDMABuf([descriptor asIndiumDescriptor], buffer.fd, buffer.offset, buffer.bytesPerRow);
+	MTLIOSurfaceCopy* copy = nullptr;
 	if (!texture) {
-		return nil;
+		// The copy is read and written by the CPU, so it lives in host-visible memory whatever
+		// storage mode the descriptor asks for.
+		auto indiumDescriptor = [descriptor asIndiumDescriptor];
+		constexpr size_t storageModeBits = 0xf << 4;
+		indiumDescriptor.resourceOptions = static_cast<Indium::ResourceOptions>(
+			static_cast<size_t>(indiumDescriptor.resourceOptions) & ~storageModeBits);
+		try {
+			texture = _device->newTexture(indiumDescriptor);
+		} catch (const std::exception&) {
+			return nil;
+		}
+		copy = texture ? MTLIOSurfaceCopyCreate(texture, iosurface, plane) : nullptr;
+		if (copy == nullptr) {
+			return nil;
+		}
 	}
 	return [[MTLTextureInternal alloc] initWithTexture: texture
 	                                            device: self
 	                                   resourceOptions: descriptor.resourceOptions
 	                                         iosurface: iosurface
-	                                             plane: plane];
+	                                             plane: plane
+	                                              copy: copy];
 }
 
 - (id<MTLSamplerState>)newSamplerStateWithDescriptor: (MTLSamplerDescriptor*)descriptor

@@ -9,6 +9,7 @@
 #import <Metal/MTLDrawableInternal.h>
 #import <Metal/stubs.h>
 #import <Metal/MTLRenderCommandEncoderInternal.h>
+#import <Metal/MTLIOSurfaceCopy.h>
 
 #if DARLING_METAL_ENABLED
 // used to take care of RR while passing the block around in C++ code
@@ -152,7 +153,11 @@ struct MTLCommandBufferHandlerWrapper {
 
 - (void)commit
 {
+	// Textures that copy IOSurface planes get the CPU's writes before the GPU runs the work, and
+	// the next lock of their surfaces copies its results back.
+	MTLIOSurfaceCopyBeforeGPUUse();
 	_commandBuffer->commit();
+	MTLIOSurfaceCopyGPUMayHaveWritten();
 }
 
 #else
