@@ -364,12 +364,17 @@ MTL_UNSUPPORTED_CLASS
 
 - (std::vector<Indium::RenderPassColorAttachmentDescriptor>)asContiguousIndiumDescriptors
 {
-	auto tmp1 = [self asIndiumDescriptors];
-	std::map<size_t, Indium::RenderPassColorAttachmentDescriptor> tmp2(tmp1.begin(), tmp1.end());
+	// Attachment N must stay at index N even when lower indices were never configured: a
+	// fragment shader's [[color(N)]] output goes to slot N. Unconfigured slots below the
+	// highest configured one are empty (no texture).
+	auto indexed = [self asIndiumDescriptors];
 	std::vector<Indium::RenderPassColorAttachmentDescriptor> result;
 
-	for (const auto& [key, value]: tmp2) {
-		result.push_back(value);
+	for (const auto& [index, value]: indexed) {
+		if (index >= result.size()) {
+			result.resize(index + 1);
+		}
+		result[index] = value;
 	}
 
 	return result;
@@ -630,6 +635,14 @@ MTL_UNSUPPORTED_CLASS
 - (void)setDepthStencilState: (id<MTLDepthStencilState>)state
 {
 	_encoder->setDepthStencilState(((MTLDepthStencilStateInternal*)state).state);
+}
+
+- (void)memoryBarrierWithScope: (MTLBarrierScope)scope
+                   afterStages: (MTLRenderStages)after
+                  beforeStages: (MTLRenderStages)before
+{
+	// MTLBarrierScope and MTLRenderStages have the same bit values as Indium's flags
+	_encoder->memoryBarrier(static_cast<Indium::BarrierScope>(scope), static_cast<Indium::RenderStages>(after), static_cast<Indium::RenderStages>(before));
 }
 
 - (void)setVisibilityResultMode: (MTLVisibilityResultMode)mode

@@ -28,6 +28,14 @@ METAL_DECLARATIONS_BEGIN
 struct MTLSamplePosition;
 typedef struct MTLSamplePosition MTLSamplePosition;
 
+typedef NS_OPTIONS(NSUInteger, MTLRenderStages) {
+	MTLRenderStageVertex = 1 << 0,
+	MTLRenderStageFragment = 1 << 1,
+	MTLRenderStageTile = 1 << 2,
+	MTLRenderStageObject = 1 << 3,
+	MTLRenderStageMesh = 1 << 4,
+};
+
 typedef NS_ENUM(NSUInteger, MTLLoadAction) {
 	MTLLoadActionDontCare = 0,
 	MTLLoadActionLoad = 1,
@@ -223,6 +231,9 @@ MTL_EXPORT
           slopeScale: (float)slopeScale
                clamp: (float)clamp;
 - (void)setDepthStencilState: (id<MTLDepthStencilState>)state;
+- (void)memoryBarrierWithScope: (MTLBarrierScope)scope
+                   afterStages: (MTLRenderStages)after
+                  beforeStages: (MTLRenderStages)before;
 - (void)setVisibilityResultMode: (MTLVisibilityResultMode)mode
                           offset: (NSUInteger)offset;
 

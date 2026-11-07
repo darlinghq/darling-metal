@@ -69,6 +69,7 @@ MTL_EXPORT
 
 - (id<MTLBlitCommandEncoder>)blitCommandEncoder;
 
+- (void)addScheduledHandler: (MTLCommandBufferHandler)block;
 - (void)addCompletedHandler: (MTLCommandBufferHandler)block;
 - (void)waitUntilCompleted;
 - (void)presentDrawable: (id<MTLDrawable>)drawable;

@@ -124,6 +124,11 @@ struct MTLCommandBufferHandlerWrapper {
 	return [[[MTLBlitCommandEncoderInternal alloc] initWithEncoder: encoder device: _device] autorelease];
 }
 
+- (void)addScheduledHandler: (MTLCommandBufferHandler)block
+{
+	_commandBuffer->addScheduledHandler(MTLCommandBufferHandlerWrapper(block, self));
+}
+
 - (void)addCompletedHandler: (MTLCommandBufferHandler)block
 {
 	_commandBuffer->addCompletedHandler(MTLCommandBufferHandlerWrapper(block, self));

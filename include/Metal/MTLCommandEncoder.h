@@ -9,6 +9,12 @@ METAL_DECLARATIONS_BEGIN
 
 @protocol MTLDevice;
 
+typedef NS_OPTIONS(NSUInteger, MTLBarrierScope) {
+	MTLBarrierScopeBuffers = 1 << 0,
+	MTLBarrierScopeTextures = 1 << 1,
+	MTLBarrierScopeRenderTargets = 1 << 2,
+};
+
 @protocol MTLCommandEncoder <NSObject>
 
 @property(readonly) id<MTLDevice> device;
