@@ -21,6 +21,11 @@ void MTLDeviceDestroyAll(void);
 
 - (void)stopPolling;
 
+// the platform identity settings that override what the device reports
+- (void)setReportedName: (NSString*)name;
+- (void)setReportedWorkingSetSize: (uint64_t)size;
+- (void)setReportedUnifiedMemory: (BOOL)unifiedMemory;
+
 - (void)waitUntilPollingIsStopped;
 
 // creates a library from a metallib in memory, reporting failures in `error`
