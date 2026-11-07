@@ -10,6 +10,7 @@
 #import <Metal/MTLLibraryInternal.h>
 #import <Metal/stubs.h>
 #import <Metal/MTLRenderPipelineInternal.h>
+#import <Metal/MTLIndiumErrors.h>
 #import <Metal/MTLTextureDescriptorInternal.h>
 #import <Metal/MTLTextureInternal.h>
 #import <Metal/MTLSamplerDescriptorInternal.h>
@@ -163,11 +164,15 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
                                                           reflection: (MTLAutoreleasedComputePipelineReflection*)reflection
                                                                error: (NSError**)error
 {
-	auto pso = _device->newComputePipelineState(descriptor.asIndiumDescriptor, static_cast<Indium::PipelineOption>(options), nullptr);
+	if (error) {
+		*error = nil;
+	}
+	auto pso = MTLCallIndium(error, MTLLibraryErrorInternal, [&]() {
+		return _device->newComputePipelineState(descriptor.asIndiumDescriptor, static_cast<Indium::PipelineOption>(options), nullptr);
+	});
 	if (!pso) {
-		if (error) {
-			// TODO: better error and/or match what the official Metal method does
-			*error = [NSError errorWithDomain: NSPOSIXErrorDomain code: ENOMEM userInfo: nil];
+		if (error && !*error) {
+			*error = MTLErrorWithCode(MTLLibraryErrorInternal, @"The pipeline could not be created");
 		}
 		return nil;
 	}
@@ -188,11 +193,15 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
                                                         reflection: (MTLAutoreleasedComputePipelineReflection*)reflection 
                                                              error: (NSError**)error
 {
-	auto pso = _device->newComputePipelineState(((MTLFunctionInternal*)computeFunction).function, static_cast<Indium::PipelineOption>(options), nullptr);
+	if (error) {
+		*error = nil;
+	}
+	auto pso = MTLCallIndium(error, MTLLibraryErrorInternal, [&]() {
+		return _device->newComputePipelineState(((MTLFunctionInternal*)computeFunction).function, static_cast<Indium::PipelineOption>(options), nullptr);
+	});
 	if (!pso) {
-		if (error) {
-			// TODO: better error and/or match what the official Metal method does
-			*error = [NSError errorWithDomain: NSPOSIXErrorDomain code: ENOMEM userInfo: nil];
+		if (error && !*error) {
+			*error = MTLErrorWithCode(MTLLibraryErrorInternal, @"The pipeline could not be created");
 		}
 		return nil;
 	}
@@ -202,11 +211,15 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 - (id<MTLRenderPipelineState>)newRenderPipelineStateWithDescriptor: (MTLRenderPipelineDescriptor*)descriptor
                                                              error: (NSError**)error
 {
-	auto pso = _device->newRenderPipelineState([descriptor asIndiumDescriptor]);
+	if (error) {
+		*error = nil;
+	}
+	auto pso = MTLCallIndium(error, MTLLibraryErrorInternal, [&]() {
+		return _device->newRenderPipelineState([descriptor asIndiumDescriptor]);
+	});
 	if (!pso) {
-		if (error) {
-			// TODO: better error and/or match what the official Metal method does
-			*error = [NSError errorWithDomain: NSPOSIXErrorDomain code: ENOMEM userInfo: nil];
+		if (error && !*error) {
+			*error = MTLErrorWithCode(MTLLibraryErrorInternal, @"The pipeline could not be created");
 		}
 		return nil;
 	}
@@ -283,8 +296,7 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 	NSURL* url = [bundle URLForResource: @"default" withExtension: @"metallib"];
 	if (url == nil) {
 		if (error) {
-			// TODO: better error
-			*error = [NSError errorWithDomain: NSPOSIXErrorDomain code: ENOENT userInfo: nil];
+			*error = MTLErrorWithCode(MTLLibraryErrorFileNotFound, @"The bundle has no default.metallib");
 		}
 		return nil;
 	}
@@ -299,19 +311,39 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 		// error was already written
 		return nil;
 	}
-	auto lib = _device->newLibrary(data.bytes, data.length);
-	if (!lib) {
-		return nil;
-	}
-	return [[MTLLibraryInternal alloc] initWithLibrary: lib device: self];
+	return [self newLibraryWithBytes: data.bytes length: data.length error: error];
 }
 
 - (id<MTLLibrary>)newLibraryWithData: (dispatch_data_t)data
                                error: (NSError**)error
 {
-	NSData* nsdata = (NSData*)data;
-	auto lib = _device->newLibrary(nsdata.bytes, nsdata.length);
+	if (!data) {
+		MTLSetError(error, MTLLibraryErrorInternal, @"No library data");
+		return nil;
+	}
+	// a dispatch_data_t may be made of several regions; map it to one contiguous buffer
+	const void* bytes = nullptr;
+	size_t length = 0;
+	dispatch_data_t contiguous = dispatch_data_create_map(data, &bytes, &length);
+	id<MTLLibrary> library = [self newLibraryWithBytes: bytes length: length error: error];
+	dispatch_release(contiguous);
+	return library;
+}
+
+- (id<MTLLibrary>)newLibraryWithBytes: (const void*)bytes
+                               length: (size_t)length
+                                error: (NSError**)error
+{
+	if (error) {
+		*error = nil;
+	}
+	auto lib = MTLCallIndium(error, MTLLibraryErrorCompileFailure, [&]() {
+		return _device->newLibrary(bytes, length);
+	});
 	if (!lib) {
+		if (error && !*error) {
+			*error = MTLErrorWithCode(MTLLibraryErrorCompileFailure, @"The library could not be translated");
+		}
 		return nil;
 	}
 	return [[MTLLibraryInternal alloc] initWithLibrary: lib device: self];

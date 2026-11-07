@@ -4,6 +4,7 @@
 #import <Metal/MTLLibraryInternal.h>
 #import <Metal/MTLDevice.h>
 #import <Metal/stubs.h>
+#import <Metal/MTLIndiumErrors.h>
 
 MTL_EXTERN NSErrorDomain const MTLLibraryErrorDomain = @"MTLLibraryErrorDomain";
 
@@ -33,6 +34,8 @@ MTL_EXTERN NSErrorDomain const MTLLibraryErrorDomain = @"MTLLibraryErrorDomain";
 
 		// cache the name
 		_name = [[NSString alloc] initWithUTF8String: _function->name().c_str()];
+		// Indium's FunctionType values are Metal's
+		_functionType = static_cast<MTLFunctionType>(_function->functionType());
 	}
 	return self;
 }
@@ -142,7 +145,13 @@ MTL_UNSUPPORTED_CLASS
 
 - (id<MTLFunction>)newFunctionWithName: (NSString*)functionName
 {
-	auto func = _library->newFunction(functionName.UTF8String);
+	if (!functionName) {
+		return nil;
+	}
+	// this selector has no error out-parameter: a function Indium cannot create is nil
+	auto func = MTLCallIndium(nullptr, MTLLibraryErrorFunctionNotFound, [&]() {
+		return _library->newFunction(functionName.UTF8String);
+	});
 	if (!func) {
 		return nil;
 	}
