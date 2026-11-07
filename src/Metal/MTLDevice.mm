@@ -14,6 +14,8 @@
 #import <Metal/MTLArgumentInternal.h>
 #import <Metal/MTLTextureDescriptorInternal.h>
 #import <Metal/MTLTextureInternal.h>
+#import <IOSurface/IOSurfaceRef.h>
+#import <IOSurface/IOSurfacePriv.h>
 #import <Metal/MTLSamplerDescriptorInternal.h>
 #import <Metal/MTLSamplerStateInternal.h>
 #import <Metal/MTLDepthStencilDescriptorInternal.h>
@@ -468,6 +470,78 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 		return nil;
 	}
 	return [[MTLTextureInternal alloc] initWithTexture: texture device: self resourceOptions: descriptor.resourceOptions];
+}
+
+// The size of one pixel of the formats an IOSurface plane can back here, or 0. These are the
+// uncompressed color formats whose memory layout is the same in a linear Vulkan image.
+static size_t iosurfacePixelSize(MTLPixelFormat format)
+{
+	switch (format) {
+	case MTLPixelFormatR8Unorm:
+		return 1;
+	case MTLPixelFormatRG8Unorm:
+		return 2;
+	case MTLPixelFormatRGBA8Unorm:
+	case MTLPixelFormatRGBA8Unorm_sRGB:
+	case MTLPixelFormatBGRA8Unorm:
+	case MTLPixelFormatBGRA8Unorm_sRGB:
+		return 4;
+	default:
+		return 0;
+	}
+}
+
+// The texture uses the plane's memory itself: CPU writes made under an IOSurface lock are what
+// the GPU reads, and GPU writes are what the CPU sees under the next lock once the command
+// buffer that made them has completed. The memory reaches the GPU as the DMA-BUF that
+// IOSurface exports. Without one (the host or its driver cannot share memory that way, or it
+// was turned off) there is no texture: a copy could not be kept in step with the surface,
+// because IOSurface lets only one GPU API register for writeback on lock.
+- (id<MTLTexture>)newTextureWithDescriptor: (MTLTextureDescriptor*)descriptor
+                                 iosurface: (IOSurfaceRef)iosurface
+                                     plane: (NSUInteger)plane
+{
+	if (descriptor == nil || iosurface == NULL) {
+		return nil;
+	}
+	if (descriptor.textureType != MTLTextureType2D || descriptor.mipmapLevelCount != 1 ||
+	    descriptor.sampleCount != 1 || descriptor.arrayLength != 1 || descriptor.depth != 1) {
+		return nil;
+	}
+
+	// A surface without planes has its single plane at index 0.
+	size_t planeCount = IOSurfaceGetPlaneCount(iosurface);
+	if (plane >= (planeCount == 0 ? 1 : planeCount)) {
+		return nil;
+	}
+
+	size_t pixelSize = iosurfacePixelSize(descriptor.pixelFormat);
+	if (pixelSize == 0 || IOSurfaceGetBytesPerElementOfPlane(iosurface, plane) != pixelSize ||
+	    descriptor.width == 0 || descriptor.height == 0 ||
+	    descriptor.width > IOSurfaceGetWidthOfPlane(iosurface, plane) ||
+	    descriptor.height > IOSurfaceGetHeightOfPlane(iosurface, plane)) {
+		return nil;
+	}
+
+	if (!_device->supportsDMABufImport()) {
+		return nil;
+	}
+
+	_IOSurfaceDMABuf buffer {};
+	buffer.version = _IOSURFACE_DMABUF_VERSION;
+	if (!_IOSurfaceGetDMABuf(iosurface, plane, &buffer)) {
+		return nil;
+	}
+
+	auto texture = _device->newTextureWithDMABuf([descriptor asIndiumDescriptor], buffer.fd, buffer.offset, buffer.bytesPerRow);
+	if (!texture) {
+		return nil;
+	}
+	return [[MTLTextureInternal alloc] initWithTexture: texture
+	                                            device: self
+	                                   resourceOptions: descriptor.resourceOptions
+	                                         iosurface: iosurface
+	                                             plane: plane];
 }
 
 - (id<MTLSamplerState>)newSamplerStateWithDescriptor: (MTLSamplerDescriptor*)descriptor

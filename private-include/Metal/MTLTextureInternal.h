@@ -42,6 +42,13 @@ MTL_EXPORT
 - (instancetype)initWithTexture: (std::shared_ptr<Indium::Texture>)texture
                          device: (id<MTLDevice>)device
                 resourceOptions: (MTLResourceOptions)options;
+
+// A texture whose storage is the given plane of iosurface, which it retains.
+- (instancetype)initWithTexture: (std::shared_ptr<Indium::Texture>)texture
+                         device: (id<MTLDevice>)device
+                resourceOptions: (MTLResourceOptions)options
+                      iosurface: (IOSurfaceRef)iosurface
+                          plane: (NSUInteger)plane;
 #endif
 
 @end

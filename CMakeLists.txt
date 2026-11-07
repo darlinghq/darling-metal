@@ -82,6 +82,7 @@ add_framework(Metal
 		system
 		objc
 		Foundation
+		IOSurface
 		${METAL_LINK_INDIUM}
 		cxx
 )

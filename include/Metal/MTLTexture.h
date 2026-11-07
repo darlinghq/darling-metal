@@ -5,6 +5,7 @@
 #define _METAL_MTLTEXTURE_H_
 
 #import <Foundation/Foundation.h>
+#import <IOSurface/IOSurfaceRef.h>
 
 #import <Metal/MTLDefines.h>
 #import <Metal/MTLResource.h>
@@ -71,6 +72,8 @@ MTLTextureSwizzleChannels MTLTextureSwizzleChannelsMake(MTLTextureSwizzle red, M
 @property(readonly) BOOL allowGPUOptimizedContents;
 @property(readonly, getter=isShareable) BOOL shareable;
 @property(readonly, nonatomic) MTLTextureSwizzleChannels swizzle;
+@property(readonly) IOSurfaceRef iosurface;
+@property(readonly) NSUInteger iosurfacePlane;
 
 - (id<MTLTexture>)newTextureViewWithPixelFormat: (MTLPixelFormat)pixelFormat;
 
