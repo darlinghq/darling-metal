@@ -159,31 +159,62 @@
 	return [[MTLTextureInternal alloc] initWithTexture: tex device: _device resourceOptions: _resourceOptions];
 }
 
+// Indium states a precondition it cannot meet by throwing, and these selectors
+// return void, so there is nowhere for the failure to go but out as an
+// exception. That is also what the framework itself does: uploading into a
+// texture whose storage mode has no host-visible destination is a programming
+// error, and Metal raises rather than silently discarding the bytes. Let it
+// escape the C++ layer rather than terminating the process with it, and carry
+// Indium's message.
+static void raiseIndiumFailure(const std::exception& e) {
+	@throw [NSException exceptionWithName: NSInvalidArgumentException
+	                               reason: [NSString stringWithUTF8String: e.what()]
+	                             userInfo: nil];
+}
+
 - (void)replaceRegion: (MTLRegion)region
           mipmapLevel: (NSUInteger)level
             withBytes: (const void*)pixelBytes
-          bytesPerRow: (NSUInteger)bytesPerRow
+            bytesPerRow: (NSUInteger)bytesPerRow
 {
-	_texture->replaceRegion(MTLRegionToIndium(region), level, pixelBytes, bytesPerRow);
+	try {
+		_texture->replaceRegion(MTLRegionToIndium(region), level, pixelBytes, bytesPerRow);
+	} catch (const std::exception& e) {
+		raiseIndiumFailure(e);
+	}
 }
 
 - (void)replaceRegion: (MTLRegion)region
           mipmapLevel: (NSUInteger)level
                 slice: (NSUInteger)slice
             withBytes: (const void*)pixelBytes
-          bytesPerRow: (NSUInteger)bytesPerRow
-        bytesPerImage: (NSUInteger)bytesPerImage
+            bytesPerRow: (NSUInteger)bytesPerRow
+          bytesPerImage: (NSUInteger)bytesPerImage
 {
-	_texture->replaceRegion(MTLRegionToIndium(region), level, slice, pixelBytes, bytesPerRow, bytesPerImage);
+	try {
+		_texture->replaceRegion(MTLRegionToIndium(region), level, slice, pixelBytes, bytesPerRow, bytesPerImage);
+	} catch (const std::exception& e) {
+		raiseIndiumFailure(e);
+	}
 }
+
+// Indium states a precondition it cannot meet by throwing, and this selector
+// returns void, so there is nowhere for the failure to go but out as an
+// exception. That is also what the framework itself does: reading a texture
+// whose storage mode has no host-visible contents is a programming error, and
+// Metal raises rather than returning a sentinel. Let it escape the C++ layer
+// rather than terminating the process with it, and carry Indium's message.
 
 - (void)getBytes: (void*)pixelBytes
      bytesPerRow: (NSUInteger)bytesPerRow
       fromRegion: (MTLRegion)region
      mipmapLevel: (NSUInteger)level
 {
-	NSLog(@"STUB: getBytes:bytesPerRow:fromRegion:mipmapLevel:");
-	abort();
+	try {
+		_texture->getBytes(MTLRegionToIndium(region), level, pixelBytes, bytesPerRow);
+	} catch (const std::exception& e) {
+		raiseIndiumFailure(e);
+	}
 }
 
 - (void)getBytes: (void*)pixelBytes
@@ -193,8 +224,11 @@
      mipmapLevel: (NSUInteger)level
            slice: (NSUInteger)slice
 {
-	NSLog(@"STUB: getBytes:bytesPerRow:bytesPerImage:fromRegion:mipmapLevel:slice:");
-	abort();
+	try {
+		_texture->getBytes(MTLRegionToIndium(region), level, slice, pixelBytes, bytesPerRow, bytesPerImage);
+	} catch (const std::exception& e) {
+		raiseIndiumFailure(e);
+	}
 }
 
 #else

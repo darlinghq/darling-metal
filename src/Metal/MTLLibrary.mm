@@ -4,6 +4,9 @@
 #import <Metal/MTLLibraryInternal.h>
 #import <Metal/MTLDevice.h>
 #import <Metal/stubs.h>
+#import <Metal/MTLIndiumErrors.h>
+
+MTL_EXTERN NSErrorDomain const MTLLibraryErrorDomain = @"MTLLibraryErrorDomain";
 
 @implementation MTLFunctionInternal
 
@@ -31,6 +34,8 @@
 
 		// cache the name
 		_name = [[NSString alloc] initWithUTF8String: _function->name().c_str()];
+		// Indium's FunctionType values are Metal's
+		_functionType = static_cast<MTLFunctionType>(_function->functionType());
 	}
 	return self;
 }
@@ -54,7 +59,26 @@
 - (id<MTLArgumentEncoder>)newArgumentEncoderWithBufferIndex: (NSUInteger)bufferIndex
                                                  reflection: (MTLAutoreleasedArgument*)reflection
 {
-	// TODO
+	// An argument encoder is a writer: it lays arguments out in a buffer at
+	// offsets and alignments the shader dictates. indium's BindingDescriptor
+	// carries an argument index and a kind and nothing else - no data type, no
+	// size, no alignment, no name, and an internalIndex that is a Vulkan
+	// descriptor binding rather than a Metal buffer index - so any offset this
+	// produced would be invented, and the shader would read the wrong bytes.
+	//
+	// MTLArgumentDescriptor is implemented because it only holds what the caller
+	// sets. This is not, because it would have to hold an answer.
+	//
+	// nil is what Apple declares for this method when there is no encoder to
+	// give, so a caller that checks keeps working; the log is what makes the
+	// absence visible instead of leaving the caller to wonder.
+	NSLog(@"MTLFunction: -newArgumentEncoderWithBufferIndex:%lu returns nil. indium does not "
+		@"expose the buffer layout an argument encoder needs (its BindingDescriptor has no "
+		@"dataType, size or alignment, and its internalIndex is a Vulkan descriptor binding, not "
+		@"a Metal buffer index). Reading arguments through setArgumentBuffer:offset: is not "
+		@"available either for the same reason.",
+		(unsigned long)bufferIndex);
+
 	return nil;
 }
 
@@ -121,7 +145,13 @@ MTL_UNSUPPORTED_CLASS
 
 - (id<MTLFunction>)newFunctionWithName: (NSString*)functionName
 {
-	auto func = _library->newFunction(functionName.UTF8String);
+	if (!functionName) {
+		return nil;
+	}
+	// this selector has no error out-parameter: a function Indium cannot create is nil
+	auto func = MTLCallIndium(nullptr, MTLLibraryErrorFunctionNotFound, [&]() {
+		return _library->newFunction(functionName.UTF8String);
+	});
 	if (!func) {
 		return nil;
 	}

@@ -18,10 +18,17 @@ METAL_DECLARATIONS_BEGIN
 @protocol MTLBuffer;
 @protocol MTLLibrary;
 @protocol MTLRenderPipelineState;
+@protocol MTLTexture;
+@protocol MTLDepthStencilState;
+@protocol MTLSamplerState;
 
 @class MTLComputePipelineDescriptor;
-@class MTLAutoreleasedComputePipelineReflection;
+@class MTLComputePipelineReflection;
+@class MTLRenderPipelineReflection;
+@class MTLDepthStencilDescriptor;
 @class MTLRenderPipelineDescriptor;
+@class MTLSamplerDescriptor;
+@class MTLTextureDescriptor;
 
 typedef NS_OPTIONS(NSUInteger, MTLPipelineOption) {
 	MTLPipelineOptionNone = 0,
@@ -29,6 +36,9 @@ typedef NS_OPTIONS(NSUInteger, MTLPipelineOption) {
 	MTLPipelineOptionBufferTypeInfo = 1 << 1,
 	MTLPipelineOptionFailOnBinaryArchiveMiss = 1 << 2,
 };
+
+typedef __autoreleasing MTLComputePipelineReflection* MTLAutoreleasedComputePipelineReflection;
+typedef __autoreleasing MTLRenderPipelineReflection* MTLAutoreleasedRenderPipelineReflection;
 
 typedef NSString* MTLDeviceNotificationName;
 typedef void (^MTLDeviceNotificationHandler)(id<MTLDevice> device, MTLDeviceNotificationName notifyName);
@@ -59,6 +69,16 @@ MTL_EXPORT void MTLRemoveDeviceObserver(id<NSObject> observer);
 
 - (id<MTLRenderPipelineState>)newRenderPipelineStateWithDescriptor: (MTLRenderPipelineDescriptor*)descriptor
                                                              error: (NSError**)error;
+- (id<MTLRenderPipelineState>)newRenderPipelineStateWithDescriptor: (MTLRenderPipelineDescriptor*)descriptor
+                                                           options: (MTLPipelineOption)options
+                                                        reflection: (MTLAutoreleasedRenderPipelineReflection*)reflection
+                                                             error: (NSError**)error;
+
+- (id<MTLTexture>)newTextureWithDescriptor: (MTLTextureDescriptor*)descriptor;
+
+- (id<MTLSamplerState>)newSamplerStateWithDescriptor: (MTLSamplerDescriptor*)descriptor;
+
+- (id<MTLDepthStencilState>)newDepthStencilStateWithDescriptor: (MTLDepthStencilDescriptor*)descriptor;
 
 - (id<MTLCommandQueue>)newCommandQueue;
 

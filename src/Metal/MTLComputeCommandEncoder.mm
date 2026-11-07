@@ -6,6 +6,8 @@
 #import <Metal/MTLTypesInternal.h>
 #import <Metal/MTLComputePipelineInternal.h>
 #import <Metal/MTLBufferInternal.h>
+#import <Metal/MTLTextureInternal.h>
+#import <Metal/MTLSamplerStateInternal.h>
 #import <Metal/stubs.h>
 
 @implementation MTLComputePassSampleBufferAttachmentDescriptor
@@ -212,6 +214,11 @@ MTL_UNSUPPORTED_CLASS
 	_encoder->setComputePipelineState(((MTLComputePipelineStateInternal*)state).state);
 }
 
+- (void)setStageInRegion:(MTLRegion)region
+{
+	_encoder->setStageInRegion(MTLRegionToIndium(region));
+}
+
 - (void)setBuffer: (id<MTLBuffer>)buffer
            offset: (NSUInteger)offset
           atIndex: (NSUInteger)index
@@ -244,6 +251,64 @@ MTL_UNSUPPORTED_CLASS
          atIndex: (NSUInteger)index
 {
 	_encoder->setBytes(bytes, length, index);
+}
+
+- (void)setTexture: (id<MTLTexture>)texture
+          atIndex: (NSUInteger)index
+{
+	_encoder->setTexture(((MTLTextureInternal*)texture).texture, index);
+}
+
+- (void)setTextures: (const id<MTLTexture>*)textures
+          withRange: (NSRange)range
+{
+	std::vector<std::shared_ptr<Indium::Texture>> indiumTextures;
+	for (size_t i = 0; i < range.length; ++i) {
+		indiumTextures.push_back(((MTLTextureInternal*)textures[i]).texture);
+	}
+	_encoder->setTextures(indiumTextures, NSRangeToIndium(range));
+}
+
+- (void)setSamplerState: (id<MTLSamplerState>)sampler
+                atIndex: (NSUInteger)index
+{
+	_encoder->setSamplerState(((MTLSamplerStateInternal*)sampler).state, index);
+}
+
+- (void)setSamplerStates: (const id<MTLSamplerState>*)samplers
+                withRange: (NSRange)range
+{
+	std::vector<std::shared_ptr<Indium::SamplerState>> indiumSamplers;
+	for (size_t i = 0; i < range.length; ++i) {
+		indiumSamplers.push_back(((MTLSamplerStateInternal*)samplers[i]).state);
+	}
+	_encoder->setSamplerStates(indiumSamplers, NSRangeToIndium(range));
+}
+
+- (void)setSamplerState: (id<MTLSamplerState>)sampler
+             lodMinClamp: (float)lodMinClamp
+             lodMaxClamp: (float)lodMaxClamp
+                atIndex: (NSUInteger)index
+{
+	_encoder->setSamplerState(((MTLSamplerStateInternal*)sampler).state, lodMinClamp, lodMaxClamp, index);
+}
+
+- (void)setSamplerStates: (const id<MTLSamplerState>*)samplers
+             lodMinClamps: (const float*)lodMinClamps
+             lodMaxClamps: (const float*)lodMaxClamps
+                withRange: (NSRange)range
+{
+	std::vector<std::shared_ptr<Indium::SamplerState>> indiumSamplers;
+	for (size_t i = 0; i < range.length; ++i) {
+		indiumSamplers.push_back(((MTLSamplerStateInternal*)samplers[i]).state);
+	}
+	_encoder->setSamplerStates(indiumSamplers, std::vector<float>(lodMinClamps, lodMinClamps + range.length), std::vector<float>(lodMaxClamps, lodMaxClamps + range.length), NSRangeToIndium(range));
+}
+
+- (void)setThreadgroupMemoryLength: (NSUInteger)length
+                          atIndex: (NSUInteger)index
+{
+	_encoder->setThreadgroupMemoryLength(length, index);
 }
 
 - (void)dispatchThreadgroups: (MTLSize)threadgroupsPerGrid

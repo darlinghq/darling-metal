@@ -40,26 +40,43 @@ add_framework(Metal
 	VERSION ${FRAMEWORK_VERSION}
 
 	SOURCES
-		src/Metal/Metal.mm
+		src/Metal/MTLAccelerationStructure.mm
+		src/Metal/MTLAccelerationStructureDescriptor.mm
+		src/Metal/MTLAccelerationStructureGeometryDescriptor.mm
+		src/Metal/MTLArgument.mm
+		src/Metal/MTLArgumentDescriptor.mm
+		src/Metal/MTLBinaryArchive.mm
+		src/Metal/MTLBlitCommandEncoder.mm
 		src/Metal/MTLBuffer.mm
 		src/Metal/MTLCaptureManager.mm
 		src/Metal/MTLCommandBuffer.mm
+		src/Metal/MTLCommandBufferDescriptor.mm
 		src/Metal/MTLCommandQueue.mm
 		src/Metal/MTLCompileOptions.mm
 		src/Metal/MTLComputeCommandEncoder.mm
 		src/Metal/MTLComputePipeline.mm
+		src/Metal/MTLCounterSampleBuffer.mm
 		src/Metal/MTLDepthStencilDescriptor.mm
 		src/Metal/MTLDevice.mm
 		src/Metal/MTLDrawable.mm
+		src/Metal/MTLFunctionConstantValues.mm
+		src/Metal/MTLHeap.mm
+		src/Metal/MTLIndirectCommandBuffer.mm
+		src/Metal/MTLIntersectionFunctionTable.mm
 		src/Metal/MTLLibrary.mm
+		src/Metal/MTLLinkedFunctions.mm
 		src/Metal/MTLPipeline.mm
 		src/Metal/MTLRenderCommandEncoder.mm
 		src/Metal/MTLRenderPipeline.mm
 		src/Metal/MTLSamplerDescriptor.mm
+		src/Metal/MTLSamplerState.mm
+		src/Metal/MTLSharedEvent.mm
 		src/Metal/MTLStencilDescriptor.mm
 		src/Metal/MTLTexture.mm
 		src/Metal/MTLTextureDescriptor.mm
+		src/Metal/MTLTileRenderPipeline.mm
 		src/Metal/MTLVertexDescriptor.mm
+		src/Metal/Metal.mm
 
 	DEPENDENCIES
 		system
@@ -119,6 +136,8 @@ add_framework(MetalKit
 	VERSION ${FRAMEWORK_VERSION}
 
 	SOURCES
+		src/MetalKit/MTKModel.m
+		src/MetalKit/MTKTextureLoader.m
 		src/MetalKit/MTKView.m
 
 	DEPENDENCIES
@@ -128,6 +147,8 @@ add_framework(MetalKit
 		Foundation
 		Metal
 		QuartzCore
+		CoreGraphics
+		ImageIO
 )
 
 target_include_directories(MetalKit PUBLIC
@@ -159,7 +180,7 @@ add_framework(MetalPerformanceShaders
 	VERSION ${FRAMEWORK_VERSION}
 
 	SOURCES
-		src/dummy.c
+		src/MPSKernel.m
 
 	DEPENDENCIES
 		system
@@ -170,4 +191,8 @@ add_framework(MetalPerformanceShaders
 
 target_include_directories(MetalPerformanceShaders PUBLIC
 	include
+)
+
+target_include_directories(MetalPerformanceShaders PRIVATE
+	private-include
 )

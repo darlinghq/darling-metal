@@ -8,6 +8,8 @@
 #import <Metal/MTLDevice.h>
 #import <Metal/MTLRenderPipelineInternal.h>
 #import <Metal/MTLTypesInternal.h>
+#import <Metal/MTLSamplerStateInternal.h>
+#import <Metal/MTLDepthStencilDescriptorInternal.h>
 
 #include <map>
 
@@ -362,12 +364,17 @@ MTL_UNSUPPORTED_CLASS
 
 - (std::vector<Indium::RenderPassColorAttachmentDescriptor>)asContiguousIndiumDescriptors
 {
-	auto tmp1 = [self asIndiumDescriptors];
-	std::map<size_t, Indium::RenderPassColorAttachmentDescriptor> tmp2(tmp1.begin(), tmp1.end());
+	// Attachment N must stay at index N even when lower indices were never configured: a
+	// fragment shader's [[color(N)]] output goes to slot N. Unconfigured slots below the
+	// highest configured one are empty (no texture).
+	auto indexed = [self asIndiumDescriptors];
 	std::vector<Indium::RenderPassColorAttachmentDescriptor> result;
 
-	for (const auto& [key, value]: tmp2) {
-		result.push_back(value);
+	for (const auto& [index, value]: indexed) {
+		if (index >= result.size()) {
+			result.resize(index + 1);
+		}
+		result[index] = value;
 	}
 
 	return result;
@@ -404,6 +411,24 @@ MTL_UNSUPPORTED_CLASS
 - (void)_doInit
 {
 	_colorAttachments = [MTLRenderPassColorAttachmentDescriptorArray new];
+}
+
+// Like the color attachments, the depth and stencil attachment descriptors always exist, so
+// that `descriptor.depthAttachment.texture = texture` configures the descriptor.
+- (MTLRenderPassDepthAttachmentDescriptor*)depthAttachment
+{
+	if (_depthAttachment == nil) {
+		_depthAttachment = [MTLRenderPassDepthAttachmentDescriptor new];
+	}
+	return _depthAttachment;
+}
+
+- (MTLRenderPassStencilAttachmentDescriptor*)stencilAttachment
+{
+	if (_stencilAttachment == nil) {
+		_stencilAttachment = [MTLRenderPassStencilAttachmentDescriptor new];
+	}
+	return _stencilAttachment;
 }
 
 - (void)_doDealloc
@@ -502,8 +527,8 @@ MTL_UNSUPPORTED_CLASS
 {
 	return Indium::RenderPassDescriptor {
 		[_colorAttachments asContiguousIndiumDescriptors],
-		(_depthAttachment == nil) ? std::nullopt : std::make_optional([_depthAttachment asIndiumDescriptor]),
-		(_stencilAttachment == nil) ? std::nullopt : std::make_optional([_stencilAttachment asIndiumDescriptor]),
+		(_depthAttachment.texture == nil) ? std::nullopt : std::make_optional([_depthAttachment asIndiumDescriptor]),
+		(_stencilAttachment.texture == nil) ? std::nullopt : std::make_optional([_stencilAttachment asIndiumDescriptor]),
 		((MTLBufferInternal*)_visibilityResultBuffer).buffer,
 		_renderTargetArrayLength,
 		_imageblockSampleLength,
@@ -582,6 +607,50 @@ MTL_UNSUPPORTED_CLASS
 	_encoder->setCullMode(static_cast<Indium::CullMode>(cullMode));
 }
 
+- (void)setDepthClipMode: (MTLDepthClipMode)depthClipMode
+{
+	_encoder->setDepthClipMode(static_cast<Indium::DepthClipMode>(depthClipMode));
+}
+
+- (void)setBlendColorRed: (float)red
+                   green: (float)green
+                    blue: (float)blue
+                   alpha: (float)alpha
+{
+	_encoder->setBlendColor(red, green, blue, alpha);
+}
+
+- (void)setStencilReferenceValue: (uint32_t)refValue
+{
+	_encoder->setStencilReferenceValue(refValue);
+}
+
+- (void)setDepthBias: (float)depthBias
+          slopeScale: (float)slopeScale
+               clamp: (float)clamp
+{
+	_encoder->setDepthBias(depthBias, slopeScale, clamp);
+}
+
+- (void)setDepthStencilState: (id<MTLDepthStencilState>)state
+{
+	_encoder->setDepthStencilState(((MTLDepthStencilStateInternal*)state).state);
+}
+
+- (void)memoryBarrierWithScope: (MTLBarrierScope)scope
+                   afterStages: (MTLRenderStages)after
+                  beforeStages: (MTLRenderStages)before
+{
+	// MTLBarrierScope and MTLRenderStages have the same bit values as Indium's flags
+	_encoder->memoryBarrier(static_cast<Indium::BarrierScope>(scope), static_cast<Indium::RenderStages>(after), static_cast<Indium::RenderStages>(before));
+}
+
+- (void)setVisibilityResultMode: (MTLVisibilityResultMode)mode
+                          offset: (NSUInteger)offset
+{
+	_encoder->setVisibilityResultMode(static_cast<Indium::VisibilityResultMode>(mode), offset);
+}
+
 - (void)setViewport: (MTLViewport)viewport
 {
 	_encoder->setViewport(MTLViewportToIndium(viewport));
@@ -644,6 +713,58 @@ MTL_UNSUPPORTED_CLASS
 	_encoder->setVertexBytes(bytes, length, index);
 }
 
+- (void)setVertexTexture: (id<MTLTexture>)texture
+                atIndex: (NSUInteger)index
+{
+	_encoder->setVertexTexture(((MTLTextureInternal*)texture).texture, index);
+}
+
+- (void)setVertexTextures: (const id<MTLTexture>*)textures
+                withRange: (NSRange)range
+{
+	std::vector<std::shared_ptr<Indium::Texture>> tmp;
+	for (size_t i = 0; i < range.length; ++i) {
+		tmp.push_back(((MTLTextureInternal*)textures[i]).texture);
+	}
+	_encoder->setVertexTextures(tmp, NSRangeToIndium(range));
+}
+
+- (void)setVertexSamplerState: (id<MTLSamplerState>)sampler
+                      atIndex: (NSUInteger)index
+{
+	_encoder->setVertexSamplerState(((MTLSamplerStateInternal*)sampler).state, index);
+}
+
+- (void)setVertexSamplerStates: (const id<MTLSamplerState>*)samplers
+                      withRange: (NSRange)range
+{
+	std::vector<std::shared_ptr<Indium::SamplerState>> tmp;
+	for (size_t i = 0; i < range.length; ++i) {
+		tmp.push_back(((MTLSamplerStateInternal*)samplers[i]).state);
+	}
+	_encoder->setVertexSamplerStates(tmp, NSRangeToIndium(range));
+}
+
+- (void)setVertexSamplerState: (id<MTLSamplerState>)sampler
+                   lodMinClamp: (float)lodMinClamp
+                   lodMaxClamp: (float)lodMaxClamp
+                      atIndex: (NSUInteger)index
+{
+	_encoder->setVertexSamplerState(((MTLSamplerStateInternal*)sampler).state, lodMinClamp, lodMaxClamp, index);
+}
+
+- (void)setVertexSamplerStates: (const id<MTLSamplerState>*)samplers
+                   lodMinClamps: (const float*)lodMinClamps
+                   lodMaxClamps: (const float*)lodMaxClamps
+                      withRange: (NSRange)range
+{
+	std::vector<std::shared_ptr<Indium::SamplerState>> tmp;
+	for (size_t i = 0; i < range.length; ++i) {
+		tmp.push_back(((MTLSamplerStateInternal*)samplers[i]).state);
+	}
+	_encoder->setVertexSamplerStates(tmp, std::vector<float>(lodMinClamps, lodMinClamps + range.length), std::vector<float>(lodMaxClamps, lodMaxClamps + range.length), NSRangeToIndium(range));
+}
+
 - (void)setFragmentBuffer: (id<MTLBuffer>)buffer
                    offset: (NSUInteger)offset
                   atIndex: (NSUInteger)index
@@ -674,6 +795,59 @@ MTL_UNSUPPORTED_CLASS
                  atIndex: (NSUInteger)index
 {
 	_encoder->setFragmentBytes(bytes, length, index);
+}
+
+- (void)setFragmentTexture: (id<MTLTexture>)texture
+                  atIndex: (NSUInteger)index
+{
+	_encoder->setFragmentTexture(((MTLTextureInternal*)texture).texture, index);
+}
+
+- (void)setFragmentTextures: (const id<MTLTexture>*)textures
+                  withRange: (NSRange)range
+{
+	// Indium takes this by non-const reference, unlike setVertexTextures.
+	std::vector<std::shared_ptr<Indium::Texture>> tmp;
+	for (size_t i = 0; i < range.length; ++i) {
+		tmp.push_back(((MTLTextureInternal*)textures[i]).texture);
+	}
+	_encoder->setFragmentTextures(tmp, NSRangeToIndium(range));
+}
+
+- (void)setFragmentSamplerState: (id<MTLSamplerState>)sampler
+                        atIndex: (NSUInteger)index
+{
+	_encoder->setFragmentSamplerState(((MTLSamplerStateInternal*)sampler).state, index);
+}
+
+- (void)setFragmentSamplerStates: (const id<MTLSamplerState>*)samplers
+                        withRange: (NSRange)range
+{
+	std::vector<std::shared_ptr<Indium::SamplerState>> tmp;
+	for (size_t i = 0; i < range.length; ++i) {
+		tmp.push_back(((MTLSamplerStateInternal*)samplers[i]).state);
+	}
+	_encoder->setFragmentSamplerStates(tmp, NSRangeToIndium(range));
+}
+
+- (void)setFragmentSamplerState: (id<MTLSamplerState>)sampler
+                     lodMinClamp: (float)lodMinClamp
+                     lodMaxClamp: (float)lodMaxClamp
+                        atIndex: (NSUInteger)index
+{
+	_encoder->setFragmentSamplerState(((MTLSamplerStateInternal*)sampler).state, lodMinClamp, lodMaxClamp, index);
+}
+
+- (void)setFragmentSamplerStates: (const id<MTLSamplerState>*)samplers
+                     lodMinClamps: (const float*)lodMinClamps
+                     lodMaxClamps: (const float*)lodMaxClamps
+                        withRange: (NSRange)range
+{
+	std::vector<std::shared_ptr<Indium::SamplerState>> tmp;
+	for (size_t i = 0; i < range.length; ++i) {
+		tmp.push_back(((MTLSamplerStateInternal*)samplers[i]).state);
+	}
+	_encoder->setFragmentSamplerStates(tmp, std::vector<float>(lodMinClamps, lodMinClamps + range.length), std::vector<float>(lodMaxClamps, lodMaxClamps + range.length), NSRangeToIndium(range));
 }
 
 - (void)drawPrimitives: (MTLPrimitiveType)primitiveType

@@ -22,6 +22,11 @@ void MTLDeviceDestroyAll(void);
 - (void)stopPolling;
 
 - (void)waitUntilPollingIsStopped;
+
+// creates a library from a metallib in memory, reporting failures in `error`
+- (id<MTLLibrary>)newLibraryWithBytes: (const void*)bytes
+                               length: (size_t)length
+                                error: (NSError**)error;
 #endif
 
 @end

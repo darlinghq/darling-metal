@@ -20,10 +20,15 @@ Indium::Range<size_t> NSRangeToIndium(NSRange range) {
 };
 
 NS_INLINE
+Indium::Origin MTLOriginToIndium(MTLOrigin origin) {
+	return Indium::Origin { origin.x, origin.y, origin.z };
+};
+
+NS_INLINE
 Indium::Region MTLRegionToIndium(MTLRegion region) {
 	return Indium::Region {
-		Indium::Origin { region.origin.x, region.origin.y, region.origin.z },
-		Indium::Size { region.size.width, region.size.height, region.size.depth },
+		MTLOriginToIndium(region.origin),
+		MTLSizeToIndium(region.size),
 	};
 };
 #endif

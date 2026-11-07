@@ -7,12 +7,15 @@
 #import <Metal/MTLCommandEncoder.h>
 #import <Metal/MTLComputePipeline.h>
 #import <Metal/MTLDefines.h>
+#import <Metal/MTLTypes.h>
 
 METAL_DECLARATIONS_BEGIN
 
 @protocol MTLComputeCommandEncoder;
 @protocol MTLCounterSampleBuffer;
 @protocol MTLBuffer;
+@protocol MTLSamplerState;
+@protocol MTLTexture;
 
 @class MTLComputePassDescriptor;
 @class MTLComputePassSampleBufferAttachmentDescriptorArray;
@@ -55,6 +58,8 @@ MTL_EXPORT
 
 - (void)setComputePipelineState:(id<MTLComputePipelineState>)state;
 
+- (void)setStageInRegion:(MTLRegion)region;
+
 - (void)setBuffer: (id<MTLBuffer>)buffer
            offset: (NSUInteger)offset
           atIndex: (NSUInteger)index;
@@ -69,6 +74,31 @@ MTL_EXPORT
 - (void)setBytes: (const void*)bytes
           length: (NSUInteger)length
          atIndex: (NSUInteger)index;
+
+- (void)setTexture: (id<MTLTexture>)texture
+          atIndex: (NSUInteger)index;
+
+- (void)setTextures: (const id<MTLTexture>*)textures
+          withRange: (NSRange)range;
+
+- (void)setSamplerState: (id<MTLSamplerState>)sampler
+                atIndex: (NSUInteger)index;
+
+- (void)setSamplerStates: (const id<MTLSamplerState>*)samplers
+                withRange: (NSRange)range;
+
+- (void)setSamplerState: (id<MTLSamplerState>)sampler
+             lodMinClamp: (float)lodMinClamp
+             lodMaxClamp: (float)lodMaxClamp
+                atIndex: (NSUInteger)index;
+
+- (void)setSamplerStates: (const id<MTLSamplerState>*)samplers
+             lodMinClamps: (const float*)lodMinClamps
+             lodMaxClamps: (const float*)lodMaxClamps
+                withRange: (NSRange)range;
+
+- (void)setThreadgroupMemoryLength: (NSUInteger)length
+                          atIndex: (NSUInteger)index;
 
 - (void)dispatchThreadgroups: (MTLSize)threadgroupsPerGrid
        threadsPerThreadgroup: (MTLSize)threadsPerThreadgroup;

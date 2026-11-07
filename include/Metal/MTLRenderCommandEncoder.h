@@ -12,7 +12,9 @@
 METAL_DECLARATIONS_BEGIN
 
 @protocol MTLBuffer;
+@protocol MTLDepthStencilState;
 @protocol MTLRasterizationRateMap;
+@protocol MTLSamplerState;
 @protocol MTLTexture;
 @protocol MTLRenderPipelineState;
 
@@ -25,6 +27,14 @@ METAL_DECLARATIONS_BEGIN
 
 struct MTLSamplePosition;
 typedef struct MTLSamplePosition MTLSamplePosition;
+
+typedef NS_OPTIONS(NSUInteger, MTLRenderStages) {
+	MTLRenderStageVertex = 1 << 0,
+	MTLRenderStageFragment = 1 << 1,
+	MTLRenderStageTile = 1 << 2,
+	MTLRenderStageObject = 1 << 3,
+	MTLRenderStageMesh = 1 << 4,
+};
 
 typedef NS_ENUM(NSUInteger, MTLLoadAction) {
 	MTLLoadActionDontCare = 0,
@@ -66,6 +76,17 @@ typedef NS_OPTIONS(NSUInteger, MTLCullMode) {
 	MTLCullModeNone = 0,
 	MTLCullModeFront = 1,
 	MTLCullModeBack = 2,
+};
+
+typedef NS_ENUM(NSUInteger, MTLDepthClipMode) {
+	MTLDepthClipModeClip = 0,
+	MTLDepthClipModeClamp = 1,
+};
+
+typedef NS_ENUM(NSUInteger, MTLVisibilityResultMode) {
+	MTLVisibilityResultModeDisabled = 0,
+	MTLVisibilityResultModeBoolean = 1,
+	MTLVisibilityResultModeCounting = 2,
 };
 
 typedef NS_ENUM(NSUInteger, MTLPrimitiveType) {
@@ -194,12 +215,27 @@ MTL_EXPORT
 - (void)setTriangleFillMode: (MTLTriangleFillMode)fillMode;
 - (void)setFrontFacingWinding: (MTLWinding)frontFacingWinding;
 - (void)setCullMode: (MTLCullMode)cullMode;
+- (void)setDepthClipMode: (MTLDepthClipMode)depthClipMode;
 - (void)setViewport: (MTLViewport)viewport;
 - (void)setViewports: (const MTLViewport*)viewports
                count: (NSUInteger)count;
 - (void)setScissorRect: (MTLScissorRect)rect;
 - (void)setScissorRects: (const MTLScissorRect*)scissorRects
                   count: (NSUInteger)count;
+- (void)setBlendColorRed: (float)red
+                   green: (float)green
+                    blue: (float)blue
+                   alpha: (float)alpha;
+- (void)setStencilReferenceValue: (uint32_t)refValue;
+- (void)setDepthBias: (float)depthBias
+          slopeScale: (float)slopeScale
+               clamp: (float)clamp;
+- (void)setDepthStencilState: (id<MTLDepthStencilState>)state;
+- (void)memoryBarrierWithScope: (MTLBarrierScope)scope
+                   afterStages: (MTLRenderStages)after
+                  beforeStages: (MTLRenderStages)before;
+- (void)setVisibilityResultMode: (MTLVisibilityResultMode)mode
+                          offset: (NSUInteger)offset;
 
 - (void)setVertexBuffer: (id<MTLBuffer>)buffer
                  offset: (NSUInteger)offset
@@ -215,6 +251,24 @@ MTL_EXPORT
                 length: (NSUInteger)length
                atIndex: (NSUInteger)index;
 
+- (void)setVertexTexture: (id<MTLTexture>)texture
+                atIndex: (NSUInteger)index;
+- (void)setVertexTextures: (const id<MTLTexture>*)textures
+                withRange: (NSRange)range;
+
+- (void)setVertexSamplerState: (id<MTLSamplerState>)sampler
+                      atIndex: (NSUInteger)index;
+- (void)setVertexSamplerStates: (const id<MTLSamplerState>*)samplers
+                      withRange: (NSRange)range;
+- (void)setVertexSamplerState: (id<MTLSamplerState>)sampler
+                   lodMinClamp: (float)lodMinClamp
+                   lodMaxClamp: (float)lodMaxClamp
+                      atIndex: (NSUInteger)index;
+- (void)setVertexSamplerStates: (const id<MTLSamplerState>*)samplers
+                   lodMinClamps: (const float*)lodMinClamps
+                   lodMaxClamps: (const float*)lodMaxClamps
+                      withRange: (NSRange)range;
+
 - (void)setFragmentBuffer: (id<MTLBuffer>)buffer
                    offset: (NSUInteger)offset
                   atIndex: (NSUInteger)index;
@@ -228,6 +282,24 @@ MTL_EXPORT
 - (void)setFragmentBytes: (const void*)bytes
                   length: (NSUInteger)length
                  atIndex: (NSUInteger)index;
+
+- (void)setFragmentTexture: (id<MTLTexture>)texture
+                  atIndex: (NSUInteger)index;
+- (void)setFragmentTextures: (const id<MTLTexture>*)textures
+                  withRange: (NSRange)range;
+
+- (void)setFragmentSamplerState: (id<MTLSamplerState>)sampler
+                        atIndex: (NSUInteger)index;
+- (void)setFragmentSamplerStates: (const id<MTLSamplerState>*)samplers
+                        withRange: (NSRange)range;
+- (void)setFragmentSamplerState: (id<MTLSamplerState>)sampler
+                     lodMinClamp: (float)lodMinClamp
+                     lodMaxClamp: (float)lodMaxClamp
+                        atIndex: (NSUInteger)index;
+- (void)setFragmentSamplerStates: (const id<MTLSamplerState>*)samplers
+                     lodMinClamps: (const float*)lodMinClamps
+                     lodMaxClamps: (const float*)lodMaxClamps
+                        withRange: (NSRange)range;
 
 - (void)drawPrimitives: (MTLPrimitiveType)primitiveType
            vertexStart: (NSUInteger)vertexStart
