@@ -17,6 +17,7 @@
 #import <Metal/MTLSamplerDescriptorInternal.h>
 #import <Metal/MTLSamplerStateInternal.h>
 #import <Metal/MTLDepthStencilDescriptorInternal.h>
+#import <Metal/MTLDeviceInfo.h>
 
 MTL_EXTERN const MTLDeviceNotificationName MTLDeviceWasAddedNotification = @"MTLDeviceWasAdded";
 MTL_EXTERN const MTLDeviceNotificationName MTLDeviceRemovalRequestedNotification = @"MTLDeviceRemovalRequested";
@@ -32,12 +33,16 @@ static void ensureDevices(void) {
 	dispatch_once(&devicesInitToken, ^{
 		devices = [NSMutableArray new];
 
-		// for now, we just have the system default device
-		auto indiumDevice = Indium::createSystemDefaultDevice();
-		if (indiumDevice) {
-			systemDefaultDevice = [[MTLDeviceInternal alloc] initWithDevice: indiumDevice];
+		// Indium lists the default device first. Wrapping a device is cheap: Indium creates its
+		// Vulkan device only once something is created on it.
+		for (const auto& indiumDevice: Indium::copyAllDevices()) {
+			MTLDeviceInternal* device = [[MTLDeviceInternal alloc] initWithDevice: indiumDevice];
+			[devices addObject: device];
+			[device release];
+		}
 
-			[devices addObject: systemDefaultDevice];
+		if (devices.count > 0) {
+			systemDefaultDevice = [devices[0] retain];
 		}
 	});
 };
@@ -103,6 +108,8 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 	NSThread* _pollingThread;
 	NSCondition* _threadExitCondition;
 	BOOL _threadIsRunning;
+	NSString* _name;
+	BOOL _lowPower;
 }
 
 @synthesize device = _device;
@@ -128,6 +135,18 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 	self = [super init];
 	if (self != nil) {
 		_device = device;
+		_name = [[NSString alloc] initWithUTF8String: MTLDeviceInfo::metalNameFromVulkanName(_device->name().c_str()).c_str()];
+
+		// On a Mac with automatic graphics switching, the integrated GPU is the low-power one.
+		if (_device->deviceType() == Indium::DeviceType::IntegratedGPU) {
+			for (const auto& other: Indium::copyAllDevices()) {
+				if (other->deviceType() == Indium::DeviceType::DiscreteGPU) {
+					_lowPower = YES;
+					break;
+				}
+			}
+		}
+
 		_threadExitCondition = [NSCondition new];
 		_threadIsRunning = NO;
 		_pollingThread = [[NSThread alloc] initWithTarget: self selector: @selector(pollingLoop) object: nil];
@@ -140,6 +159,7 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 {
 	[_pollingThread release];
 	[_threadExitCondition release];
+	[_name release];
 
 	[super dealloc];
 }
@@ -158,6 +178,84 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 		[_threadExitCondition wait];
 	}
 	[_threadExitCondition unlock];
+}
+
+- (NSString*)name
+{
+	return _name;
+}
+
+- (uint64_t)registryID
+{
+	return MTLDeviceInfo::registryIDFromUUID(_device->deviceUUID());
+}
+
+- (BOOL)isLowPower
+{
+	return _lowPower;
+}
+
+- (BOOL)isHeadless
+{
+	// whether a GPU drives no display is not known through Vulkan
+	return NO;
+}
+
+- (BOOL)isRemovable
+{
+	// external GPUs are not told apart from internal ones through Vulkan
+	return NO;
+}
+
+- (BOOL)hasUnifiedMemory
+{
+	// Implementation limit: Indium does not complete the Managed (didModifyRange:,
+	// synchronizeResource:) and Private upload paths that applications take on a GPU without
+	// unified memory, so every device reports unified memory until they work.
+	return YES;
+}
+
+- (uint64_t)recommendedMaxWorkingSetSize
+{
+	return _device->recommendedMaxWorkingSetSize();
+}
+
+- (NSUInteger)maxBufferLength
+{
+	uint64_t length = _device->maxBufferLength();
+	return length > NSUIntegerMax ? NSUIntegerMax : static_cast<NSUInteger>(length);
+}
+
+- (BOOL)isDepth24Stencil8PixelFormatSupported
+{
+	return _device->supportsDepth24Stencil8PixelFormat();
+}
+
+- (MTLReadWriteTextureTier)readWriteTextureSupport
+{
+	// Indium binds read-write textures as Vulkan storage images, which every Vulkan device supports
+	return MTLReadWriteTextureTier2;
+}
+
+- (BOOL)supportsFamily: (MTLGPUFamily)gpuFamily
+{
+	return MTLDeviceInfo::supportsFamily(gpuFamily);
+}
+
+- (BOOL)supportsFeatureSet: (MTLFeatureSet)featureSet
+{
+	return MTLDeviceInfo::supportsFeatureSet(featureSet);
+}
+
+- (BOOL)supportsTextureSampleCount: (NSUInteger)sampleCount
+{
+	return sampleCount <= UINT32_MAX && _device->supportsTextureSampleCount(static_cast<uint32_t>(sampleCount));
+}
+
+- (id<MTLCommandQueue>)newCommandQueueWithMaxCommandBufferCount: (NSUInteger)maxCommandBufferCount
+{
+	// Indium does not limit the number of uncompleted command buffers on a queue
+	return [self newCommandQueue];
 }
 
 - (id<MTLComputePipelineState>)newComputePipelineStateWithDescriptor: (MTLComputePipelineDescriptor*)descriptor
