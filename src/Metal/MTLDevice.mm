@@ -11,6 +11,7 @@
 #import <Metal/stubs.h>
 #import <Metal/MTLRenderPipelineInternal.h>
 #import <Metal/MTLIndiumErrors.h>
+#import <Metal/MTLArgumentInternal.h>
 #import <Metal/MTLTextureDescriptorInternal.h>
 #import <Metal/MTLTextureInternal.h>
 #import <Metal/MTLSamplerDescriptorInternal.h>
@@ -167,6 +168,9 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 	if (error) {
 		*error = nil;
 	}
+	if (reflection) {
+		*reflection = nil;
+	}
 	auto pso = MTLCallIndium(error, MTLLibraryErrorInternal, [&]() {
 		return _device->newComputePipelineState(descriptor.asIndiumDescriptor, static_cast<Indium::PipelineOption>(options), nullptr);
 	});
@@ -175,6 +179,9 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 			*error = MTLErrorWithCode(MTLLibraryErrorInternal, @"The pipeline could not be created");
 		}
 		return nil;
+	}
+	if (reflection) {
+		*reflection = [[[MTLComputePipelineReflection alloc] initWithFunction: ((MTLFunctionInternal*)descriptor.computeFunction).function options: options] autorelease];
 	}
 	return [[MTLComputePipelineStateInternal alloc] initWithState: pso device: self label: descriptor.label];
 }
@@ -196,6 +203,9 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 	if (error) {
 		*error = nil;
 	}
+	if (reflection) {
+		*reflection = nil;
+	}
 	auto pso = MTLCallIndium(error, MTLLibraryErrorInternal, [&]() {
 		return _device->newComputePipelineState(((MTLFunctionInternal*)computeFunction).function, static_cast<Indium::PipelineOption>(options), nullptr);
 	});
@@ -205,12 +215,26 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 		}
 		return nil;
 	}
+	if (reflection) {
+		*reflection = [[[MTLComputePipelineReflection alloc] initWithFunction: ((MTLFunctionInternal*)computeFunction).function options: options] autorelease];
+	}
 	return [[MTLComputePipelineStateInternal alloc] initWithState: pso device: self label: nil];
 }
 
 - (id<MTLRenderPipelineState>)newRenderPipelineStateWithDescriptor: (MTLRenderPipelineDescriptor*)descriptor
                                                              error: (NSError**)error
 {
+	return [self newRenderPipelineStateWithDescriptor: descriptor options: MTLPipelineOptionNone reflection: nil error: error];
+}
+
+- (id<MTLRenderPipelineState>)newRenderPipelineStateWithDescriptor: (MTLRenderPipelineDescriptor*)descriptor
+                                                           options: (MTLPipelineOption)options
+                                                        reflection: (MTLAutoreleasedRenderPipelineReflection*)reflection
+                                                             error: (NSError**)error
+{
+	if (reflection) {
+		*reflection = nil;
+	}
 	if (error) {
 		*error = nil;
 	}
@@ -222,6 +246,11 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 			*error = MTLErrorWithCode(MTLLibraryErrorInternal, @"The pipeline could not be created");
 		}
 		return nil;
+	}
+	if (reflection) {
+		*reflection = [[[MTLRenderPipelineReflection alloc] initWithVertexFunction: ((MTLFunctionInternal*)descriptor.vertexFunction).function
+		                                                         fragmentFunction: ((MTLFunctionInternal*)descriptor.fragmentFunction).function
+		                                                                  options: options] autorelease];
 	}
 	return [[MTLRenderPipelineStateInternal alloc] initWithState: pso device: self label: descriptor.label];
 }

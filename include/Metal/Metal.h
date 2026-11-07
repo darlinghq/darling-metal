@@ -9,6 +9,7 @@
 #import <Metal/MTLAccelerationStructureGeometryDescriptor.h>
 #import <Metal/MTLBinaryArchive.h>
 #import <Metal/MTLBuffer.h>
+#import <Metal/MTLArgument.h>
 #import <Metal/MTLArgumentDescriptor.h>
 #import <Metal/MTLBlitCommandEncoder.h>
 #import <Metal/MTLCaptureManager.h>

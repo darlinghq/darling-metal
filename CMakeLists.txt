@@ -43,6 +43,7 @@ add_framework(Metal
 		src/Metal/MTLAccelerationStructure.mm
 		src/Metal/MTLAccelerationStructureDescriptor.mm
 		src/Metal/MTLAccelerationStructureGeometryDescriptor.mm
+		src/Metal/MTLArgument.mm
 		src/Metal/MTLArgumentDescriptor.mm
 		src/Metal/MTLBinaryArchive.mm
 		src/Metal/MTLBlitCommandEncoder.mm
