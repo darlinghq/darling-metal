@@ -357,6 +357,18 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 	return MTLDeviceInfo::supportsFeatureSet(featureSet);
 }
 
+- (BOOL)supportsShaderBarycentricCoordinates
+{
+	// See the note in MTLDevice.h: Vulkan has no barycentric decoration to lower
+	// onto, so this says what the backend implements.
+	return NO;
+}
+
+- (MTLArgumentBuffersTier)argumentBuffersSupport
+{
+	return MTLArgumentBuffersTier1;
+}
+
 - (BOOL)supportsTextureSampleCount: (NSUInteger)sampleCount
 {
 	return sampleCount <= UINT32_MAX && _device->supportsTextureSampleCount(static_cast<uint32_t>(sampleCount));

@@ -130,6 +130,11 @@ struct MTLCommandBufferHandlerWrapper {
 	_commandBuffer->addScheduledHandler(MTLCommandBufferHandlerWrapper(block, self));
 }
 
+- (void)waitUntilScheduled
+{
+	_commandBuffer->waitUntilScheduled();
+}
+
 - (void)addCompletedHandler: (MTLCommandBufferHandler)block
 {
 	_commandBuffer->addCompletedHandler(MTLCommandBufferHandlerWrapper(block, self));
@@ -149,6 +154,15 @@ struct MTLCommandBufferHandlerWrapper {
 - (void)presentDrawable: (id<MTLDrawable>)drawable
 {
 	_commandBuffer->presentDrawable(((id<MTLDrawableInternal>)drawable).drawable);
+}
+
+- (void)enqueue
+{
+	// Metal defines -enqueue as reserving the buffer's place in the queue's execution order. Indium
+	// records no queue position: it submits a buffer's work when it is committed, so buffers run in
+	// commit order. This is exact when callers commit in the order they enqueued, which is the usual
+	// pattern. A caller that enqueues A then B and commits B first gets B's work submitted first;
+	// honouring that needs an ordering record in Indium's command queue.
 }
 
 - (void)commit

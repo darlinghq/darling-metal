@@ -118,6 +118,11 @@ typedef NS_ENUM(NSInteger, MTLGPUFamily) {
 	MTLGPUFamilyMetal4 = 5002,
 };
 
+typedef NS_ENUM(NSUInteger, MTLArgumentBuffersTier) {
+	MTLArgumentBuffersTier1 = 0,
+	MTLArgumentBuffersTier2 = 1,
+};
+
 typedef NS_ENUM(NSUInteger, MTLReadWriteTextureTier) {
 	MTLReadWriteTextureTierNone = 0,
 	MTLReadWriteTextureTier1 = 1,
@@ -140,6 +145,17 @@ typedef NS_ENUM(NSUInteger, MTLReadWriteTextureTier) {
 - (BOOL)supportsFamily: (MTLGPUFamily)gpuFamily;
 - (BOOL)supportsFeatureSet: (MTLFeatureSet)featureSet;
 - (BOOL)supportsTextureSampleCount: (NSUInteger)sampleCount;
+
+/* Reports Tier 1 argument buffers support (baseline tier). indium does not
+ * implement Tier 2 argument buffers. */
+- (MTLArgumentBuffersTier)argumentBuffersSupport;
+
+/* Also NO for want of an implementation rather than for want of hardware.
+ * Barycentric coordinates are a fragment-shader interpolation decoration, and
+ * Vulkan has no equivalent, so there is nothing for indium to lower a shader's
+ * use of them onto. A caller told YES would emit a shader whose output no
+ * longer means what it says. */
+- (BOOL)supportsShaderBarycentricCoordinates;
 
 - (id<MTLCommandQueue>)newCommandQueueWithMaxCommandBufferCount: (NSUInteger)maxCommandBufferCount;
 
