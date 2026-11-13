@@ -15,34 +15,24 @@ if (BUILD_METAL)
 	# -[MTLDevice newLibraryWithSource:options:error:] has a front end to call.
 	#
 	# mslc's own CMakeLists.txt is deliberately not used. It builds a CLI driver
-	# and a corpus runner that fork/exec spirv-val, neither of which belongs in a
-	# guest address space with no host exec path, and mslc is a repository other
-	# people work on, so a target appearing there must not become a reason this
-	# one stops building. The six sources below are the whole library; main.cpp is
-	# the driver.
+	# and test programs, none of which belong in the guest, so the library
+	# sources and include directories come from the sources.cmake that mslc
+	# provides for embedders; the list therefore always matches the pinned
+	# revision.
 	#
 	# The public surface is a C ABI declared in deps/mslc/include/mslc/mslc.h, which
 	# is what Metal.framework includes. No C++ of mslc's is visible past it.
 	#
+	include(deps/mslc/sources.cmake)
 	set(DYLIB_INSTALL_NAME "/usr/lib/darling/libmslc.dylib")
-	add_darling_library(mslc
-		deps/mslc/src/lexer.cpp
-		deps/mslc/src/ast.cpp
-		deps/mslc/src/parser.cpp
-		deps/mslc/src/sema.cpp
-		deps/mslc/src/spirv.cpp
-		deps/mslc/src/mslc.cpp
-	)
+	add_darling_library(mslc ${MSLC_LIBRARY_SOURCES})
 	make_fat(mslc)
 
 	install(TARGETS mslc DESTINATION libexec/darling/usr/lib/darling)
 
-	target_include_directories(mslc PUBLIC
-		deps/mslc/include
-	)
-
-	target_include_directories(mslc PRIVATE
-		deps/mslc/src
+	target_include_directories(mslc
+		PUBLIC ${MSLC_PUBLIC_INCLUDE_DIRS}
+		PRIVATE ${MSLC_PRIVATE_INCLUDE_DIRS}
 	)
 
 	set_target_properties(mslc PROPERTIES
