@@ -61,7 +61,12 @@ typedef NS_ENUM(NSUInteger, MTLLibraryError) {
 };
 
 /* One input of a vertex function, as declared with [[attribute(n)]]. */
-@interface MTLVertexAttribute : NSObject
+@interface MTLVertexAttribute : NSObject {
+@private
+	NSString* _name;
+	NSUInteger _attributeIndex;
+	MTLDataType _attributeType;
+}
 
 @property(readonly) NSString* name;
 @property(readonly) NSUInteger attributeIndex;
@@ -75,7 +80,12 @@ typedef NS_ENUM(NSUInteger, MTLLibraryError) {
 
 /* One stage input of a function, as declared with [[stage_in]]. Only a vertex function's inputs are
  * reflected. */
-@interface MTLAttribute : NSObject
+@interface MTLAttribute : NSObject {
+@private
+	NSString* _name;
+	NSUInteger _attributeIndex;
+	MTLDataType _attributeType;
+}
 
 @property(readonly) NSString* name;
 @property(readonly) NSUInteger attributeIndex;
