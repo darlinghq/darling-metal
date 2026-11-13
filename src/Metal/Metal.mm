@@ -22,6 +22,10 @@ static const char* additionalExtensions[] = {
 	//"VK_KHR_swapchain",
 };
 
+// set once Indium::init has run. A process that never asked for a device never initialises Indium,
+// so the exit-time teardown has to know whether there is anything to tear down.
+static bool indiumInitialized = false;
+
 void ensureMetalInitialized(void) {
 	static dispatch_once_t onceToken = 0;
 	dispatch_once(&onceToken, ^{
@@ -32,13 +36,16 @@ void ensureMetalInitialized(void) {
 		}
 
 		Indium::init(additionalExtensions, sizeof(additionalExtensions) / sizeof(*additionalExtensions), enableValidation);
+		indiumInitialized = true;
 	});
 };
 
 __attribute__((destructor))
 static void finitMetal(void) {
 	MTLDeviceDestroyAll();
-	Indium::finit();
+	if (indiumInitialized) {
+		Indium::finit();
+	}
 };
 
 #endif
