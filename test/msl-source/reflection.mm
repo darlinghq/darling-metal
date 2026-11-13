@@ -11,12 +11,10 @@
 #import <string.h>
 
 static int failures = 0;
-static FILE* logFile = NULL;
 
 static void LOG(const char* fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
-    if (logFile) { vfprintf(logFile, fmt, ap); fputc('\n', logFile); fflush(logFile); }
     vprintf(fmt, ap);
     putchar('\n');
     fflush(stdout);
@@ -70,7 +68,6 @@ static void expectRejected(const char* what, NSString* document) {
 
 int main(void) {
     @autoreleasepool {
-        logFile = fopen("/tmp/reflection.log", "w");
         LOG("reflection unit test");
 
         // ------------------------------------------------- mslc's real document
@@ -146,7 +143,24 @@ int main(void) {
             NSString* err = nil;
             NSString* doc = [realDocument() stringByReplacingOccurrencesOfString: @"\"kernel\""
                                                                      withString: @"\"compute\""];
-            expectRejected("a stage indium has no descriptor layout for, compute", doc);
+            ok("compute is accepted as the kernel stage", read(doc, reflection, err));
+            for (const auto& e : reflection.functions) {
+                ok("and reads back as Kernel", e.second.functionType == Indium::FunctionType::Kernel);
+            }
+        }
+
+        {
+            Indium::LibraryReflection reflection;
+            NSString* err = nil;
+            NSString* doc = @"{\"stage\":\"vertex\",\"entry_point\":\"v\",\"bindings\":["
+                "{\"kind\":\"VertexInput\",\"metal_index\":2,\"location\":2,\"name\":\"position\"}]}";
+            ok("a VertexInput binding on a vertex function is accepted", read(doc, reflection, err));
+            for (const auto& e : reflection.functions) {
+                ok("and keeps its attribute index",
+                   e.second.bindings.size() == 1
+                   && e.second.bindings[0].type == Indium::BindingType::VertexInput
+                   && e.second.bindings[0].index == 2);
+            }
         }
 
         // ------------------------------------------------ negative controls
@@ -159,13 +173,17 @@ int main(void) {
             @"{\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":["
             "{\"kind\":\"Texture\",\"metal_index\":0,\"descriptor\":{\"set\":0,\"binding\":0}}]}");
 
-        expectRejected("a Sampler binding",
+        expectRejected("a Sampler binding on a descriptor set its stage does not own",
             @"{\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":["
-            "{\"kind\":\"Sampler\",\"metal_index\":0,\"descriptor\":{\"set\":0,\"binding\":0}}]}");
+            "{\"kind\":\"Sampler\",\"metal_index\":0,\"descriptor\":{\"set\":1,\"binding\":0}}]}");
 
-        expectRejected("a VertexInput binding",
+        expectRejected("a VertexInput binding on a kernel",
             @"{\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":["
-            "{\"kind\":\"VertexInput\",\"metal_index\":0,\"descriptor\":{\"set\":0,\"binding\":0}}]}");
+            "{\"kind\":\"VertexInput\",\"metal_index\":0,\"location\":0}]}");
+
+        expectRejected("a VertexInput binding with no attribute index",
+            @"{\"stage\":\"vertex\",\"entry_point\":\"v\",\"bindings\":["
+            "{\"kind\":\"VertexInput\",\"location\":0}]}");
 
         expectRejected("a binding of unknown kind",
             @"{\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":["

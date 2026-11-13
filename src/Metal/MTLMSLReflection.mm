@@ -171,6 +171,21 @@ static bool MTLReadBindings(NSArray* bindings, Indium::FunctionReflection& outFu
 		if ([kind isEqualToString: @"Buffer"]) binding.type = Indium::BindingType::Buffer;
 		else if ([kind isEqualToString: @"Texture"]) binding.type = Indium::BindingType::Texture;
 		else if ([kind isEqualToString: @"Sampler"]) binding.type = Indium::BindingType::Sampler;
+		else if ([kind isEqualToString: @"VertexInput"]) {
+			// A [[stage_in]] field of a vertex function. Its metal_index is the
+			// field's attribute index, which is also the location of the shader
+			// input, and it has no descriptor: indium keys the vertex descriptor
+			// by that index and ignores the internal index.
+			if (outFunction.functionType != Indium::FunctionType::Vertex ||
+				!MTLReadIndex([object objectForKey: @"metal_index"], binding.index))
+			{
+				outError = MTLReflectionError(@"invalid vertex input binding");
+				return false;
+			}
+			binding.type = Indium::BindingType::VertexInput;
+			outFunction.bindings.push_back(binding);
+			continue;
+		}
 		else {
 			outError = MTLReflectionError(@"unsupported reflection binding kind '%@'", kind);
 			return false;
