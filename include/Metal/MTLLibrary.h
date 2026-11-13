@@ -7,6 +7,7 @@
 #import <Foundation/Foundation.h>
 
 #import <Metal/MTLDefines.h>
+#import <Metal/MTLArgumentDescriptor.h>
 
 METAL_DECLARATIONS_BEGIN
 
@@ -59,6 +60,33 @@ typedef NS_ENUM(NSUInteger, MTLLibraryError) {
 	MTLLibraryErrorFileNotFound = 6,
 };
 
+/* One input of a vertex function, as declared with [[attribute(n)]]. */
+@interface MTLVertexAttribute : NSObject
+
+@property(readonly) NSString* name;
+@property(readonly) NSUInteger attributeIndex;
+@property(readonly) MTLDataType attributeType;
+/* Always YES: indium does not track whether the function reads an input. */
+@property(readonly, getter=isActive) BOOL active;
+@property(readonly, getter=isPatchData) BOOL patchData;
+@property(readonly, getter=isPatchControlPointData) BOOL patchControlPointData;
+
+@end
+
+/* One stage input of a function, as declared with [[stage_in]]. Only a vertex function's inputs are
+ * reflected. */
+@interface MTLAttribute : NSObject
+
+@property(readonly) NSString* name;
+@property(readonly) NSUInteger attributeIndex;
+@property(readonly) MTLDataType attributeType;
+/* Always YES: indium does not track whether the function reads an input. */
+@property(readonly, getter=isActive) BOOL active;
+@property(readonly, getter=isPatchData) BOOL patchData;
+@property(readonly, getter=isPatchControlPointData) BOOL patchControlPointData;
+
+@end
+
 @protocol MTLFunction <NSObject>
 
 @property(readonly) id<MTLDevice> device;
@@ -67,8 +95,10 @@ typedef NS_ENUM(NSUInteger, MTLLibraryError) {
 @property(readonly) MTLFunctionOptions options;
 @property(readonly) MTLPatchType patchType;
 @property(readonly) NSInteger patchControlPointCount;
-@property(readonly) NSArray<MTLVertexAttribute*>* vertexAttributes;
-@property(readonly) NSArray<MTLAttribute*>* stageInputAttributes;
+/* The inputs of a vertex function, in the order the shader declares them; nil for other functions. */
+@property(nullable, readonly) NSArray<MTLVertexAttribute*>* vertexAttributes;
+/* The same inputs as MTLAttribute objects; nil for other functions, whose stage inputs are not reflected. */
+@property(nullable, readonly) NSArray<MTLAttribute*>* stageInputAttributes;
 @property(readonly) NSDictionary<NSString*, MTLFunctionConstant*>* functionConstantsDictionary;
 @property(nullable, copy, nonatomic) NSString* label;
 

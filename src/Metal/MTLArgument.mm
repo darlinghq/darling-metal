@@ -147,6 +147,10 @@ static NSArray<MTLArgument*>* argumentsForFunction(const std::shared_ptr<Indium:
 	}
 
 	for (const auto& info: function->argumentInfo()) {
+		// vertex inputs are not arguments: MTLFunction reports them as attributes
+		if (info.kind == Indium::ArgumentKind::VertexInput) {
+			continue;
+		}
 		MTLArgument* argument = [[MTLArgument alloc] initWithInfo: info options: options];
 		[result addObject: argument];
 		[argument release];
