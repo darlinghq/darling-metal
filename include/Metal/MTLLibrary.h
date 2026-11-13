@@ -63,7 +63,12 @@ typedef NS_ENUM(NSUInteger, MTLLibraryError) {
 
 /* A function constant ([[function_constant(n)]]) a function uses. `required` is always YES: the shader
  * compiler's output does not say whether a constant has a default. */
-@interface MTLFunctionConstant : NSObject
+@interface MTLFunctionConstant : NSObject {
+@private
+	NSString* _name;
+	MTLDataType _type;
+	NSUInteger _index;
+}
 
 @property(readonly) NSString* name;
 @property(readonly) MTLDataType type;
