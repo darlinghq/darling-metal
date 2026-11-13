@@ -158,7 +158,11 @@ struct MTLCommandBufferHandlerWrapper {
 
 - (void)enqueue
 {
-	// Enqueue reserves a place on the command queue before commit
+	// Metal defines -enqueue as reserving the buffer's place in the queue's execution order. Indium
+	// records no queue position: it submits a buffer's work when it is committed, so buffers run in
+	// commit order. This is exact when callers commit in the order they enqueued, which is the usual
+	// pattern. A caller that enqueues A then B and commits B first gets B's work submitted first;
+	// honouring that needs an ordering record in Indium's command queue.
 }
 
 - (void)commit

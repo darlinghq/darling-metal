@@ -57,7 +57,7 @@ static inline NSMethodSignature* MTLStubSignature(SEL selector) {
 	- (NSMethodSignature*)methodSignatureForSelector: (SEL)selector \
 	{ \
 		NSMethodSignature* signature = [super methodSignatureForSelector: selector]; \
-		return signature ?: [NSMethodSignature signatureWithObjCTypes: "v@:"]; \
+		return signature ?: MTLStubSignature(selector); \
 	} \
 	- (void)forwardInvocation: (NSInvocation*)invocation \
 	{ \
@@ -67,7 +67,7 @@ static inline NSMethodSignature* MTLStubSignature(SEL selector) {
 	+ (NSMethodSignature*)methodSignatureForSelector: (SEL)selector \
 	{ \
 		NSMethodSignature* signature = [super methodSignatureForSelector: selector]; \
-		return signature ?: [NSMethodSignature signatureWithObjCTypes: "v@:"]; \
+		return signature ?: MTLStubSignature(selector); \
 	} \
 	+ (void)forwardInvocation: (NSInvocation*)invocation \
 	{ \
