@@ -9,7 +9,6 @@ int main(int argc,char **argv) { @autoreleasepool {
  NSString *source=[NSString stringWithContentsOfFile:[NSString stringWithUTF8String:argv[1]] encoding:NSUTF8StringEncoding error:nil];
  fixtureCheck(source!=nil,"source file");
  id<MTLDevice> device=MTLCreateSystemDefaultDevice(); fixtureCheck(device!=nil,"device");
- fprintf(stderr,"ENTER authored source API\n");
  NSError *error=nil; id<MTLLibrary> library=[device newLibraryWithSource:source options:nil error:&error];
  if(!library) { fprintf(stderr,"FAIL source: %s\n",[[error description]UTF8String]); return 2; }
  const char *names[]={"positionVertexShader","positionFragmentShader","texturePositionVertexShader","texturePositionFragmentShader"};

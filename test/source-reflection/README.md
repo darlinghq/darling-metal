@@ -1,22 +1,20 @@
 # Source reflection resources
 
-Authored JSON uses published mslc c745234 src/sema.cpp resource/embedded sampler emission and src/ast.cpp enum names. Indium library.hpp specifies the typed consumer. No compiled guest shader inputs.
+`resources.mm` feeds hand-written mslc reflection documents to the reader in
+`src/Metal/MTLMSLReflection.mm` and checks the resulting library reflection:
+binding type, stage, Metal and descriptor indices, and every field of embedded
+samplers. It also checks that malformed documents are refused: unknown access or
+address mode, invalid embedded sampler index, a number where a boolean belongs,
+null or inverted LOD limits, a missing sampler list, a boolean anisotropy, a wrong
+descriptor set, and external and embedded indices that conflict.
 
-Build against a configured arm64 Darling tree, using its production Metal flags:
+The reader accepts only the sampler and texture access values mslc emits. Buffer
+only documents without `embedded_samplers` remain valid, and any new schema value
+is rejected explicitly.
 
-```
-git show origin/main:src/Metal/MTLMSLReflection.mm > /tmp/reflection-before-reader.mm
-flock /tmp/agent-locks/darling-heavy-build.lock python3 test/source-reflection/build.py /path/to/build /tmp/reflection-before --library /path/to/Metal --reader /tmp/reflection-before-reader.mm
-flock /tmp/agent-locks/darling-heavy-build.lock python3 test/source-reflection/build.py /path/to/build /tmp/reflection-after --library /path/to/baseline/Metal --candidate
-DPREFIX=/path/to/private/prefix DARLING_INSTALL_PREFIX=/path/to/private/image/usr/local /path/to/nonsetuid/darling shell env DARLING_ENABLE_METAL=1 /Volumes/SystemRoot/tmp/reflection-before
-DPREFIX=/path/to/private/prefix DARLING_INSTALL_PREFIX=/path/to/private/image/usr/local /path/to/nonsetuid/darling shell env DARLING_ENABLE_METAL=1 /Volumes/SystemRoot/tmp/reflection-after
-DPREFIX=/path/to/private/prefix DARLING_INSTALL_PREFIX=/path/to/private/image/usr/local /path/to/nonsetuid/darling shutdown
-```
-
-Measured with /home/cristi/tmp-opencode/metal-resume/build and baseline latest-source-build/Metal (a3f12e0): exit1, Buffer passes; sampled/storage textures and external/embedded samplers fail. Candidate exit0, all15 checks pass. Check binding type, stage, Metal/descriptor indices, all embedded fields; reject unknown access/address, invalid embedded index, numeric boolean substitute, null/inverted LOD, missing sampler list, boolean anisotropy, wrong descriptor set, conflicting external/embedded indices.
-
-The reader accepts only producer-supported Sample/Write texture access and sampler names/states. Parser Write acceptance is not GPU storage-texture verification. Buffer-only version2 documents with no embedded_samplers remain valid. Unknown new schema values reject explicitly. Native sampled texture validation follows through public newLibraryWithSource and exact RGBA readback in the independent source-graphics fixture.
-
-Standalone upstream main5231808 baseline source object exits1 with four positive resource failures; candidate all15 pass, using upstream Indiumdab28b3 headers. Full public source API baseline with compiler c745 rejects Texture; committed reader overlay compiles the normalized MIT Sky source and renders position-red60000/60000 and sampled texture-blue60000/60000 on M1. Wrong expected green exits1; source compute16/0 exits0. This requires matching c745 compiler/caller ABI and preprocessor build integration, separate from this reader patch.
-
-Native Wayland source window: committed authored fixture f2603b3, independent no-Xwayland Sway, xdg_shell300x200; real standard evdev B48 changes exactly60000red to60000blue screenshot pixels. This proves sampled source presentation and input, not original SkyCheckers/DodgeDanger compatibility, storage-texture GPU behavior, or generic idle input wake behavior.
+`build.py <build-dir> <output>` compiles the check with the flags of a configured
+Darling build tree (found with `ninja -t commands Metal`) and links it against the
+Metal library of that tree. `--reader <file>` compiles another reader source in
+place of the one in this tree, which is how the check is run against an older
+reader to confirm it fails there. Run the program in a prefix and expect all
+checks to pass with exit status 0.

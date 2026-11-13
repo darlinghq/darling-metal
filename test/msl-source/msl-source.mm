@@ -11,12 +11,10 @@
 #import <math.h>
 
 static int failures = 0;
-static FILE* logFile = NULL;
 
 static void LOG(const char* fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
-    if (logFile) { vfprintf(logFile, fmt, ap); fputc('\n', logFile); fflush(logFile); }
     vprintf(fmt, ap);
     putchar('\n');
     fflush(stdout);
@@ -118,7 +116,6 @@ int main(int argc, const char** argv) {
         const char* srcPath = (argc > 1) ? argv[1] : "/usr/bin/add.metal";
         const size_t count = (argc > 2) ? (size_t)atol(argv[2]) : (size_t)16777216;
 
-        logFile = fopen("/tmp/mslsource.log", "w");
         LOG("mslsource: source=%s count=%zu", srcPath, count);
 
         NSArray* allDevices = MTLCopyAllDevices();
