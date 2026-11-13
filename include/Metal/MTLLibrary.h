@@ -43,7 +43,7 @@ typedef NS_ENUM(NSUInteger, MTLPatchType) {
 	MTLPatchTypeQuad = 2,
 };
 
-typedef NS_ENUM(NSUInteger, MTLLibraryType) {
+typedef NS_ENUM(NSInteger, MTLLibraryType) {
 	MTLLibraryTypeExecutable = 0,
 	MTLLibraryTypeDynamic = 1,
 };
