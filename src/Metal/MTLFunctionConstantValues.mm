@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MPL-2.0
 
 #import <Metal/MTLFunctionConstantValues.h>
+#import <Metal/MTLLibraryInternal.h>
 
 // Sizes follow the Metal Shading Language's scalar and vector types; a 3-component vector occupies
 // the size of a 4-component one. Matrices and every non-value type are not valid constant types.
@@ -117,6 +118,20 @@ static NSDictionary* MTLFunctionConstantEntry(const void* value, MTLDataType typ
 	[copy->_byName addEntriesFromDictionary: _byName];
 
 	return copy;
+}
+
+@end
+
+@implementation MTLFunctionConstantValues (Internal)
+
+- (NSDictionary*)constantsByIndex
+{
+	return _byIndex;
+}
+
+- (NSDictionary*)constantsByName
+{
+	return _byName;
 }
 
 @end

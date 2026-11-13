@@ -19,8 +19,7 @@ METAL_DECLARATIONS_BEGIN
  * other type raises NSInvalidArgumentException. The size of 3-component vectors (assumed equal to the
  * 4-component size) is not confirmed from a primary source.
  *
- * Nothing consumes these values yet: MTLLibrary has no -newFunctionWithName:constantValues:error:
- * because mslc cannot compile [[function_constant]], so declaring it would mean ignoring the values.
+ * -[MTLLibrary newFunctionWithName:constantValues:error:] applies the values.
  */
 MTL_EXPORT
 @interface MTLFunctionConstantValues : NSObject <NSCopying> {

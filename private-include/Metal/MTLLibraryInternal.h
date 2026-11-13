@@ -5,6 +5,7 @@
 #define _METAL_MTLLIBRARYINTERNAL_H_
 
 #import <Metal/MTLLibrary.h>
+#import <Metal/MTLFunctionConstantValues.h>
 
 #if DARLING_METAL_ENABLED
 #include <indium/indium.hpp>
@@ -27,6 +28,16 @@
 - (instancetype)initWithLibrary: (std::shared_ptr<Indium::Library>)library
                          device: (id<MTLDevice>)device;
 #endif
+
+@end
+
+/* What -[MTLFunctionConstantValues setConstantValue:...] recorded, for the library to apply. */
+@interface MTLFunctionConstantValues (Internal)
+
+/* @{ NSNumber index: @{ @"type": NSNumber(MTLDataType), @"data": NSData } } */
+- (NSDictionary*)constantsByIndex;
+/* The same, keyed by name. */
+- (NSDictionary*)constantsByName;
 
 @end
 
