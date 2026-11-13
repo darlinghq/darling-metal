@@ -22,21 +22,30 @@ static const char* additionalExtensions[] = {
 	//"VK_KHR_swapchain",
 };
 
-__attribute__((constructor))
-static void initMetal(void) {
-	bool enableValidation = false;
+// set once Indium::init has run. A process that never asked for a device never initialises Indium,
+// so the exit-time teardown has to know whether there is anything to tear down.
+static bool indiumInitialized = false;
 
-	if (getenv("METAL_INDIUM_VALIDATION")) {
-		enableValidation = true;
-	}
+void ensureMetalInitialized(void) {
+	static dispatch_once_t onceToken = 0;
+	dispatch_once(&onceToken, ^{
+		bool enableValidation = false;
 
-	Indium::init(additionalExtensions, sizeof(additionalExtensions) / sizeof(*additionalExtensions), enableValidation);
+		if (getenv("METAL_INDIUM_VALIDATION")) {
+			enableValidation = true;
+		}
+
+		Indium::init(additionalExtensions, sizeof(additionalExtensions) / sizeof(*additionalExtensions), enableValidation);
+		indiumInitialized = true;
+	});
 };
 
 __attribute__((destructor))
 static void finitMetal(void) {
 	MTLDeviceDestroyAll();
-	Indium::finit();
+	if (indiumInitialized) {
+		Indium::finit();
+	}
 };
 
 #endif

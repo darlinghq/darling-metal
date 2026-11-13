@@ -85,4 +85,12 @@ static inline NSMethodSignature* MTLStubSignature(SEL selector) {
 	#undef DARLING_METAL_ENABLED
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+void ensureMetalInitialized(void);
+#ifdef __cplusplus
+}
+#endif
+
 #endif // _METAL_STUBS_H_
