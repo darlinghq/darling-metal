@@ -24,9 +24,41 @@
 
 #include <mslc/mslc.h>
 
+#include <dlfcn.h>
 #include <stdlib.h>
 #include <string.h>
 #include <string>
+
+// mslc is a 64-bit-only library (it needs 128-bit integers that the 32-bit slice of this
+// framework cannot compile), so Metal does not link it: it is loaded the first time source
+// is compiled. In a 32-bit process, or when the library is missing, source compilation is
+// reported as unsupported.
+namespace {
+struct MslcApi {
+	void (*default_options)(MslcOptions*);
+	int (*translate)(const char*, size_t, const MslcOptions*, uint8_t**, size_t*, char**, char**);
+	void (*free_buffer)(void*);
+};
+
+const MslcApi* LoadMslc() {
+	static MslcApi api;
+	static const MslcApi* loaded = nullptr;
+	static dispatch_once_t once;
+	dispatch_once(&once, ^{
+#if !defined(__i386__)
+		void* handle = dlopen("/usr/lib/darling/libmslc.dylib", RTLD_NOW | RTLD_LOCAL);
+		if (handle) {
+			api.default_options = (void (*)(MslcOptions*)) dlsym(handle, "mslc_default_options");
+			api.translate = (int (*)(const char*, size_t, const MslcOptions*, uint8_t**, size_t*, char**, char**)) dlsym(handle, "mslc_translate");
+			api.free_buffer = (void (*)(void*)) dlsym(handle, "mslc_free");
+			if (api.default_options && api.translate && api.free_buffer)
+				loaded = &api;
+		}
+#endif
+	});
+	return loaded;
+}
+}
 
 MTL_EXTERN const MTLDeviceNotificationName MTLDeviceWasAddedNotification = @"MTLDeviceWasAdded";
 MTL_EXTERN const MTLDeviceNotificationName MTLDeviceRemovalRequestedNotification = @"MTLDeviceRemovalRequested";
@@ -723,8 +755,17 @@ static size_t iosurfacePixelSize(MTLPixelFormat format)
 		return nil;
 	}
 
+	const MslcApi* mslc = LoadMslc();
+	if (mslc == nullptr) {
+		if (error) {
+			*error = MSLLibraryError(@"compiling Metal Shading Language source is not supported in this process",
+				MTLLibraryErrorUnsupported);
+		}
+		return nil;
+	}
+
 	MslcOptions mslcOptions;
-	mslc_default_options(&mslcOptions);
+	mslc->default_options(&mslcOptions);
 
 	// `options` is accepted and not read, because this framework's
 	// MTLCompileOptions declares no properties: an options object here carries no
@@ -740,7 +781,7 @@ static size_t iosurfacePixelSize(MTLPixelFormat format)
 	char* reflection = NULL;
 	char* diagnostic = NULL;
 
-	int translated = mslc_translate(
+	int translated = mslc->translate(
 		static_cast<const char*>([utf8 bytes]), [utf8 length], &mslcOptions,
 		&spirv, &spirvSize, &reflection, &diagnostic);
 
@@ -755,9 +796,9 @@ static size_t iosurfacePixelSize(MTLPixelFormat format)
 				MTLLibraryErrorCompileFailure);
 		}
 
-		mslc_free(spirv);
-		mslc_free(reflection);
-		mslc_free(diagnostic);
+		mslc->free_buffer(spirv);
+		mslc->free_buffer(reflection);
+		mslc->free_buffer(diagnostic);
 		return nil;
 	}
 
@@ -775,9 +816,9 @@ static size_t iosurfacePixelSize(MTLPixelFormat format)
 				MTLLibraryErrorUnsupported);
 		}
 
-		mslc_free(spirv);
-		mslc_free(reflection);
-		mslc_free(diagnostic);
+		mslc->free_buffer(spirv);
+		mslc->free_buffer(reflection);
+		mslc->free_buffer(diagnostic);
 		return nil;
 	}
 
@@ -787,9 +828,9 @@ static size_t iosurfacePixelSize(MTLPixelFormat format)
 	// indium borrows the module and the reflection for the call and nothing
 	// longer, so both go back before the library is handed out rather than after
 	// it is used.
-	mslc_free(spirv);
-	mslc_free(reflection);
-	mslc_free(diagnostic);
+	mslc->free_buffer(spirv);
+	mslc->free_buffer(reflection);
+	mslc->free_buffer(diagnostic);
 
 	if (!library) {
 		if (error) {

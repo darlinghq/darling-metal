@@ -25,8 +25,15 @@ if (BUILD_METAL)
 	#
 	include(deps/mslc/sources.cmake)
 	set(DYLIB_INSTALL_NAME "/usr/lib/darling/libmslc.dylib")
+	# 64-bit only: mslc uses 128-bit integers, which the 32-bit slice cannot compile. Metal loads
+	# the library when source is compiled instead of linking it, so its 32-bit slice does not
+	# need it (see MTLDevice.mm).
+	set(DARLING_LIB_64BIT_ONLY TRUE)
 	add_darling_library(mslc ${MSLC_LIBRARY_SOURCES})
-	make_fat(mslc)
+	set(DARLING_LIB_64BIT_ONLY FALSE)
+	if (BUILD_TARGET_64BIT)
+		make_fat(mslc)
+	endif()
 
 	install(TARGETS mslc DESTINATION libexec/darling/usr/lib/darling)
 
@@ -63,7 +70,7 @@ generate_sdk_framework(Metal
 
 if (BUILD_METAL)
 	set(METAL_LINK_INDIUM indium)
-	set(METAL_LINK_MSLC mslc)
+	set(METAL_LINK_MSLC "")
 else()
 	set(METAL_LINK_INDIUM "")
 	set(METAL_LINK_MSLC "")
@@ -171,6 +178,10 @@ generate_sdk_framework(MetalKit
 	VERSION ${FRAMEWORK_VERSION}
 	HEADER "include/MetalKit"
 )
+
+if (BUILD_METAL)
+	add_dependencies(Metal mslc)
+endif()
 
 add_framework(MetalKit
 	FAT
