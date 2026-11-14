@@ -24,6 +24,7 @@ METAL_DECLARATIONS_BEGIN
 @protocol MTLSamplerState;
 @protocol MTLCounterSet;
 
+@class MTLCompileOptions;
 @class MTLComputePipelineDescriptor;
 @class MTLComputePipelineReflection;
 @class MTLRenderPipelineReflection;
@@ -242,6 +243,10 @@ typedef NS_ENUM(NSUInteger, MTLReadWriteTextureTier) {
 
 - (id<MTLLibrary>)newLibraryWithData: (dispatch_data_t)data
                                error: (NSError**)error;
+
+- (nullable id<MTLLibrary>)newLibraryWithSource: (NSString*)source
+                                        options: (nullable MTLCompileOptions*)options
+                                          error: (NSError**)error;
 
 // TODO: other methods and properties
 

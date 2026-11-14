@@ -9,6 +9,46 @@ remove_sdk_framework(MetalPerformanceShaders)
 
 if (BUILD_METAL)
 	add_subdirectory(deps/indium)
+
+	#
+	# mslc, an MSL to Vulkan SPIR-V compiler, linked into Metal.framework so that
+	# -[MTLDevice newLibraryWithSource:options:error:] has a front end to call.
+	#
+	# mslc's own CMakeLists.txt is deliberately not used. It builds a CLI driver
+	# and test programs, none of which belong in the guest, so the library
+	# sources and include directories come from the sources.cmake that mslc
+	# provides for embedders; the list therefore always matches the pinned
+	# revision.
+	#
+	# The public surface is a C ABI declared in deps/mslc/include/mslc/mslc.h, which
+	# is what Metal.framework includes. No C++ of mslc's is visible past it.
+	#
+	include(deps/mslc/sources.cmake)
+	set(DYLIB_INSTALL_NAME "/usr/lib/darling/libmslc.dylib")
+	# 64-bit only: mslc uses 128-bit integers, which the 32-bit slice cannot compile. Metal loads
+	# the library when source is compiled instead of linking it, so its 32-bit slice does not
+	# need it (see MTLDevice.mm).
+	set(DARLING_LIB_64BIT_ONLY TRUE)
+	add_darling_library(mslc ${MSLC_LIBRARY_SOURCES})
+	set(DARLING_LIB_64BIT_ONLY FALSE)
+
+	install(TARGETS mslc DESTINATION libexec/darling/usr/lib/darling)
+
+	target_include_directories(mslc
+		PUBLIC ${MSLC_PUBLIC_INCLUDE_DIRS}
+		PRIVATE ${MSLC_PRIVATE_INCLUDE_DIRS}
+	)
+
+	set_target_properties(mslc PROPERTIES
+		CXX_STANDARD 17
+		CXX_STANDARD_REQUIRED ON
+		CXX_EXTENSIONS OFF
+	)
+
+	target_link_libraries(mslc PRIVATE
+		cxx
+		system
+	)
 endif()
 
 #
@@ -27,8 +67,10 @@ generate_sdk_framework(Metal
 
 if (BUILD_METAL)
 	set(METAL_LINK_INDIUM indium)
+	set(METAL_LINK_MSLC "")
 else()
 	set(METAL_LINK_INDIUM "")
+	set(METAL_LINK_MSLC "")
 endif()
 
 add_framework(Metal
@@ -66,6 +108,7 @@ add_framework(Metal
 		src/Metal/MTLIOSurfaceCopy.mm
 		src/Metal/MTLLibrary.mm
 		src/Metal/MTLLinkedFunctions.mm
+		src/Metal/MTLMSLReflection.mm
 		src/Metal/MTLPipeline.mm
 		src/Metal/MTLRenderCommandEncoder.mm
 		src/Metal/MTLRenderPipeline.mm
@@ -85,6 +128,7 @@ add_framework(Metal
 		Foundation
 		IOSurface
 		${METAL_LINK_INDIUM}
+		${METAL_LINK_MSLC}
 		cxx
 )
 
@@ -131,6 +175,11 @@ generate_sdk_framework(MetalKit
 	VERSION ${FRAMEWORK_VERSION}
 	HEADER "include/MetalKit"
 )
+
+if (BUILD_METAL)
+	add_dependencies(Metal mslc)
+	target_include_directories(Metal PRIVATE ${MSLC_PUBLIC_INCLUDE_DIRS})
+endif()
 
 add_framework(MetalKit
 	FAT

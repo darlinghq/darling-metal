@@ -20,7 +20,45 @@
 #import <Metal/MTLSamplerStateInternal.h>
 #import <Metal/MTLDepthStencilDescriptorInternal.h>
 #import <Metal/MTLDeviceInfo.h>
+#import <Metal/MTLMSLReflection.h>
+
+#include <mslc/mslc.h>
+
+#include <dlfcn.h>
+#include <stdlib.h>
+#include <string.h>
 #include <string>
+
+// mslc is a 64-bit-only library (it needs 128-bit integers that the 32-bit slice of this
+// framework cannot compile), so Metal does not link it: it is loaded the first time source
+// is compiled. In a 32-bit process, or when the library is missing, source compilation is
+// reported as unsupported.
+namespace {
+struct MslcApi {
+	void (*default_options)(MslcOptions*);
+	int (*translate)(const char*, size_t, const MslcOptions*, uint8_t**, size_t*, char**, char**);
+	void (*free_buffer)(void*);
+};
+
+const MslcApi* LoadMslc() {
+	static MslcApi api;
+	static const MslcApi* loaded = nullptr;
+	static dispatch_once_t once;
+	dispatch_once(&once, ^{
+#if !defined(__i386__)
+		void* handle = dlopen("/usr/lib/darling/libmslc.dylib", RTLD_NOW | RTLD_LOCAL);
+		if (handle) {
+			api.default_options = (void (*)(MslcOptions*)) dlsym(handle, "mslc_default_options");
+			api.translate = (int (*)(const char*, size_t, const MslcOptions*, uint8_t**, size_t*, char**, char**)) dlsym(handle, "mslc_translate");
+			api.free_buffer = (void (*)(void*)) dlsym(handle, "mslc_free");
+			if (api.default_options && api.translate && api.free_buffer)
+				loaded = &api;
+		}
+#endif
+	});
+	return loaded;
+}
+}
 
 MTL_EXTERN const MTLDeviceNotificationName MTLDeviceWasAddedNotification = @"MTLDeviceWasAdded";
 MTL_EXTERN const MTLDeviceNotificationName MTLDeviceRemovalRequestedNotification = @"MTLDeviceRemovalRequested";
@@ -182,6 +220,14 @@ NSArray<id<MTLDevice>>* MTLCopyAllDevicesWithObserver(id<NSObject>* observer, MT
 	}
 	return MTLCopyAllDevices();
 };
+
+static NSError* MSLLibraryError(NSString* reason, MTLLibraryError code) {
+	return [NSError errorWithDomain: MTLLibraryErrorDomain
+	                           code: code
+	                       userInfo: @{
+		NSLocalizedDescriptionKey: reason,
+	}];
+}
 
 MTL_EXTERN
 void MTLRemoveDeviceObserver(id<NSObject> observer) {
@@ -735,6 +781,122 @@ static size_t iosurfacePixelSize(MTLPixelFormat format)
 		return nil;
 	}
 	return [[MTLLibraryInternal alloc] initWithLibrary: lib device: self];
+}
+
+- (id<MTLLibrary>)newLibraryWithSource: (NSString*)source
+                               options: (MTLCompileOptions*)options
+                                 error: (NSError**)error
+{
+	if (source == nil) {
+		if (error) {
+			*error = MSLLibraryError(@"there is no source to compile",
+				MTLLibraryErrorCompileFailure);
+		}
+		return nil;
+	}
+
+	// mslc takes the source as bytes rather than as a string, and takes the length
+	// explicitly, so the encoding has to be decided here rather than inferred. A
+	// string that is not representable in UTF-8 is refused instead of being
+	// silently truncated at the first byte that is not part of a character, which
+	// would compile to a module from a source nobody wrote.
+	NSData* utf8 = [source dataUsingEncoding: NSUTF8StringEncoding allowLossyConversion: NO];
+	if (utf8 == nil) {
+		if (error) {
+			*error = MSLLibraryError(@"the source is not representable in UTF-8",
+				MTLLibraryErrorCompileFailure);
+		}
+		return nil;
+	}
+
+	const MslcApi* mslc = LoadMslc();
+	if (mslc == nullptr) {
+		if (error) {
+			*error = MSLLibraryError(@"compiling Metal Shading Language source is not supported in this process",
+				MTLLibraryErrorUnsupported);
+		}
+		return nil;
+	}
+
+	MslcOptions mslcOptions;
+	mslc->default_options(&mslcOptions);
+
+	// `options` is accepted and not read, because this framework's
+	// MTLCompileOptions declares no properties: an options object here carries no
+	// state, so it cannot change the output and nothing is being dropped. That is
+	// not true of Apple's class, which has fastMathEnabled, languageVersion and
+	// libraryPath. When those are added here, the ones mslc cannot honour have to
+	// be refused rather than ignored, in this method and nowhere else: an app that
+	// asks for a language version it does not get must get an error, not a library
+	// compiled at a different version than it asked for.
+
+	uint8_t* spirv = NULL;
+	size_t spirvSize = 0;
+	char* reflection = NULL;
+	char* diagnostic = NULL;
+
+	int translated = mslc->translate(
+		static_cast<const char*>([utf8 bytes]), [utf8 length], &mslcOptions,
+		&spirv, &spirvSize, &reflection, &diagnostic);
+
+	if (translated != 0) {
+		NSString* reason = (diagnostic != NULL)
+			? [NSString stringWithUTF8String: diagnostic]
+			: @"mslc reported a failure with no diagnostic";
+
+		if (error) {
+			*error = MSLLibraryError(
+				[NSString stringWithFormat: @"mslc could not compile the source: %@", reason],
+				MTLLibraryErrorCompileFailure);
+		}
+
+		mslc->free_buffer(spirv);
+		mslc->free_buffer(reflection);
+		mslc->free_buffer(diagnostic);
+		return nil;
+	}
+
+	Indium::LibraryReflection libraryReflection;
+	NSString* reflectionError = nil;
+
+	if (!MTLReadMSLReflection(reflection, (reflection != NULL) ? strlen(reflection) : 0,
+		libraryReflection, reflectionError))
+	{
+		if (error) {
+			*error = MSLLibraryError(
+				[NSString stringWithFormat:
+					@"mslc compiled the source but its reflection cannot be used: %@",
+					reflectionError],
+				MTLLibraryErrorUnsupported);
+		}
+
+		mslc->free_buffer(spirv);
+		mslc->free_buffer(reflection);
+		mslc->free_buffer(diagnostic);
+		return nil;
+	}
+
+	std::string indiumError;
+	auto library = _device->newLibrary(spirv, spirvSize, libraryReflection, &indiumError);
+
+	// indium borrows the module and the reflection for the call and nothing
+	// longer, so both go back before the library is handed out rather than after
+	// it is used.
+	mslc->free_buffer(spirv);
+	mslc->free_buffer(reflection);
+	mslc->free_buffer(diagnostic);
+
+	if (!library) {
+		if (error) {
+			*error = MSLLibraryError(
+				[NSString stringWithFormat: @"indium refused the module mslc produced: %s",
+					indiumError.empty() ? "no reason given" : indiumError.c_str()],
+				MTLLibraryErrorCompileFailure);
+		}
+		return nil;
+	}
+
+	return [[MTLLibraryInternal alloc] initWithLibrary: library device: self];
 }
 
 #else
