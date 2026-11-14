@@ -139,6 +139,28 @@ static inline bool supportsFeatureSet(unsigned long featureSet) {
 	}
 }
 
+// MTLDeviceLocation values for the kind of Vulkan device (Indium::DeviceType order: Other,
+// IntegratedGPU, DiscreteGPU, VirtualGPU, CPU). A GPU integrated into the machine is built in and
+// a discrete one is taken to sit in a slot (Vulkan cannot tell an external GPU apart); a virtual or
+// software device has no location.
+static constexpr unsigned long kLocationBuiltIn = 0;
+static constexpr unsigned long kLocationSlot = 1;
+static constexpr unsigned long kLocationUnspecified = ~0ul;
+
+static inline unsigned long locationForDeviceType(int deviceType) {
+	switch (deviceType) {
+		case 1: return kLocationBuiltIn;
+		case 2: return kLocationSlot;
+		default: return kLocationUnspecified;
+	}
+}
+
+// MTLDevice.locationNumber: for a built-in GPU 0 when it is the low-power one and 1 otherwise; a
+// slot number cannot be told through Vulkan, so every other location reports 0.
+static inline unsigned long locationNumberForDeviceType(int deviceType, bool lowPower) {
+	return locationForDeviceType(deviceType) == kLocationBuiltIn && !lowPower ? 1 : 0;
+}
+
 } // namespace MTLDeviceInfo
 
 #endif // _METAL_MTLDEVICEINFO_H_
