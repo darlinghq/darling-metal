@@ -31,9 +31,6 @@ if (BUILD_METAL)
 	set(DARLING_LIB_64BIT_ONLY TRUE)
 	add_darling_library(mslc ${MSLC_LIBRARY_SOURCES})
 	set(DARLING_LIB_64BIT_ONLY FALSE)
-	if (BUILD_TARGET_64BIT)
-		make_fat(mslc)
-	endif()
 
 	install(TARGETS mslc DESTINATION libexec/darling/usr/lib/darling)
 
