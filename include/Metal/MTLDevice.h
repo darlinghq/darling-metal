@@ -22,6 +22,7 @@ METAL_DECLARATIONS_BEGIN
 @protocol MTLTexture;
 @protocol MTLDepthStencilState;
 @protocol MTLSamplerState;
+@protocol MTLCounterSet;
 
 @class MTLComputePipelineDescriptor;
 @class MTLComputePipelineReflection;
@@ -36,6 +37,13 @@ typedef NS_OPTIONS(NSUInteger, MTLPipelineOption) {
 	MTLPipelineOptionArgumentInfo = 1 << 0,
 	MTLPipelineOptionBufferTypeInfo = 1 << 1,
 	MTLPipelineOptionFailOnBinaryArchiveMiss = 1 << 2,
+};
+
+typedef NS_ENUM(NSUInteger, MTLDeviceLocation) {
+	MTLDeviceLocationBuiltIn = 0,
+	MTLDeviceLocationSlot = 1,
+	MTLDeviceLocationExternal = 2,
+	MTLDeviceLocationUnspecified = NSUIntegerMax,
 };
 
 typedef __autoreleasing MTLComputePipelineReflection* MTLAutoreleasedComputePipelineReflection;
@@ -145,6 +153,32 @@ typedef NS_ENUM(NSUInteger, MTLReadWriteTextureTier) {
 - (BOOL)supportsFamily: (MTLGPUFamily)gpuFamily;
 - (BOOL)supportsFeatureSet: (MTLFeatureSet)featureSet;
 - (BOOL)supportsTextureSampleCount: (NSUInteger)sampleCount;
+
+/* Whether R32Float, RG32Float and RGBA32Float textures can be sampled with linear filtering. */
+@property(readonly) BOOL supports32BitFloatFiltering;
+
+/* Whether the block-compressed BC1 to BC7 texture formats can be sampled. */
+@property(readonly) BOOL supportsBCTextureCompression;
+
+/* Always NO: Vulkan has no interpolate-at-offset/sample/centroid operations to lower the
+ * shader's pull-model calls onto. */
+@property(readonly) BOOL supportsPullModelInterpolation;
+
+/* Always NO: Vulkan has no equivalent of a shader-programmable sample position table. */
+@property(readonly, getter=areProgrammableSamplePositionsSupported) BOOL programmableSamplePositionsSupported;
+
+/* Always NO: raster order groups need fragment ordering that indium does not provide. */
+@property(readonly, getter=areRasterOrderGroupsSupported) BOOL rasterOrderGroupsSupported;
+
+/* Where the GPU sits, from the kind of Vulkan device: integrated is built in, discrete is in a
+ * slot, anything else (virtual, software) is unspecified. */
+@property(readonly) MTLDeviceLocation location;
+
+/* For a built-in GPU 0 when it is the low-power one and 1 otherwise; 0 for other locations. */
+@property(readonly) NSUInteger locationNumber;
+
+/* nil: indium offers no GPU counter sets. */
+@property(readonly, nullable) NSArray<id<MTLCounterSet>>* counterSets;
 
 /* Reports Tier 1 argument buffers support (baseline tier). indium does not
  * implement Tier 2 argument buffers. */

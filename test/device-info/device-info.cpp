@@ -71,5 +71,17 @@ int main() {
 	}
 	report(featureSets, "the macOS feature sets only");
 
+	// MTLDeviceLocation values from Metal's MTLDevice.h; Indium::DeviceType order: Other,
+	// IntegratedGPU, DiscreteGPU, VirtualGPU, CPU
+	report(MTLDeviceInfo::locationForDeviceType(1) == 0, "an integrated GPU is built in");
+	report(MTLDeviceInfo::locationForDeviceType(2) == 1, "a discrete GPU is in a slot");
+	report(MTLDeviceInfo::locationForDeviceType(0) == ~0ul && MTLDeviceInfo::locationForDeviceType(3) == ~0ul
+		&& MTLDeviceInfo::locationForDeviceType(4) == ~0ul && MTLDeviceInfo::locationForDeviceType(-1) == ~0ul,
+		"other devices have no location");
+	report(MTLDeviceInfo::locationNumberForDeviceType(1, true) == 0 && MTLDeviceInfo::locationNumberForDeviceType(1, false) == 1,
+		"a built-in GPU's location number is 0 when low power and 1 otherwise");
+	report(MTLDeviceInfo::locationNumberForDeviceType(2, false) == 0 && MTLDeviceInfo::locationNumberForDeviceType(4, false) == 0,
+		"other locations have location number 0");
+
 	return failures ? 1 : 0;
 }

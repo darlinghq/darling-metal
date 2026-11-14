@@ -365,6 +365,60 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 	return NO;
 }
 
+- (BOOL)supports32BitFloatFiltering
+{
+	for (auto format: { Indium::PixelFormat::R32Float, Indium::PixelFormat::RG32Float, Indium::PixelFormat::RGBA32Float }) {
+		if (!_device->supportsPixelFormatSampling(format, true)) {
+			return NO;
+		}
+	}
+	return YES;
+}
+
+- (BOOL)supportsBCTextureCompression
+{
+	for (auto format: {
+		Indium::PixelFormat::BC1_RGBA, Indium::PixelFormat::BC2_RGBA, Indium::PixelFormat::BC3_RGBA,
+		Indium::PixelFormat::BC4_RUnorm, Indium::PixelFormat::BC5_RGUnorm,
+		Indium::PixelFormat::BC6H_RGBUfloat, Indium::PixelFormat::BC7_RGBAUnorm,
+	}) {
+		if (!_device->supportsPixelFormatSampling(format, false)) {
+			return NO;
+		}
+	}
+	return YES;
+}
+
+- (BOOL)supportsPullModelInterpolation
+{
+	return NO;
+}
+
+- (BOOL)areProgrammableSamplePositionsSupported
+{
+	return NO;
+}
+
+- (BOOL)areRasterOrderGroupsSupported
+{
+	return NO;
+}
+
+- (MTLDeviceLocation)location
+{
+	return static_cast<MTLDeviceLocation>(MTLDeviceInfo::locationForDeviceType(static_cast<int>(_device->deviceType())));
+}
+
+- (NSUInteger)locationNumber
+{
+	return MTLDeviceInfo::locationNumberForDeviceType(static_cast<int>(_device->deviceType()), _lowPower);
+}
+
+- (NSArray<id<MTLCounterSet>>*)counterSets
+{
+	return nil;
+}
+
 - (MTLArgumentBuffersTier)argumentBuffersSupport
 {
 	return MTLArgumentBuffersTier1;

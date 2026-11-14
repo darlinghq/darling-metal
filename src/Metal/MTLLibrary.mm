@@ -5,6 +5,7 @@
 #import <Metal/MTLDevice.h>
 #import <Metal/stubs.h>
 #import <Metal/MTLIndiumErrors.h>
+#import <Metal/MTLAttributeInfo.h>
 #include <cstring>
 
 MTL_EXTERN NSErrorDomain const MTLLibraryErrorDomain = @"MTLLibraryErrorDomain";
@@ -39,6 +40,97 @@ MTL_EXTERN NSErrorDomain const MTLLibraryErrorDomain = @"MTLLibraryErrorDomain";
 - (BOOL)required
 {
 	return YES;
+}
+
+@end
+
+
+// MTLVertexAttribute and MTLAttribute carry the same four facts. Their instances are only made for a
+// function's reflection.
+@interface MTLVertexAttribute ()
+- (instancetype)initWithName: (NSString*)name index: (NSUInteger)index type: (MTLDataType)type;
+@end
+
+@interface MTLAttribute ()
+- (instancetype)initWithName: (NSString*)name index: (NSUInteger)index type: (MTLDataType)type;
+@end
+
+@implementation MTLVertexAttribute
+
+@synthesize name = _name;
+@synthesize attributeIndex = _attributeIndex;
+@synthesize attributeType = _attributeType;
+
+- (instancetype)initWithName: (NSString*)name index: (NSUInteger)index type: (MTLDataType)type
+{
+	self = [super init];
+	if (self != nil) {
+		_name = [name copy];
+		_attributeIndex = index;
+		_attributeType = type;
+	}
+	return self;
+}
+
+- (void)dealloc
+{
+	[_name release];
+	[super dealloc];
+}
+
+- (BOOL)isActive
+{
+	return YES;
+}
+
+- (BOOL)isPatchData
+{
+	return NO;
+}
+
+- (BOOL)isPatchControlPointData
+{
+	return NO;
+}
+
+@end
+
+@implementation MTLAttribute
+
+@synthesize name = _name;
+@synthesize attributeIndex = _attributeIndex;
+@synthesize attributeType = _attributeType;
+
+- (instancetype)initWithName: (NSString*)name index: (NSUInteger)index type: (MTLDataType)type
+{
+	self = [super init];
+	if (self != nil) {
+		_name = [name copy];
+		_attributeIndex = index;
+		_attributeType = type;
+	}
+	return self;
+}
+
+- (void)dealloc
+{
+	[_name release];
+	[super dealloc];
+}
+
+- (BOOL)isActive
+{
+	return YES;
+}
+
+- (BOOL)isPatchData
+{
+	return NO;
+}
+
+- (BOOL)isPatchControlPointData
+{
+	return NO;
 }
 
 @end
@@ -87,6 +179,27 @@ MTL_EXTERN NSErrorDomain const MTLLibraryErrorDomain = @"MTLLibraryErrorDomain";
 			[object release];
 		}
 		_functionConstantsDictionary = [constants copy];
+
+		// a vertex function's [[stage_in]] attributes; the other stages' inputs are not reflected
+		if (_functionType == MTLFunctionTypeVertex) {
+			NSMutableArray<MTLVertexAttribute*>* vertexAttributes = [NSMutableArray array];
+			NSMutableArray<MTLAttribute*>* stageInputAttributes = [NSMutableArray array];
+			for (const auto& info: _function->argumentInfo()) {
+				if (info.kind != Indium::ArgumentKind::VertexInput) {
+					continue;
+				}
+				NSString* attributeName = [NSString stringWithUTF8String: info.name.c_str()] ?: @"";
+				MTLDataType type = static_cast<MTLDataType>(MTLAttributeInfo::dataTypeFromName(info.typeName));
+				MTLVertexAttribute* vertexAttribute = [[MTLVertexAttribute alloc] initWithName: attributeName index: info.index type: type];
+				MTLAttribute* stageInputAttribute = [[MTLAttribute alloc] initWithName: attributeName index: info.index type: type];
+				[vertexAttributes addObject: vertexAttribute];
+				[stageInputAttributes addObject: stageInputAttribute];
+				[vertexAttribute release];
+				[stageInputAttribute release];
+			}
+			_vertexAttributes = [vertexAttributes copy];
+			_stageInputAttributes = [stageInputAttributes copy];
+		}
 	}
 	return self;
 }
