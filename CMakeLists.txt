@@ -178,6 +178,7 @@ generate_sdk_framework(MetalKit
 
 if (BUILD_METAL)
 	add_dependencies(Metal mslc)
+	target_include_directories(Metal PRIVATE ${MSLC_PUBLIC_INCLUDE_DIRS})
 endif()
 
 add_framework(MetalKit
