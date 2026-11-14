@@ -19,6 +19,7 @@ METAL_DECLARATIONS_BEGIN
 @class MTLVertexAttribute;
 @class MTLAttribute;
 @class MTLFunctionConstant;
+@class MTLFunctionConstantValues;
 @class MTLArgument;
 
 typedef __autoreleasing MTLArgument* MTLAutoreleasedArgument;
@@ -59,6 +60,22 @@ typedef NS_ENUM(NSUInteger, MTLLibraryError) {
 	MTLLibraryErrorFunctionNotFound = 5,
 	MTLLibraryErrorFileNotFound = 6,
 };
+
+/* A function constant ([[function_constant(n)]]) a function uses. `required` is always YES: the shader
+ * compiler's output does not say whether a constant has a default. */
+@interface MTLFunctionConstant : NSObject {
+@private
+	NSString* _name;
+	MTLDataType _type;
+	NSUInteger _index;
+}
+
+@property(readonly) NSString* name;
+@property(readonly) MTLDataType type;
+@property(readonly) NSUInteger index;
+@property(readonly) BOOL required;
+
+@end
 
 /* One input of a vertex function, as declared with [[attribute(n)]]. */
 @interface MTLVertexAttribute : NSObject {
@@ -128,6 +145,17 @@ typedef NS_ENUM(NSUInteger, MTLLibraryError) {
 @property(nullable, copy, nonatomic) NSString* label;
 
 - (id<MTLFunction>)newFunctionWithName: (NSString*)functionName;
+
+/* Only bool, int, uint and float constants can be given values. Values for constants the function does
+ * not use are ignored. nil with MTLLibraryErrorFunctionNotFound when there is no such function, and with
+ * MTLLibraryErrorCompileFailure when a value has another type than its constant. */
+- (id<MTLFunction>)newFunctionWithName: (NSString*)name
+                        constantValues: (MTLFunctionConstantValues*)constantValues
+                                 error: (NSError**)error;
+
+- (void)newFunctionWithName: (NSString*)name
+             constantValues: (MTLFunctionConstantValues*)constantValues
+          completionHandler: (void (^)(id<MTLFunction> function, NSError* error))completionHandler;
 
 // TODO: other methods
 
