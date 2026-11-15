@@ -13,6 +13,11 @@
 static int failures;
 #define CHECK(c) do { if (!(c)) { printf("FAIL line %d: %s\n", __LINE__, #c); failures++; } } while (0)
 
+// Darling's Metal classes are the only ones named ...Internal. An XCHECK is a check macOS passes and Darling does not yet:
+// a failure is a known failure on Darling and a real failure on macOS.
+static BOOL onDarling(void) { return NSClassFromString(@"MTLTextureInternal") != nil; }
+#define XCHECK(c) do { if (!(c)) { if (onDarling()) printf("XFAIL (known in Darling) line %d: %s\n", __LINE__, #c); else { printf("FAIL line %d: %s\n", __LINE__, #c); failures++; } } } while (0)
+
 static id<MTLDevice> device;
 static id<MTLCommandQueue> queue;
 static id<MTLComputePipelineState> readPipeline;
@@ -76,8 +81,10 @@ int main(void) {
 		float texel[4];
 		readTexel(a8, texel);
 		CHECK(texel[0] == 0 && texel[1] == 0 && texel[2] == 0 && near(texel[3], 0x40 / 255.0f));
-		// macOS (Apple silicon) also makes A8Unorm textures for shader writes and rendering; Darling refuses those
-		// (a known deviation), so they are not checked here.
+		// macOS makes A8Unorm textures for shader writes and rendering. Darling stores A8Unorm as R8 read through a
+		// swizzle, which cannot route a shader's or a render target's alpha into the red channel: known failures.
+		XCHECK(make(MTLPixelFormatA8Unorm, MTLTextureUsageShaderWrite) != nil);
+		XCHECK(make(MTLPixelFormatA8Unorm, MTLTextureUsageRenderTarget) != nil);
 
 		id<MTLTexture> r8 = make(MTLPixelFormatR8Unorm, MTLTextureUsageShaderRead | MTLTextureUsagePixelFormatView);
 		[r8 replaceRegion: MTLRegionMake2D(0, 0, 2, 2) mipmapLevel: 0 withBytes: bytes bytesPerRow: 2];
@@ -95,8 +102,9 @@ int main(void) {
 		id<MTLTexture> stencil = [combined newTextureViewWithPixelFormat: MTLPixelFormatX32_Stencil8];
 		CHECK(stencil != nil);
 		CHECK(stencil.pixelFormat == MTLPixelFormatX32_Stencil8);
-		// Views of incompatible formats, or a format change without PixelFormatView, are a validation failure
-		// (an assertion) on macOS, not a nil texture; Darling returns nil. Not checked here.
+		// An incompatible view (a different texel size, a stencil view of a texture without stencil, a format change on a
+		// texture made without PixelFormatView) is a validation assertion on macOS, which ends the process. Darling returns
+		// nil; these checks run on Darling only.
 		id<MTLTexture> depthOnly = make(MTLPixelFormatDepth32Float, MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead | MTLTextureUsagePixelFormatView);
 
 		// --- same-size views
@@ -118,6 +126,14 @@ int main(void) {
 		readTexel(bgra, texel);
 		CHECK(near(texel[0], 1.0f) && near(texel[2], 128 / 255.0f));
 		CHECK([viewable newTextureViewWithPixelFormat: MTLPixelFormatR32Uint] != nil);
+		if (onDarling()) {
+			CHECK([combined newTextureViewWithPixelFormat: MTLPixelFormatX24_Stencil8] == nil);
+			CHECK([combined newTextureViewWithPixelFormat: MTLPixelFormatR32Uint] == nil);
+			CHECK([depthOnly newTextureViewWithPixelFormat: MTLPixelFormatX32_Stencil8] == nil);
+			CHECK([viewable newTextureViewWithPixelFormat: MTLPixelFormatR8Unorm] == nil);
+			CHECK([viewable newTextureViewWithPixelFormat: MTLPixelFormatRGBA16Float] == nil);
+			CHECK([plain newTextureViewWithPixelFormat: MTLPixelFormatRGBA8Unorm_sRGB] == nil);
+		}
 	}
 	printf(failures ? "FAILED: %d\n" : "OK\n", failures);
 	return failures != 0;
