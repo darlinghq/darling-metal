@@ -24,6 +24,14 @@ typedef NS_ENUM(NSUInteger, MTLStorageMode) {
 	MTLStorageModeMemoryless = 3,
 };
 
+// Whether the system may discard the contents of a resource it needs memory for.
+typedef NS_ENUM(NSUInteger, MTLPurgeableState) {
+	MTLPurgeableStateKeepCurrent = 1,
+	MTLPurgeableStateNonVolatile = 2,
+	MTLPurgeableStateVolatile = 3,
+	MTLPurgeableStateEmpty = 4,
+};
+
 typedef NS_ENUM(NSUInteger, MTLHazardTrackingMode) {
 	MTLHazardTrackingModeDefault = 0,
 	MTLHazardTrackingModeUntracked = 1,
@@ -56,6 +64,11 @@ typedef NS_OPTIONS(NSUInteger, MTLResourceOptions) {
 @property(readonly) MTLHazardTrackingMode hazardTrackingMode;
 @property(readonly) MTLResourceOptions resourceOptions;
 @property(nullable, copy, nonatomic) NSString* label;
+
+// Sets the purgeable state and returns the state the resource was in. MTLPurgeableStateKeepCurrent changes nothing.
+// This implementation never discards the contents of a resource, so a resource set Volatile still has its contents
+// and does not become Empty by itself.
+- (MTLPurgeableState)setPurgeableState: (MTLPurgeableState)state;
 
 @end
 

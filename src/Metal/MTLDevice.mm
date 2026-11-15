@@ -20,14 +20,17 @@
 #import <Metal/MTLSamplerStateInternal.h>
 #import <Metal/MTLDepthStencilDescriptorInternal.h>
 #import <Metal/MTLDeviceInfo.h>
+#import <Metal/MTLCompileOptions.h>
 #import <Metal/MTLMSLReflection.h>
 
 #include <mslc/mslc.h>
+#include <mach/mach_time.h>
 
 #include <dlfcn.h>
 #include <stdlib.h>
 #include <string.h>
 #include <string>
+#include <vector>
 
 // mslc is a 64-bit-only library (it needs 128-bit integers that the 32-bit slice of this
 // framework cannot compile), so Metal does not link it: it is loaded the first time source
@@ -698,6 +701,31 @@ static size_t iosurfacePixelSize(MTLPixelFormat format)
 	return [[MTLCommandQueueInternal alloc] initWithQueue: queue device: self];
 }
 
+- (NSUInteger)minimumLinearTextureAlignmentForPixelFormat: (MTLPixelFormat)format
+{
+	return _device->minimumLinearTextureAlignment(static_cast<Indium::PixelFormat>(format));
+}
+
+- (void)sampleTimestamps: (MTLTimestamp*)cpuTimestamp
+            gpuTimestamp: (MTLTimestamp*)gpuTimestamp
+{
+	// indium has no device timestamps to correlate with the host clock, and no way to ask for any; the
+	// monotonic nanosecond clock of the host stands in for both, which is also what the timestamps of the
+	// command buffers are measured against.
+	static mach_timebase_info_data_t timebase;
+	static dispatch_once_t once;
+	dispatch_once(&once, ^{
+		mach_timebase_info(&timebase);
+	});
+	uint64_t now = mach_absolute_time() * timebase.numer / timebase.denom;
+	if (cpuTimestamp != NULL) {
+		*cpuTimestamp = now;
+	}
+	if (gpuTimestamp != NULL) {
+		*gpuTimestamp = now;
+	}
+}
+
 - (id<MTLBuffer>)newBufferWithLength: (NSUInteger)length
                              options: (MTLResourceOptions)options
 {
@@ -821,14 +849,44 @@ static size_t iosurfacePixelSize(MTLPixelFormat format)
 	MslcOptions mslcOptions;
 	mslc->default_options(&mslcOptions);
 
-	// `options` is accepted and not read, because this framework's
-	// MTLCompileOptions declares no properties: an options object here carries no
-	// state, so it cannot change the output and nothing is being dropped. That is
-	// not true of Apple's class, which has fastMathEnabled, languageVersion and
-	// libraryPath. When those are added here, the ones mslc cannot honour have to
-	// be refused rather than ignored, in this method and nowhere else: an app that
-	// asks for a language version it does not get must get an error, not a library
+	// The preprocessor macros of `options` are defined before the source, as -D would on a compiler's command
+	// line. Its other properties (math mode, language version, library type and so on) are not read yet. The
+	// ones mslc cannot honour have to be refused rather than ignored when they are added, in this method
+	// and nowhere else: an app that asks for a language version it does not get must get an error, not a library
 	// compiled at a different version than it asked for.
+	NSMutableArray<NSString*>* macroNameStrings = [NSMutableArray array];
+	NSMutableArray<NSString*>* macroValueStrings = [NSMutableArray array];
+	NSDictionary* macros = options.preprocessorMacros;
+	// in key order, so the same options always make the same library
+	for (id key in [macros.allKeys sortedArrayUsingSelector: @selector(compare:)]) {
+		id value = macros[key];
+		NSString* text = nil;
+		if ([value isKindOfClass: [NSString class]]) {
+			text = value;
+		} else if ([value isKindOfClass: [NSNumber class]]) {
+			text = [(NSNumber*)value stringValue];
+		}
+		if (![key isKindOfClass: [NSString class]] || text == nil) {
+			if (error) {
+				*error = MSLLibraryError(@"preprocessorMacros has a key that is not a string or a value that is neither a string nor a number",
+					MTLLibraryErrorCompileFailure);
+			}
+			return nil;
+		}
+		[macroNameStrings addObject: key];
+		[macroValueStrings addObject: text];
+	}
+	std::vector<const char*> macroNames;
+	std::vector<const char*> macroValues;
+	for (NSUInteger i = 0; i < macroNameStrings.count; i++) {
+		macroNames.push_back([macroNameStrings[i] UTF8String]);
+		macroValues.push_back([macroValueStrings[i] UTF8String]);
+	}
+	if (!macroNames.empty()) {
+		mslcOptions.macroNames = macroNames.data();
+		mslcOptions.macroValues = macroValues.data();
+		mslcOptions.macroCount = macroNames.size();
+	}
 
 	uint8_t* spirv = NULL;
 	size_t spirvSize = 0;

@@ -12,6 +12,8 @@
 METAL_DECLARATIONS_BEGIN
 
 @protocol MTLBuffer;
+@protocol MTLResource;
+@protocol MTLHeap;
 @protocol MTLDepthStencilState;
 @protocol MTLRasterizationRateMap;
 @protocol MTLSamplerState;
@@ -337,6 +339,29 @@ MTL_EXPORT
                     indexType: (MTLIndexType)indexType
                   indexBuffer: (id<MTLBuffer>)indexBuffer
             indexBufferOffset: (NSUInteger)indexBufferOffset;
+
+// Residency hints: the resources the draws that follow use through an argument buffer or a heap. Every
+// resource is resident here, so these change nothing.
+- (void)useResource: (id<MTLResource>)resource
+              usage: (MTLResourceUsage)usage;
+- (void)useResources: (const id<MTLResource> __nonnull [__nonnull])resources
+               count: (NSUInteger)count
+               usage: (MTLResourceUsage)usage;
+- (void)useResource: (id<MTLResource>)resource
+              usage: (MTLResourceUsage)usage
+             stages: (MTLRenderStages)stages;
+- (void)useResources: (const id<MTLResource> __nonnull [__nonnull])resources
+               count: (NSUInteger)count
+               usage: (MTLResourceUsage)usage
+              stages: (MTLRenderStages)stages;
+- (void)useHeap: (id<MTLHeap>)heap;
+- (void)useHeaps: (const id<MTLHeap> __nonnull [__nonnull])heaps
+           count: (NSUInteger)count;
+- (void)useHeap: (id<MTLHeap>)heap
+         stages: (MTLRenderStages)stages;
+- (void)useHeaps: (const id<MTLHeap> __nonnull [__nonnull])heaps
+           count: (NSUInteger)count
+          stages: (MTLRenderStages)stages;
 
 @end
 

@@ -11,6 +11,7 @@
 #if DARLING_METAL_ENABLED
 	// Set when the texture holds a copy of its IOSurface plane.
 	MTLIOSurfaceCopy* _iosurfaceCopy;
+	MTLPurgeableState _purgeableState;
 #endif
 }
 
@@ -33,6 +34,7 @@ const std::shared_ptr<Indium::Texture>& MTLTextureGetIndium(id<MTLTexture> objec
 @synthesize label = _label;
 @synthesize iosurface = _iosurface;
 @synthesize iosurfacePlane = _iosurfacePlane;
+@synthesize backingBuffer = _backingBuffer;
 
 - (instancetype)initWithTexture: (std::shared_ptr<Indium::Texture>)texture
                          device: (id<MTLDevice>)device
@@ -53,6 +55,7 @@ const std::shared_ptr<Indium::Texture>& MTLTextureGetIndium(id<MTLTexture> objec
 		_texture = texture;
 		_device = [device retain];
 		_resourceOptions = options;
+		_purgeableState = MTLPurgeableStateNonVolatile;
 		if (iosurface != NULL) {
 			_iosurface = (IOSurfaceRef)CFRetain(iosurface);
 			_iosurfacePlane = plane;
@@ -71,6 +74,7 @@ const std::shared_ptr<Indium::Texture>& MTLTextureGetIndium(id<MTLTexture> objec
 	if (_iosurface != NULL) {
 		CFRelease(_iosurface);
 	}
+	[(id)_backingBuffer release];
 	[_device release];
 	[_label release];
 	[super dealloc];
@@ -79,6 +83,31 @@ const std::shared_ptr<Indium::Texture>& MTLTextureGetIndium(id<MTLTexture> objec
 //
 // properties
 //
+
+- (MTLPurgeableState)setPurgeableState: (MTLPurgeableState)state
+{
+	// the contents are never discarded, so the state only has to be remembered and handed back
+	MTLPurgeableState previous = _purgeableState;
+	if (state >= MTLPurgeableStateNonVolatile && state <= MTLPurgeableStateEmpty) {
+		_purgeableState = state;
+	}
+	return previous;
+}
+
+- (id<MTLBuffer>)buffer
+{
+	return _backingBuffer;
+}
+
+- (NSUInteger)bufferOffset
+{
+	return _texture->bufferOffset();
+}
+
+- (NSUInteger)bufferBytesPerRow
+{
+	return _texture->bufferBytesPerRow();
+}
 
 - (MTLCPUCacheMode)cpuCacheMode
 {
@@ -291,6 +320,10 @@ static void raiseIndiumFailure(const std::exception& e) {
 
 #else
 
+@dynamic backingBuffer;
+@dynamic buffer;
+@dynamic bufferOffset;
+@dynamic bufferBytesPerRow;
 @dynamic textureType;
 @dynamic pixelFormat;
 @dynamic width;

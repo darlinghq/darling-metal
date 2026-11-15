@@ -3,12 +3,18 @@
 
 #import <Metal/MTLBufferInternal.h>
 #import <Metal/MTLTypesInternal.h>
+#import <Metal/MTLTextureInternal.h>
+#import <Metal/MTLTextureDescriptorInternal.h>
 #import <Metal/MTLDevice.h>
 #import <Metal/stubs.h>
 
 @implementation MTLBufferInternal
 
 #if DARLING_METAL_ENABLED
+
+{
+	MTLPurgeableState _purgeableState;
+}
 
 @synthesize buffer = _buffer;
 
@@ -35,6 +41,7 @@ const std::shared_ptr<Indium::Buffer>& MTLBufferGetIndium(id<MTLBuffer> object)
 		_buffer = buffer;
 		_device = [device retain];
 		_resourceOptions = options;
+		_purgeableState = MTLPurgeableStateNonVolatile;
 	}
 	return self;
 }
@@ -64,6 +71,39 @@ const std::shared_ptr<Indium::Buffer>& MTLBufferGetIndium(id<MTLBuffer> object)
 - (void)didModifyRange: (NSRange)range
 {
 	return _buffer->didModifyRange(NSRangeToIndium(range));
+}
+
+- (MTLPurgeableState)setPurgeableState: (MTLPurgeableState)state
+{
+	// the contents are never discarded, so the state only has to be remembered and handed back
+	MTLPurgeableState previous = _purgeableState;
+	if (state >= MTLPurgeableStateNonVolatile && state <= MTLPurgeableStateEmpty) {
+		_purgeableState = state;
+	}
+	return previous;
+}
+
+- (id<MTLTexture>)newTextureWithDescriptor: (MTLTextureDescriptor*)descriptor
+                                    offset: (NSUInteger)offset
+                               bytesPerRow: (NSUInteger)bytesPerRow
+{
+	if (descriptor == nil) {
+		return nil;
+	}
+	// indium refuses what the device cannot back with a buffer by returning nothing, and what it cannot
+	// represent at all by throwing
+	std::shared_ptr<Indium::Texture> texture;
+	try {
+		texture = _buffer->newTexture([descriptor asIndiumDescriptor], offset, bytesPerRow);
+	} catch (const std::exception&) {
+		return nil;
+	}
+	if (!texture) {
+		return nil;
+	}
+	MTLTextureInternal* result = [[MTLTextureInternal alloc] initWithTexture: texture device: _device resourceOptions: _resourceOptions];
+	result.backingBuffer = self;
+	return result;
 }
 
 - (MTLCPUCacheMode)cpuCacheMode

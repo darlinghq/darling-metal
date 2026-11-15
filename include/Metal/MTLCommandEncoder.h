@@ -9,6 +9,14 @@ METAL_DECLARATIONS_BEGIN
 
 @protocol MTLDevice;
 
+
+// How a command uses a resource the application says it uses (-useResource:usage:).
+typedef NS_OPTIONS(NSUInteger, MTLResourceUsage) {
+	MTLResourceUsageRead = 1 << 0,
+	MTLResourceUsageWrite = 1 << 1,
+	MTLResourceUsageSample = 1 << 2,
+};
+
 typedef NS_OPTIONS(NSUInteger, MTLBarrierScope) {
 	MTLBarrierScopeBuffers = 1 << 0,
 	MTLBarrierScopeTextures = 1 << 1,

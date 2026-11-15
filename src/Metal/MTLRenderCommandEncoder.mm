@@ -973,6 +973,53 @@ MTL_UNSUPPORTED_CLASS
 	_encoder->drawIndexedPrimitives(static_cast<Indium::PrimitiveType>(primitiveType), indexCount, static_cast<Indium::IndexType>(indexType), MTLBufferGetIndium(indexBuffer), indexBufferOffset);
 }
 
+// Every resource is resident for the GPU, so telling the encoder which ones the commands use changes nothing.
+// What the application bound or put in a buffer still has to be alive until the command buffer completes, as
+// with Metal, since a resource is only kept alive by the encoder when it is bound.
+- (void)useResource: (id<MTLResource>)resource
+              usage: (MTLResourceUsage)usage
+{
+}
+
+- (void)useResources: (const id<MTLResource> __nonnull [__nonnull])resources
+               count: (NSUInteger)count
+               usage: (MTLResourceUsage)usage
+{
+}
+
+- (void)useHeap: (id<MTLHeap>)heap
+{
+}
+
+- (void)useHeaps: (const id<MTLHeap> __nonnull [__nonnull])heaps
+           count: (NSUInteger)count
+{
+}
+
+- (void)useResource: (id<MTLResource>)resource
+              usage: (MTLResourceUsage)usage
+             stages: (MTLRenderStages)stages
+{
+}
+
+- (void)useResources: (const id<MTLResource> __nonnull [__nonnull])resources
+               count: (NSUInteger)count
+               usage: (MTLResourceUsage)usage
+              stages: (MTLRenderStages)stages
+{
+}
+
+- (void)useHeap: (id<MTLHeap>)heap
+         stages: (MTLRenderStages)stages
+{
+}
+
+- (void)useHeaps: (const id<MTLHeap> __nonnull [__nonnull])heaps
+           count: (NSUInteger)count
+          stages: (MTLRenderStages)stages
+{
+}
+
 #else
 
 @dynamic device;
