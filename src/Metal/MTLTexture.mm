@@ -11,7 +11,6 @@
 #if DARLING_METAL_ENABLED
 	// Set when the texture holds a copy of its IOSurface plane.
 	MTLIOSurfaceCopy* _iosurfaceCopy;
-	MTLPurgeableState _purgeableState;
 #endif
 }
 
@@ -55,7 +54,6 @@ const std::shared_ptr<Indium::Texture>& MTLTextureGetIndium(id<MTLTexture> objec
 		_texture = texture;
 		_device = [device retain];
 		_resourceOptions = options;
-		_purgeableState = MTLPurgeableStateNonVolatile;
 		if (iosurface != NULL) {
 			_iosurface = (IOSurfaceRef)CFRetain(iosurface);
 			_iosurfacePlane = plane;
@@ -86,12 +84,11 @@ const std::shared_ptr<Indium::Texture>& MTLTextureGetIndium(id<MTLTexture> objec
 
 - (MTLPurgeableState)setPurgeableState: (MTLPurgeableState)state
 {
-	// the contents are never discarded, so the state only has to be remembered and handed back
-	MTLPurgeableState previous = _purgeableState;
-	if (state >= MTLPurgeableStateNonVolatile && state <= MTLPurgeableStateEmpty) {
-		_purgeableState = state;
-	}
-	return previous;
+	// QUIRK: every call returns NonVolatile and no state is ever applied (Volatile and Empty included), so the
+	// resource is never purgeable, although the documentation describes returning the previous state. Evidence:
+	// black-box observation on macOS 27.0.1 (Apple silicon), buffers and textures of every storage mode (tier 2).
+	// Test: test/guest/resource_api.m
+	return MTLPurgeableStateNonVolatile;
 }
 
 - (id<MTLBuffer>)buffer

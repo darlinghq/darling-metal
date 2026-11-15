@@ -13,6 +13,11 @@
 static int failures;
 #define CHECK(c) do { if (!(c)) { printf("FAIL line %d: %s\n", __LINE__, #c); failures++; } } while (0)
 
+// Darling's Metal classes are the only ones named ...Internal; the checks below that macOS passes and Darling does not
+// yet are XCHECKs: a failure is reported as a known failure on Darling and is a real failure on macOS.
+static BOOL onDarling(void) { return NSClassFromString(@"MTLTextureInternal") != nil; }
+#define XCHECK(c) do { if (!(c)) { if (onDarling()) printf("XFAIL (known in Darling) line %d: %s\n", __LINE__, #c); else { printf("FAIL line %d: %s\n", __LINE__, #c); failures++; } } } while (0)
+
 static BOOL near(float a, float b) { return fabsf(a - b) < 0.003f; }
 
 int main(void) {
@@ -26,18 +31,16 @@ int main(void) {
 
 		// --- purgeable state
 		id<MTLBuffer> buffer = [device newBufferWithLength: 4096 options: MTLResourceStorageModeShared];
-		// A new resource is non-volatile. macOS on Apple silicon keeps a shared buffer non-volatile whatever is set
-		// (every call returns NonVolatile), so only the first answer and the range of the answers are checked.
+		// macOS 27.0.1 (Apple silicon), buffers and textures of every storage mode: every call returns NonVolatile and no
+		// state is applied.
 		CHECK([buffer setPurgeableState: MTLPurgeableStateKeepCurrent] == MTLPurgeableStateNonVolatile);
-		MTLPurgeableState was = [buffer setPurgeableState: MTLPurgeableStateVolatile];
-		CHECK(was == MTLPurgeableStateNonVolatile);
-		was = [buffer setPurgeableState: MTLPurgeableStateKeepCurrent];
-		CHECK(was >= MTLPurgeableStateNonVolatile && was <= MTLPurgeableStateEmpty);
-		[buffer setPurgeableState: MTLPurgeableStateNonVolatile];
+		CHECK([buffer setPurgeableState: MTLPurgeableStateVolatile] == MTLPurgeableStateNonVolatile);
+		CHECK([buffer setPurgeableState: MTLPurgeableStateKeepCurrent] == MTLPurgeableStateNonVolatile);
+		CHECK([buffer setPurgeableState: MTLPurgeableStateEmpty] == MTLPurgeableStateNonVolatile);
 		MTLTextureDescriptor* td = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat: MTLPixelFormatRGBA8Unorm width: 4 height: 4 mipmapped: NO];
 		id<MTLTexture> plain = [device newTextureWithDescriptor: td];
 		CHECK([plain setPurgeableState: MTLPurgeableStateVolatile] == MTLPurgeableStateNonVolatile);
-		[plain setPurgeableState: MTLPurgeableStateNonVolatile];
+		CHECK([plain setPurgeableState: MTLPurgeableStateKeepCurrent] == MTLPurgeableStateNonVolatile);
 		CHECK(plain.buffer == nil && plain.bufferOffset == 0 && plain.bufferBytesPerRow == 0);
 
 		// --- residency hints change nothing
@@ -89,10 +92,16 @@ int main(void) {
 			[backed replaceRegion: MTLRegionMake2D(2, 1, 1, 1) mipmapLevel: 0 withBytes: pixel bytesPerRow: 4];
 			CHECK(memcmp(bytes + offset + bytesPerRow + 8, pixel, 4) == 0);
 		}
-		// macOS accepts any bytesPerRow that is a multiple of the alignment and at least the row width, and asserts
-		// on a smaller one or on an unaligned offset; Darling only accepts the device's own pitch (known deviation).
-		// a mipmapped descriptor is an assertion on macOS (linear textures cannot be mipmapped); Darling returns nil
-
+		// macOS accepts any bytesPerRow that is a multiple of the alignment and at least the row width. Darling only
+		// accepts the device's own row pitch, because Vulkan linear images cannot take another one (known failure).
+		XCHECK([storage newTextureWithDescriptor: bd offset: offset bytesPerRow: bytesPerRow + alignment] != nil);
+		// invalid arguments are validation assertions on macOS; Darling returns nil (Darling-only checks)
+		if (onDarling()) {
+			CHECK([storage newTextureWithDescriptor: bd offset: offset bytesPerRow: 0] == nil);
+			MTLTextureDescriptor* mipped = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat: MTLPixelFormatRGBA8Unorm width: width height: height mipmapped: YES];
+			mipped.storageMode = storage.storageMode;
+			CHECK([storage newTextureWithDescriptor: mipped offset: offset bytesPerRow: bytesPerRow] == nil);
+		}
 		// --- preprocessor macros
 		NSError* error = nil;
 		NSString* source = @"#include <metal_stdlib>\nusing namespace metal;\n"
@@ -121,7 +130,9 @@ int main(void) {
 		library = [device newLibraryWithSource: source options: nil error: &error];
 		CHECK(library != nil);
 		// a name that is not an identifier, and a value that is neither a string nor a number
-		// a name that is not an identifier is accepted by macOS (it builds a library), so only the type check is portable
+		// a name that is not an identifier is accepted (macOS builds a library; the macro is simply not usable)
+		options.preprocessorMacros = @{ @"NOT-A-NAME": @1 };
+		CHECK([device newLibraryWithSource: source options: options error: &error] != nil);
 		options.preprocessorMacros = @{ @"FACTOR": [NSDate date] };
 		error = nil;
 		CHECK([device newLibraryWithSource: source options: options error: &error] == nil && error != nil);

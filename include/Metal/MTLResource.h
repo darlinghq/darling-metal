@@ -65,9 +65,8 @@ typedef NS_OPTIONS(NSUInteger, MTLResourceOptions) {
 @property(readonly) MTLResourceOptions resourceOptions;
 @property(nullable, copy, nonatomic) NSString* label;
 
-// Sets the purgeable state and returns the state the resource was in. MTLPurgeableStateKeepCurrent changes nothing.
-// This implementation never discards the contents of a resource, so a resource set Volatile still has its contents
-// and does not become Empty by itself.
+// Sets the purgeable state and returns the state the resource was in. Like macOS on Apple silicon, resources are
+// never purgeable here: every call returns MTLPurgeableStateNonVolatile and changes nothing.
 - (MTLPurgeableState)setPurgeableState: (MTLPurgeableState)state;
 
 @end

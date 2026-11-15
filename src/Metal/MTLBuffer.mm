@@ -13,7 +13,6 @@
 #if DARLING_METAL_ENABLED
 
 {
-	MTLPurgeableState _purgeableState;
 }
 
 @synthesize buffer = _buffer;
@@ -41,7 +40,6 @@ const std::shared_ptr<Indium::Buffer>& MTLBufferGetIndium(id<MTLBuffer> object)
 		_buffer = buffer;
 		_device = [device retain];
 		_resourceOptions = options;
-		_purgeableState = MTLPurgeableStateNonVolatile;
 	}
 	return self;
 }
@@ -75,12 +73,11 @@ const std::shared_ptr<Indium::Buffer>& MTLBufferGetIndium(id<MTLBuffer> object)
 
 - (MTLPurgeableState)setPurgeableState: (MTLPurgeableState)state
 {
-	// the contents are never discarded, so the state only has to be remembered and handed back
-	MTLPurgeableState previous = _purgeableState;
-	if (state >= MTLPurgeableStateNonVolatile && state <= MTLPurgeableStateEmpty) {
-		_purgeableState = state;
-	}
-	return previous;
+	// QUIRK: every call returns NonVolatile and no state is ever applied (Volatile and Empty included), so the
+	// resource is never purgeable, although the documentation describes returning the previous state. Evidence:
+	// black-box observation on macOS 27.0.1 (Apple silicon), buffers and textures of every storage mode (tier 2).
+	// Test: test/guest/resource_api.m
+	return MTLPurgeableStateNonVolatile;
 }
 
 - (id<MTLTexture>)newTextureWithDescriptor: (MTLTextureDescriptor*)descriptor

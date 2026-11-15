@@ -701,6 +701,21 @@ static size_t iosurfacePixelSize(MTLPixelFormat format)
 	return [[MTLCommandQueueInternal alloc] initWithQueue: queue device: self];
 }
 
+- (BOOL)macroNameIsIdentifier: (NSString*)name
+{
+	NSCharacterSet* first = [NSCharacterSet characterSetWithCharactersInString: @"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"];
+	NSCharacterSet* rest = [NSCharacterSet characterSetWithCharactersInString: @"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789"];
+	if ([name length] == 0 || ![first characterIsMember: [name characterAtIndex: 0]]) {
+		return NO;
+	}
+	for (NSUInteger i = 1; i < [name length]; i++) {
+		if (![rest characterIsMember: [name characterAtIndex: i]]) {
+			return NO;
+		}
+	}
+	return YES;
+}
+
 - (NSUInteger)minimumLinearTextureAlignmentForPixelFormat: (MTLPixelFormat)format
 {
 	return _device->minimumLinearTextureAlignment(static_cast<Indium::PixelFormat>(format));
@@ -872,6 +887,11 @@ static size_t iosurfacePixelSize(MTLPixelFormat format)
 					MTLLibraryErrorCompileFailure);
 			}
 			return nil;
+		}
+		// Any name is accepted, as the Metal compiler does with -D: one that is not an identifier (or that mslc's
+		// preprocessor cannot define) defines nothing a source could use, so it is dropped instead of failing.
+		if (![self macroNameIsIdentifier: key]) {
+			continue;
 		}
 		[macroNameStrings addObject: key];
 		[macroValueStrings addObject: text];
