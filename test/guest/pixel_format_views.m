@@ -76,8 +76,8 @@ int main(void) {
 		float texel[4];
 		readTexel(a8, texel);
 		CHECK(texel[0] == 0 && texel[1] == 0 && texel[2] == 0 && near(texel[3], 0x40 / 255.0f));
-		CHECK(make(MTLPixelFormatA8Unorm, MTLTextureUsageShaderWrite) == nil);
-		CHECK(make(MTLPixelFormatA8Unorm, MTLTextureUsageRenderTarget) == nil);
+		// macOS (Apple silicon) also makes A8Unorm textures for shader writes and rendering; Darling refuses those
+		// (a known deviation), so they are not checked here.
 
 		id<MTLTexture> r8 = make(MTLPixelFormatR8Unorm, MTLTextureUsageShaderRead | MTLTextureUsagePixelFormatView);
 		[r8 replaceRegion: MTLRegionMake2D(0, 0, 2, 2) mipmapLevel: 0 withBytes: bytes bytesPerRow: 2];
@@ -95,15 +95,13 @@ int main(void) {
 		id<MTLTexture> stencil = [combined newTextureViewWithPixelFormat: MTLPixelFormatX32_Stencil8];
 		CHECK(stencil != nil);
 		CHECK(stencil.pixelFormat == MTLPixelFormatX32_Stencil8);
-		CHECK([combined newTextureViewWithPixelFormat: MTLPixelFormatX24_Stencil8] == nil);
-		CHECK([combined newTextureViewWithPixelFormat: MTLPixelFormatR32Uint] == nil);
+		// Views of incompatible formats, or a format change without PixelFormatView, are a validation failure
+		// (an assertion) on macOS, not a nil texture; Darling returns nil. Not checked here.
 		id<MTLTexture> depthOnly = make(MTLPixelFormatDepth32Float, MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead | MTLTextureUsagePixelFormatView);
-		CHECK([depthOnly newTextureViewWithPixelFormat: MTLPixelFormatX32_Stencil8] == nil);
 
 		// --- same-size views
 		const uint8_t texels[16] = { 128, 64, 255, 200, 128, 64, 255, 200, 128, 64, 255, 200, 128, 64, 255, 200 };
 		id<MTLTexture> plain = make(MTLPixelFormatRGBA8Unorm, MTLTextureUsageShaderRead);
-		CHECK([plain newTextureViewWithPixelFormat: MTLPixelFormatRGBA8Unorm_sRGB] == nil);
 		CHECK([plain newTextureViewWithPixelFormat: MTLPixelFormatRGBA8Unorm] != nil);
 
 		id<MTLTexture> viewable = make(MTLPixelFormatRGBA8Unorm, MTLTextureUsageShaderRead | MTLTextureUsagePixelFormatView);
@@ -120,8 +118,6 @@ int main(void) {
 		readTexel(bgra, texel);
 		CHECK(near(texel[0], 1.0f) && near(texel[2], 128 / 255.0f));
 		CHECK([viewable newTextureViewWithPixelFormat: MTLPixelFormatR32Uint] != nil);
-		CHECK([viewable newTextureViewWithPixelFormat: MTLPixelFormatR8Unorm] == nil);
-		CHECK([viewable newTextureViewWithPixelFormat: MTLPixelFormatRGBA16Float] == nil);
 	}
 	printf(failures ? "FAILED: %d\n" : "OK\n", failures);
 	return failures != 0;
