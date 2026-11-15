@@ -10,6 +10,11 @@
 static int failures;
 #define CHECK(c) do { if (!(c)) { printf("FAIL line %d: %s\n", __LINE__, #c); failures++; } } while (0)
 
+// Darling's Metal classes are the only ones named ...Internal. An XCHECK is a check macOS passes and Darling does not yet:
+// a failure is a known failure on Darling and a real failure on macOS.
+static BOOL onDarling(void) { return NSClassFromString(@"MTLTextureInternal") != nil; }
+#define XCHECK(c) do { if (!(c)) { if (onDarling()) printf("XFAIL (known in Darling) line %d: %s\n", __LINE__, #c); else { printf("FAIL line %d: %s\n", __LINE__, #c); failures++; } } } while (0)
+
 enum { kSlots = 64 };
 
 int main(void) {
@@ -44,7 +49,11 @@ int main(void) {
 			[encoder setComputePipelineState: pso];
 			[encoder setBuffer: out offset: 0 atIndex: 0];
 			[encoder setThreadgroupMemoryLength: 16 atIndex: 0];
-			[encoder dispatchThreads: grid threadsPerThreadgroup: group];
+			@try {
+				[encoder dispatchThreads: grid threadsPerThreadgroup: group];
+			} @catch (NSException* exception) {
+				// Darling raises for a kernel it cannot mask (known failure); the encoder still has to be ended
+			}
 			[encoder endEncoding];
 			[commands commit];
 			[commands waitUntilCompleted];
@@ -61,6 +70,9 @@ int main(void) {
 		CHECK(run(@"mark1D", MTLSizeMake(1, 1, 1), MTLSizeMake(4, 1, 1), ^uint32_t(int i) { return i + 1; }) == 1);
 		CHECK(run(@"mark1D", MTLSizeMake(12, 1, 1), MTLSizeMake(4, 1, 1), ^uint32_t(int i) { return i + 1; }) == 12);
 		CHECK(run(@"mark2D", MTLSizeMake(5, 3, 1), MTLSizeMake(2, 2, 1), ^uint32_t(int i) { return 1 + (i / 5) * 10 + i % 5; }) == 15);
+		// A kernel with a barrier over a grid that is cut: macOS runs exactly the grid. Darling cannot skip threads in a
+		// kernel with a barrier (a thread that returns before it leaves the others waiting) and refuses (known failure).
+		XCHECK(run(@"markBarrier", MTLSizeMake(10, 1, 1), MTLSizeMake(4, 1, 1), ^uint32_t(int i) { return i + 1; }) == 10);
 		// a kernel with a barrier over whole threadgroups
 		CHECK(run(@"markBarrier", MTLSizeMake(8, 1, 1), MTLSizeMake(4, 1, 1), ^uint32_t(int i) { return i + 1; }) == 8);
 	}
