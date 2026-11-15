@@ -323,6 +323,13 @@ MTL_UNSUPPORTED_CLASS
 	_encoder->dispatchThreads(MTLSizeToIndium(threadsPerGrid), MTLSizeToIndium(threadsPerThreadgroup));
 }
 
+- (void)dispatchThreadgroupsWithIndirectBuffer: (id<MTLBuffer>)indirectBuffer
+                          indirectBufferOffset: (NSUInteger)indirectBufferOffset
+                         threadsPerThreadgroup: (MTLSize)threadsPerThreadgroup
+{
+	_encoder->dispatchThreadgroups(MTLBufferGetIndium(indirectBuffer), indirectBufferOffset, MTLSizeToIndium(threadsPerThreadgroup));
+}
+
 #else
 
 @dynamic dispatchType;
