@@ -26,15 +26,18 @@ int main(void) {
 
 		// --- purgeable state
 		id<MTLBuffer> buffer = [device newBufferWithLength: 4096 options: MTLResourceStorageModeShared];
+		// A new resource is non-volatile. macOS on Apple silicon keeps a shared buffer non-volatile whatever is set
+		// (every call returns NonVolatile), so only the first answer and the range of the answers are checked.
 		CHECK([buffer setPurgeableState: MTLPurgeableStateKeepCurrent] == MTLPurgeableStateNonVolatile);
-		CHECK([buffer setPurgeableState: MTLPurgeableStateVolatile] == MTLPurgeableStateNonVolatile);
-		CHECK([buffer setPurgeableState: MTLPurgeableStateKeepCurrent] == MTLPurgeableStateVolatile);
-		CHECK([buffer setPurgeableState: MTLPurgeableStateNonVolatile] == MTLPurgeableStateVolatile);
-		CHECK([buffer setPurgeableState: MTLPurgeableStateKeepCurrent] == MTLPurgeableStateNonVolatile);
+		MTLPurgeableState was = [buffer setPurgeableState: MTLPurgeableStateVolatile];
+		CHECK(was == MTLPurgeableStateNonVolatile);
+		was = [buffer setPurgeableState: MTLPurgeableStateKeepCurrent];
+		CHECK(was >= MTLPurgeableStateNonVolatile && was <= MTLPurgeableStateEmpty);
+		[buffer setPurgeableState: MTLPurgeableStateNonVolatile];
 		MTLTextureDescriptor* td = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat: MTLPixelFormatRGBA8Unorm width: 4 height: 4 mipmapped: NO];
 		id<MTLTexture> plain = [device newTextureWithDescriptor: td];
 		CHECK([plain setPurgeableState: MTLPurgeableStateVolatile] == MTLPurgeableStateNonVolatile);
-		CHECK([plain setPurgeableState: MTLPurgeableStateKeepCurrent] == MTLPurgeableStateVolatile);
+		[plain setPurgeableState: MTLPurgeableStateNonVolatile];
 		CHECK(plain.buffer == nil && plain.bufferOffset == 0 && plain.bufferBytesPerRow == 0);
 
 		// --- residency hints change nothing
@@ -86,11 +89,9 @@ int main(void) {
 			[backed replaceRegion: MTLRegionMake2D(2, 1, 1, 1) mipmapLevel: 0 withBytes: pixel bytesPerRow: 4];
 			CHECK(memcmp(bytes + offset + bytesPerRow + 8, pixel, 4) == 0);
 		}
-		CHECK([storage newTextureWithDescriptor: bd offset: offset bytesPerRow: bytesPerRow + alignment] == nil);
-		CHECK([storage newTextureWithDescriptor: bd offset: offset bytesPerRow: 0] == nil);
-		MTLTextureDescriptor* mipped = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat: MTLPixelFormatRGBA8Unorm width: width height: height mipmapped: YES];
-		mipped.storageMode = storage.storageMode;
-		CHECK([storage newTextureWithDescriptor: mipped offset: offset bytesPerRow: bytesPerRow] == nil);
+		// macOS accepts any bytesPerRow that is a multiple of the alignment and at least the row width, and asserts
+		// on a smaller one or on an unaligned offset; Darling only accepts the device's own pitch (known deviation).
+		// a mipmapped descriptor is an assertion on macOS (linear textures cannot be mipmapped); Darling returns nil
 
 		// --- preprocessor macros
 		NSError* error = nil;
@@ -120,8 +121,7 @@ int main(void) {
 		library = [device newLibraryWithSource: source options: nil error: &error];
 		CHECK(library != nil);
 		// a name that is not an identifier, and a value that is neither a string nor a number
-		options.preprocessorMacros = @{ @"NOT-A-NAME": @1 };
-		CHECK([device newLibraryWithSource: source options: options error: &error] == nil && error != nil);
+		// a name that is not an identifier is accepted by macOS (it builds a library), so only the type check is portable
 		options.preprocessorMacros = @{ @"FACTOR": [NSDate date] };
 		error = nil;
 		CHECK([device newLibraryWithSource: source options: options error: &error] == nil && error != nil);
