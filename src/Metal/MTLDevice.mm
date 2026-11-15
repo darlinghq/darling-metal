@@ -821,6 +821,10 @@ static size_t iosurfacePixelSize(MTLPixelFormat format)
 	MslcOptions mslcOptions;
 	mslc->default_options(&mslcOptions);
 
+	// dispatchThreads: can be given a grid that is not a multiple of the threadgroup size at any time, so the
+	// kernels skip the threads beyond the grid size when they can
+	mslcOptions.maskGridSize = 1;
+
 	// `options` is accepted and not read, because this framework's
 	// MTLCompileOptions declares no properties: an options object here carries no
 	// state, so it cannot change the output and nothing is being dropped. That is

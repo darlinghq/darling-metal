@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Darling Developers
 // SPDX-License-Identifier: MPL-2.0
 
+#include <array>
 #import <Metal/MTLMSLReflection.h>
 #import <Metal/stubs.h>
 #import <CoreFoundation/CoreFoundation.h>
@@ -323,6 +324,25 @@ bool MTLReadMSLReflection(const char* document, size_t length,
 			functionReflection, outError) ||
 			!MTLReadBindings((NSArray*)bindings, functionReflection, outError)) {
 			return false;
+		}
+
+		// the specialization constants that hold the grid size of a kernel that skips the threads beyond it
+		id gridSizeIDs = [entryObject objectForKey: @"grid_size_spec_ids"];
+		if (gridSizeIDs != nil) {
+			if (![gridSizeIDs isKindOfClass: [NSArray class]] || [(NSArray*)gridSizeIDs count] != 3) {
+				outError = MTLReflectionError(@"mslc's reflection has grid_size_spec_ids that is not an array of three numbers");
+				return false;
+			}
+			std::array<uint32_t, 3> ids;
+			for (NSUInteger i = 0; i < 3; i++) {
+				id number = [(NSArray*)gridSizeIDs objectAtIndex: i];
+				if (![number isKindOfClass: [NSNumber class]] || [number longLongValue] < 3 || [number longLongValue] > UINT32_MAX) {
+					outError = MTLReflectionError(@"mslc's reflection has grid_size_spec_ids that is not an array of three numbers");
+					return false;
+				}
+				ids[i] = (uint32_t)[number longLongValue];
+			}
+			functionReflection.gridSizeSpecializationIDs = ids;
 		}
 
 		NSString* entryPoint = nil;
