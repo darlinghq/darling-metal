@@ -15,6 +15,12 @@
 
 METAL_DECLARATIONS_BEGIN
 
+// What a resource takes in a heap: its size, and the alignment of the offset it is placed at.
+typedef struct MTLSizeAndAlign {
+	NSUInteger size;
+	NSUInteger align;
+} MTLSizeAndAlign;
+
 @protocol MTLComputePipelineState;
 @protocol MTLFunction;
 @protocol MTLCommandQueue;
@@ -25,6 +31,8 @@ METAL_DECLARATIONS_BEGIN
 @protocol MTLTexture;
 @protocol MTLDepthStencilState;
 @protocol MTLSamplerState;
+@protocol MTLHeap;
+@class MTLHeapDescriptor;
 @protocol MTLCounterSet;
 
 @class MTLCompileOptions;
@@ -243,6 +251,17 @@ typedef uint64_t MTLTimestamp;
 
 // The row alignment, in bytes, of a texture made from a buffer in `format`: its bytesPerRow is a multiple of it.
 - (NSUInteger)minimumLinearTextureAlignmentForPixelFormat: (MTLPixelFormat)format;
+
+// A heap of device memory to make buffers and textures from. nil for a descriptor with a size of 0, a sparse heap, a heap
+// with a storage mode other than shared and private, or a size the device cannot allocate.
+- (nullable id<MTLHeap>)newHeapWithDescriptor: (MTLHeapDescriptor*)descriptor;
+
+// What a buffer or texture takes in a heap on this device, and the alignment of the offset it must be placed at in a
+// placement heap. These are the device's own requirements; the sizes include its rounding, and are what a heap counts
+// (usedSize) and what the resource reports as its allocatedSize.
+- (MTLSizeAndAlign)heapBufferSizeAndAlignWithLength: (NSUInteger)length
+                                            options: (MTLResourceOptions)options;
+- (MTLSizeAndAlign)heapTextureSizeAndAlignWithDescriptor: (MTLTextureDescriptor*)desc;
 
 // The host and device clocks sampled together, in nanoseconds. Both are the host's monotonic clock here, so
 // the two timestamps are equal and counter sample buffers do not exist for them to be compared with.

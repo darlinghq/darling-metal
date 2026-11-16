@@ -11,6 +11,7 @@
 METAL_DECLARATIONS_BEGIN
 
 @protocol MTLDevice;
+@protocol MTLHeap;
 
 typedef NS_ENUM(NSUInteger, MTLCPUCacheMode) {
 	MTLCPUCacheModeDefaultCache = 0,
@@ -68,6 +69,21 @@ typedef NS_OPTIONS(NSUInteger, MTLResourceOptions) {
 // Sets the purgeable state and returns the state the resource was in. Like macOS on Apple silicon, resources are
 // never purgeable here: every call returns MTLPurgeableStateNonVolatile and changes nothing.
 - (MTLPurgeableState)setPurgeableState: (MTLPurgeableState)state;
+
+// The heap the resource was made from, nil for any other resource. A resource keeps its heap alive.
+@property(nullable, readonly) id<MTLHeap> heap;
+
+// Where the resource starts in a placement heap. 0 for every other resource, those of an automatic heap included.
+@property(readonly) NSUInteger heapOffset;
+
+// The bytes of device memory the resource takes. For a resource made from a heap this is what the heap counts for it
+// (see -[MTLDevice heapBufferSizeAndAlignWithLength:options:]).
+@property(readonly) NSUInteger allocatedSize;
+
+// Lets an automatic heap give the resource's memory to other resources made from it. The resource stays valid but
+// its contents are no longer kept. Resources of a placement heap are always aliasable; any other resource ignores this.
+- (void)makeAliasable;
+- (BOOL)isAliasable;
 
 @end
 

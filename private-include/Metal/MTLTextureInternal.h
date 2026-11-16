@@ -5,6 +5,7 @@
 #define _METAL_MTLTEXTUREINTERNAL_H_
 
 #import <Metal/MTLTexture.h>
+#import <Metal/MTLHeap.h>
 
 #if DARLING_METAL_ENABLED
 #include <indium/indium.hpp>
@@ -39,6 +40,9 @@ MTL_EXPORT
 
 // The buffer the texture's rows are in, retained, for a texture made from a buffer.
 @property(nonatomic, retain) id<MTLBuffer> backingBuffer;
+
+// The heap the texture (or the texture a view is of) was made from, retained.
+@property(nonatomic, retain) id<MTLHeap> owningHeap;
 
 #if DARLING_METAL_ENABLED
 @property(nonatomic, readonly) std::shared_ptr<Indium::Texture> texture;
