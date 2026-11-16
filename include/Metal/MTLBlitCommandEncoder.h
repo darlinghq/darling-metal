@@ -6,6 +6,7 @@
 
 #import <Foundation/Foundation.h>
 #import <Metal/MTLDefines.h>
+#import <Metal/MTLFence.h>
 #import <Metal/MTLCommandEncoder.h>
 #import <Metal/MTLResource.h>
 #import <Metal/MTLTypes.h>
@@ -23,6 +24,12 @@ typedef NS_OPTIONS(NSUInteger, MTLBlitOption) {
 };
 
 @protocol MTLBlitCommandEncoder <MTLCommandEncoder>
+
+/* Updates `fence` once the commands encoded so far in this encoder have finished. */
+- (void)updateFence: (id<MTLFence>)fence;
+
+/* Holds the commands encoded after this call back until the work the fence was updated after in earlier encoders has finished. */
+- (void)waitForFence: (id<MTLFence>)fence;
 
 - (void)copyFromBuffer: (id<MTLBuffer>)sourceBuffer
           sourceOffset: (NSUInteger)sourceOffset

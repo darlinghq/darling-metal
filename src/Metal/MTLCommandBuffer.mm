@@ -10,6 +10,7 @@
 #import <Metal/stubs.h>
 #import <Metal/MTLRenderCommandEncoderInternal.h>
 #import <Metal/MTLIOSurfaceCopy.h>
+#import <Metal/MTLEventInternal.h>
 
 #include <mach/mach_time.h>
 #include <mutex>
@@ -315,6 +316,18 @@ static CFTimeInterval MTLLoadTime(uint64_t* slot)
 
 	MTLCommandBufferStatus expected = MTLCommandBufferStatusNotEnqueued;
 	__atomic_compare_exchange_n(&_status, &expected, MTLCommandBufferStatusEnqueued, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE);
+}
+
+- (void)encodeSignalEvent: (id<MTLEvent>)event
+                    value: (uint64_t)value
+{
+	_commandBuffer->encodeSignalEvent(MTLEventGetIndium(event), value);
+}
+
+- (void)encodeWaitForEvent: (id<MTLEvent>)event
+                     value: (uint64_t)value
+{
+	_commandBuffer->encodeWaitForEvent(MTLEventGetIndium(event), value);
 }
 
 - (void)commit

@@ -10,6 +10,8 @@
 #import <Metal/MTLResource.h>
 #import <Metal/MTLPixelFormat.h>
 #import <Metal/MTLDefines.h>
+#import <Metal/MTLEvent.h>
+#import <Metal/MTLFence.h>
 
 METAL_DECLARATIONS_BEGIN
 
@@ -228,6 +230,13 @@ typedef uint64_t MTLTimestamp;
 - (id<MTLDepthStencilState>)newDepthStencilStateWithDescriptor: (MTLDepthStencilDescriptor*)descriptor;
 
 - (id<MTLCommandQueue>)newCommandQueue;
+
+- (id<MTLEvent>)newEvent;
+- (id<MTLSharedEvent>)newSharedEvent;
+
+/* The event the handle names, as an object of its own that shares the value; nil for a handle of another device. */
+- (nullable id<MTLSharedEvent>)newSharedEventWithHandle: (MTLSharedEventHandle*)sharedEventHandle;
+- (id<MTLFence>)newFence;
 
 - (id<MTLBuffer>)newBufferWithLength: (NSUInteger)length
                              options: (MTLResourceOptions)options;

@@ -4,6 +4,7 @@
 #import <Metal/MTLBlitCommandEncoderInternal.h>
 #import <Metal/MTLBufferInternal.h>
 #import <Metal/MTLDevice.h>
+#import <Metal/MTLFenceInternal.h>
 #import <Metal/MTLTextureInternal.h>
 #import <Metal/MTLTypesInternal.h>
 #import <Metal/stubs.h>
@@ -44,6 +45,16 @@
 - (void)endEncoding
 {
 	_encoder->endEncoding();
+}
+
+- (void)updateFence: (id<MTLFence>)fence
+{
+	_encoder->updateFence(MTLFenceGetIndium(fence));
+}
+
+- (void)waitForFence: (id<MTLFence>)fence
+{
+	_encoder->waitForFence(MTLFenceGetIndium(fence));
 }
 
 //
