@@ -912,6 +912,10 @@ static size_t iosurfacePixelSize(MTLPixelFormat format)
 	MslcOptions mslcOptions;
 	mslc->default_options(&mslcOptions);
 
+	// dispatchThreads: can be given a grid that is not a multiple of the threadgroup size at any time, so the
+	// kernels skip the threads beyond the grid size when they can
+	mslcOptions.maskGridSize = 1;
+
 	// The preprocessor macros of `options` are defined before the source, as -D would on a compiler's command
 	// line. Its other properties (math mode, language version, library type and so on) are not read yet. The
 	// ones mslc cannot honour have to be refused rather than ignored when they are added, in this method

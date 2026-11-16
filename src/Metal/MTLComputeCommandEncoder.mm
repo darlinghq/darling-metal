@@ -331,7 +331,17 @@ MTL_UNSUPPORTED_CLASS
 - (void)dispatchThreads: (MTLSize)threadsPerGrid 
   threadsPerThreadgroup: (MTLSize)threadsPerThreadgroup
 {
-	_encoder->dispatchThreads(MTLSizeToIndium(threadsPerGrid), MTLSizeToIndium(threadsPerThreadgroup));
+	// A function that cannot skip the threads beyond the grid (it has a barrier) cannot be dispatched over a
+	// grid that is not a multiple of the threadgroup size. indium says so by throwing, and running the threads
+	// past the grid would write outside what the application made room for, so the exception goes to the
+	// caller as an Objective-C one instead of ending the process.
+	try {
+		_encoder->dispatchThreads(MTLSizeToIndium(threadsPerGrid), MTLSizeToIndium(threadsPerThreadgroup));
+	} catch (const std::exception& e) {
+		@throw [NSException exceptionWithName: NSInvalidArgumentException
+		                               reason: [NSString stringWithUTF8String: e.what()]
+		                             userInfo: nil];
+	}
 }
 
 - (void)dispatchThreadgroupsWithIndirectBuffer: (id<MTLBuffer>)indirectBuffer
