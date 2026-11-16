@@ -19,6 +19,8 @@
 #import <IOSurface/IOSurfacePriv.h>
 #import <Metal/MTLSamplerDescriptorInternal.h>
 #import <Metal/MTLSamplerStateInternal.h>
+#import <Metal/MTLEventInternal.h>
+#import <Metal/MTLFenceInternal.h>
 #import <Metal/MTLDepthStencilDescriptorInternal.h>
 #import <Metal/MTLDeviceInfo.h>
 #import <Metal/MTLCompileOptions.h>
@@ -698,6 +700,45 @@ static size_t iosurfacePixelSize(MTLPixelFormat format)
 		return nil;
 	}
 	return [[MTLDepthStencilStateInternal alloc] initWithState: state device: self];
+}
+
+- (id<MTLEvent>)newEvent
+{
+	auto event = _device->newEvent();
+	if (!event) {
+		return nil;
+	}
+	return [[MTLEventInternal alloc] initWithEvent: event device: self];
+}
+
+- (id<MTLSharedEvent>)newSharedEvent
+{
+	auto event = _device->newSharedEvent();
+	if (!event) {
+		return nil;
+	}
+	return [[MTLSharedEventInternal alloc] initWithEvent: event device: self];
+}
+
+- (id<MTLSharedEvent>)newSharedEventWithHandle: (MTLSharedEventHandle*)sharedEventHandle
+{
+	if (!sharedEventHandle) {
+		return nil;
+	}
+	auto event = _device->newSharedEvent([sharedEventHandle indiumHandle]);
+	if (!event) {
+		return nil;
+	}
+	return [[MTLSharedEventInternal alloc] initWithEvent: event device: self];
+}
+
+- (id<MTLFence>)newFence
+{
+	auto fence = _device->newFence();
+	if (!fence) {
+		return nil;
+	}
+	return [[MTLFenceInternal alloc] initWithFence: fence device: self];
 }
 
 - (id<MTLCommandQueue>)newCommandQueue

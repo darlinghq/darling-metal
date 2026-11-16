@@ -101,6 +101,8 @@ add_framework(Metal
 		src/Metal/MTLDepthStencilDescriptor.mm
 		src/Metal/MTLDevice.mm
 		src/Metal/MTLDrawable.mm
+		src/Metal/MTLEvent.mm
+		src/Metal/MTLFence.mm
 		src/Metal/MTLFunctionConstantValues.mm
 		src/Metal/MTLHeap.mm
 		src/Metal/MTLIndirectCommandBuffer.mm

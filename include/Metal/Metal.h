@@ -24,6 +24,8 @@
 #import <Metal/MTLDepthStencilDescriptor.h>
 #import <Metal/MTLDevice.h>
 #import <Metal/MTLDrawable.h>
+#import <Metal/MTLEvent.h>
+#import <Metal/MTLFence.h>
 #import <Metal/MTLFunctionConstantValues.h>
 #import <Metal/MTLHeap.h>
 #import <Metal/MTLIndirectCommandBuffer.h>
