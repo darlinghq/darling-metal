@@ -1,6 +1,6 @@
 // Copyright (C) 2026 Lubos Dolezel
 // Pixel formats with no one-to-one Vulkan equivalent and views of a texture as another format:
-// A8Unorm (a shader reads (0, 0, 0, a); no shader writes or rendering), the stencil views X32_Stencil8
+// A8Unorm (a shader reads (0, 0, 0, a)), the stencil views X32_Stencil8
 // and X24_Stencil8 of the combined depth/stencil formats, and views of the same texel size, which need
 // MTLTextureUsagePixelFormatView on the texture (RGBA8Unorm as RGBA8Unorm_sRGB decodes sRGB).
 // The behaviour is the one the Metal documentation states for these formats and views. No Metal GPU was
@@ -81,10 +81,9 @@ int main(void) {
 		float texel[4];
 		readTexel(a8, texel);
 		CHECK(texel[0] == 0 && texel[1] == 0 && texel[2] == 0 && near(texel[3], 0x40 / 255.0f));
-		// macOS makes A8Unorm textures for shader writes and rendering. Darling stores A8Unorm as R8 read through a
-		// swizzle, which cannot route a shader's or a render target's alpha into the red channel: known failures.
-		XCHECK(make(MTLPixelFormatA8Unorm, MTLTextureUsageShaderWrite) != nil);
-		XCHECK(make(MTLPixelFormatA8Unorm, MTLTextureUsageRenderTarget) != nil);
+		// macOS makes A8Unorm textures for shader writes and rendering (written and drawn to in a8unorm_write.m)
+		CHECK(make(MTLPixelFormatA8Unorm, MTLTextureUsageShaderWrite) != nil);
+		CHECK(make(MTLPixelFormatA8Unorm, MTLTextureUsageRenderTarget) != nil);
 
 		id<MTLTexture> r8 = make(MTLPixelFormatR8Unorm, MTLTextureUsageShaderRead | MTLTextureUsagePixelFormatView);
 		[r8 replaceRegion: MTLRegionMake2D(0, 0, 2, 2) mipmapLevel: 0 withBytes: bytes bytesPerRow: 2];
