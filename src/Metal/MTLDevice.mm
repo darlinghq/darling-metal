@@ -7,6 +7,7 @@
 #import <Metal/MTLComputePipelineInternal.h>
 #import <Metal/MTLCommandQueueInternal.h>
 #import <Metal/MTLBufferInternal.h>
+#import <Metal/MTLHeapInternal.h>
 #import <Metal/MTLLibraryInternal.h>
 #import <Metal/stubs.h>
 #import <Metal/MTLRenderPipelineInternal.h>
@@ -746,6 +747,47 @@ static size_t iosurfacePixelSize(MTLPixelFormat format)
 	if (gpuTimestamp != NULL) {
 		*gpuTimestamp = now;
 	}
+}
+
+- (id<MTLHeap>)newHeapWithDescriptor: (MTLHeapDescriptor*)descriptor
+{
+	if (descriptor == nil) {
+		return nil;
+	}
+	Indium::HeapDescriptor indiumDescriptor;
+	indiumDescriptor.size = descriptor.size;
+	indiumDescriptor.storageMode = static_cast<Indium::StorageMode>(descriptor.storageMode);
+	indiumDescriptor.cpuCacheMode = static_cast<Indium::CPUCacheMode>(descriptor.cpuCacheMode);
+	indiumDescriptor.hazardTrackingMode = static_cast<Indium::HazardTrackingMode>(descriptor.hazardTrackingMode);
+	indiumDescriptor.type = static_cast<Indium::HeapType>(descriptor.type);
+
+	// indium refuses (nil) a heap it cannot make: sparse, a storage mode other than shared and private, no
+	// size, or memory the device cannot allocate
+	try {
+		auto heap = _device->newHeap(indiumDescriptor);
+		if (!heap) {
+			return nil;
+		}
+		return [[MTLHeapInternal alloc] initWithHeap: heap device: self];
+	} catch (const std::exception&) {
+		return nil;
+	}
+}
+
+- (MTLSizeAndAlign)heapBufferSizeAndAlignWithLength: (NSUInteger)length
+                                            options: (MTLResourceOptions)options
+{
+	auto sizeAndAlign = _device->heapBufferSizeAndAlign(length, static_cast<Indium::ResourceOptions>(options));
+	return MTLSizeAndAlign { sizeAndAlign.size, sizeAndAlign.align };
+}
+
+- (MTLSizeAndAlign)heapTextureSizeAndAlignWithDescriptor: (MTLTextureDescriptor*)desc
+{
+	if (desc == nil) {
+		return MTLSizeAndAlign { 0, 0 };
+	}
+	auto sizeAndAlign = _device->heapTextureSizeAndAlign([desc asIndiumDescriptor]);
+	return MTLSizeAndAlign { sizeAndAlign.size, sizeAndAlign.align };
 }
 
 - (id<MTLBuffer>)newBufferWithLength: (NSUInteger)length

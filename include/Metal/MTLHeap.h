@@ -17,17 +17,15 @@ typedef NS_ENUM(NSInteger, MTLHeapType) {
 	MTLHeapTypeSparse = 2,
 };
 
+@class MTLTextureDescriptor;
+@protocol MTLBuffer;
+@protocol MTLTexture;
+
 /**
- * Describes a heap to allocate from.
+ * Describes a heap to allocate from with -[MTLDevice newHeapWithDescriptor:].
  *
- * Every property is stored and returned unchanged, so the descriptor is honest
- * as a value. What is deliberately absent is the operation it exists to feed:
- * -[MTLDevice newHeapWithDescriptor:error:] is not declared, and indium has no
- * heap, no suballocation and no backing memory at all. A declaration that
- * returned a heap would be an object that allocated nothing and reported sizes
- * it invented, so the method stays undefined and the caller gets an
- * unrecognised selector naming the gap instead of a heap that silently fails
- * to allocate.
+ * The storage mode defaults to private. Shared and private heaps are supported; heaps of any other storage mode, and
+ * sparse heaps, cannot be made.
  */
 MTL_EXPORT
 @interface MTLHeapDescriptor : NSObject <NSCopying>
@@ -38,6 +36,59 @@ MTL_EXPORT
 @property(nonatomic) MTLHazardTrackingMode hazardTrackingMode;
 @property(nonatomic) MTLResourceOptions resourceOptions;
 @property(nonatomic) MTLHeapType type;
+
+@end
+
+/**
+ * A block of device memory that buffers and textures are made from. The memory is allocated when the heap is created.
+ *
+ * Resources are made with the heap's storage mode and CPU cache mode (a request for any other is refused with nil) and
+ * have the heap's hazard tracking mode, untracked unless the descriptor said tracked. An automatic heap places the
+ * resources itself; a placement heap makes them at the offsets given, a multiple of the alignment
+ * -[MTLDevice heapBufferSizeAndAlignWithLength:options:] and heapTextureSizeAndAlignWithDescriptor: return, and
+ * resources that overlap share their memory.
+ */
+@protocol MTLHeap <NSObject>
+
+@property(nullable, copy, nonatomic) NSString* label;
+@property(readonly) id<MTLDevice> device;
+@property(readonly) MTLStorageMode storageMode;
+@property(readonly) MTLCPUCacheMode cpuCacheMode;
+@property(readonly) MTLHazardTrackingMode hazardTrackingMode;
+@property(readonly) MTLResourceOptions resourceOptions;
+@property(readonly) MTLHeapType type;
+
+// The descriptor's size rounded up to whole pages.
+@property(readonly) NSUInteger size;
+
+// The sum of the sizes of the resources an automatic heap holds, not counting those made aliasable. Always 0 for a
+// placement heap.
+@property(readonly) NSUInteger usedSize;
+
+// The memory the heap has allocated: all of it.
+@property(readonly) NSUInteger currentAllocatedSize;
+
+// The size of the largest resource an automatic heap could place now at an offset that is a multiple of `alignment`.
+// Always 0 for a placement heap.
+- (NSUInteger)maxAvailableSizeWithAlignment: (NSUInteger)alignment;
+
+// Resources from an automatic heap: nil if there is no room, the options do not match the heap's storage mode and
+// cache mode, or the heap is a placement heap.
+- (nullable id<MTLBuffer>)newBufferWithLength: (NSUInteger)length
+                                      options: (MTLResourceOptions)options;
+- (nullable id<MTLTexture>)newTextureWithDescriptor: (MTLTextureDescriptor*)descriptor;
+
+// Resources from a placement heap, at a byte offset that is a multiple of the resource's alignment and leaves it
+// inside the heap; nil otherwise, and for an automatic heap.
+- (nullable id<MTLBuffer>)newBufferWithLength: (NSUInteger)length
+                                      options: (MTLResourceOptions)options
+                                       offset: (NSUInteger)offset;
+- (nullable id<MTLTexture>)newTextureWithDescriptor: (MTLTextureDescriptor*)descriptor
+                                             offset: (NSUInteger)offset;
+
+// Returns the previous state, and applies `state` unless it is MTLPurgeableStateKeepCurrent. The contents of a
+// heap are never discarded, whatever the state.
+- (MTLPurgeableState)setPurgeableState: (MTLPurgeableState)state;
 
 @end
 

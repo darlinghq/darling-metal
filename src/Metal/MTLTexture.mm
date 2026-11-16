@@ -34,6 +34,7 @@ const std::shared_ptr<Indium::Texture>& MTLTextureGetIndium(id<MTLTexture> objec
 @synthesize iosurface = _iosurface;
 @synthesize iosurfacePlane = _iosurfacePlane;
 @synthesize backingBuffer = _backingBuffer;
+@synthesize owningHeap = _owningHeap;
 
 - (instancetype)initWithTexture: (std::shared_ptr<Indium::Texture>)texture
                          device: (id<MTLDevice>)device
@@ -73,6 +74,8 @@ const std::shared_ptr<Indium::Texture>& MTLTextureGetIndium(id<MTLTexture> objec
 		CFRelease(_iosurface);
 	}
 	[(id)_backingBuffer release];
+	// the Indium texture gives its range back to the heap, which has to be alive for that
+	[(id)_owningHeap release];
 	[_device release];
 	[_label release];
 	[super dealloc];
@@ -81,6 +84,31 @@ const std::shared_ptr<Indium::Texture>& MTLTextureGetIndium(id<MTLTexture> objec
 //
 // properties
 //
+
+- (id<MTLHeap>)heap
+{
+	return _owningHeap;
+}
+
+- (NSUInteger)heapOffset
+{
+	return _texture->heapOffset();
+}
+
+- (NSUInteger)allocatedSize
+{
+	return _texture->allocatedSize();
+}
+
+- (void)makeAliasable
+{
+	_texture->makeAliasable();
+}
+
+- (BOOL)isAliasable
+{
+	return _texture->isAliasable();
+}
 
 - (MTLPurgeableState)setPurgeableState: (MTLPurgeableState)state
 {
@@ -197,7 +225,9 @@ const std::shared_ptr<Indium::Texture>& MTLTextureGetIndium(id<MTLTexture> objec
 	if (!tex) {
 		return nil;
 	}
-	return [[MTLTextureInternal alloc] initWithTexture: tex device: _device resourceOptions: _resourceOptions];
+	MTLTextureInternal* view = [[MTLTextureInternal alloc] initWithTexture: tex device: _device resourceOptions: _resourceOptions];
+	view.owningHeap = _owningHeap;
+	return view;
 }
 
 - (id<MTLTexture>)newTextureViewWithPixelFormat: (MTLPixelFormat)pixelFormat
@@ -209,7 +239,9 @@ const std::shared_ptr<Indium::Texture>& MTLTextureGetIndium(id<MTLTexture> objec
 	if (!tex) {
 		return nil;
 	}
-	return [[MTLTextureInternal alloc] initWithTexture: tex device: _device resourceOptions: _resourceOptions];
+	MTLTextureInternal* view = [[MTLTextureInternal alloc] initWithTexture: tex device: _device resourceOptions: _resourceOptions];
+	view.owningHeap = _owningHeap;
+	return view;
 }
 
 - (id<MTLTexture>)newTextureViewWithPixelFormat: (MTLPixelFormat)pixelFormat
@@ -222,7 +254,9 @@ const std::shared_ptr<Indium::Texture>& MTLTextureGetIndium(id<MTLTexture> objec
 	if (!tex) {
 		return nil;
 	}
-	return [[MTLTextureInternal alloc] initWithTexture: tex device: _device resourceOptions: _resourceOptions];
+	MTLTextureInternal* view = [[MTLTextureInternal alloc] initWithTexture: tex device: _device resourceOptions: _resourceOptions];
+	view.owningHeap = _owningHeap;
+	return view;
 }
 
 // Indium states a precondition it cannot meet by throwing, and these selectors
