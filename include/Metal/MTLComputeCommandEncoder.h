@@ -11,6 +11,11 @@
 
 METAL_DECLARATIONS_BEGIN
 
+// The arguments an indirect dispatch reads from its buffer: the grid size in threadgroups.
+typedef struct {
+	uint32_t threadgroupsPerGrid[3];
+} MTLDispatchThreadgroupsIndirectArguments;
+
 @protocol MTLComputeCommandEncoder;
 @protocol MTLCounterSampleBuffer;
 @protocol MTLBuffer;
@@ -107,6 +112,10 @@ MTL_EXPORT
 
 - (void)dispatchThreads: (MTLSize)threadsPerGrid 
   threadsPerThreadgroup: (MTLSize)threadsPerThreadgroup;
+
+- (void)dispatchThreadgroupsWithIndirectBuffer: (id<MTLBuffer>)indirectBuffer
+                          indirectBufferOffset: (NSUInteger)indirectBufferOffset
+                         threadsPerThreadgroup: (MTLSize)threadsPerThreadgroup;
 
 // Residency hints: the resources the commands that follow use through an argument buffer or a heap. Every
 // resource is resident here, so these change nothing.

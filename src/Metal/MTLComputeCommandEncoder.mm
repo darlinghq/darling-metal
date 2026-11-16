@@ -323,6 +323,13 @@ MTL_UNSUPPORTED_CLASS
 	_encoder->dispatchThreads(MTLSizeToIndium(threadsPerGrid), MTLSizeToIndium(threadsPerThreadgroup));
 }
 
+- (void)dispatchThreadgroupsWithIndirectBuffer: (id<MTLBuffer>)indirectBuffer
+                          indirectBufferOffset: (NSUInteger)indirectBufferOffset
+                         threadsPerThreadgroup: (MTLSize)threadsPerThreadgroup
+{
+	_encoder->dispatchThreadgroups(MTLBufferGetIndium(indirectBuffer), indirectBufferOffset, MTLSizeToIndium(threadsPerThreadgroup));
+}
+
 // Every resource is resident for the GPU, so telling the encoder which ones the commands use changes nothing.
 // What the application bound or put in a buffer still has to be alive until the command buffer completes, as
 // with Metal, since a resource is only kept alive by the encoder when it is bound.

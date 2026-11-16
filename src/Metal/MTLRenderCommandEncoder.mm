@@ -973,6 +973,23 @@ MTL_UNSUPPORTED_CLASS
 	_encoder->drawIndexedPrimitives(static_cast<Indium::PrimitiveType>(primitiveType), indexCount, static_cast<Indium::IndexType>(indexType), MTLBufferGetIndium(indexBuffer), indexBufferOffset);
 }
 
+- (void)drawPrimitives: (MTLPrimitiveType)primitiveType
+         indirectBuffer: (id<MTLBuffer>)indirectBuffer
+   indirectBufferOffset: (NSUInteger)indirectBufferOffset
+{
+	_encoder->drawPrimitives(static_cast<Indium::PrimitiveType>(primitiveType), MTLBufferGetIndium(indirectBuffer), indirectBufferOffset);
+}
+
+- (void)drawIndexedPrimitives: (MTLPrimitiveType)primitiveType
+                    indexType: (MTLIndexType)indexType
+                  indexBuffer: (id<MTLBuffer>)indexBuffer
+            indexBufferOffset: (NSUInteger)indexBufferOffset
+               indirectBuffer: (id<MTLBuffer>)indirectBuffer
+         indirectBufferOffset: (NSUInteger)indirectBufferOffset
+{
+	_encoder->drawIndexedPrimitives(static_cast<Indium::PrimitiveType>(primitiveType), static_cast<Indium::IndexType>(indexType), MTLBufferGetIndium(indexBuffer), indexBufferOffset, MTLBufferGetIndium(indirectBuffer), indirectBufferOffset);
+}
+
 // Every resource is resident for the GPU, so telling the encoder which ones the commands use changes nothing.
 // What the application bound or put in a buffer still has to be alive until the command buffer completes, as
 // with Metal, since a resource is only kept alive by the encoder when it is bound.
