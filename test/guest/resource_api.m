@@ -13,10 +13,9 @@
 static int failures;
 #define CHECK(c) do { if (!(c)) { printf("FAIL line %d: %s\n", __LINE__, #c); failures++; } } while (0)
 
-// Darling's Metal classes are the only ones named ...Internal; the checks below that macOS passes and Darling does not
-// yet are XCHECKs: a failure is reported as a known failure on Darling and is a real failure on macOS.
+// Darling's Metal classes are the only ones named ...Internal; invalid arguments are validation assertions on macOS and
+// nil on Darling, so those checks run on Darling only.
 static BOOL onDarling(void) { return NSClassFromString(@"MTLTextureInternal") != nil; }
-#define XCHECK(c) do { if (!(c)) { if (onDarling()) printf("XFAIL (known in Darling) line %d: %s\n", __LINE__, #c); else { printf("FAIL line %d: %s\n", __LINE__, #c); failures++; } } } while (0)
 
 static BOOL near(float a, float b) { return fabsf(a - b) < 0.003f; }
 
@@ -92,9 +91,32 @@ int main(void) {
 			[backed replaceRegion: MTLRegionMake2D(2, 1, 1, 1) mipmapLevel: 0 withBytes: pixel bytesPerRow: 4];
 			CHECK(memcmp(bytes + offset + bytesPerRow + 8, pixel, 4) == 0);
 		}
-		// macOS accepts any bytesPerRow that is a multiple of the alignment and at least the row width. Darling only
-		// accepts the device's own row pitch, because Vulkan linear images cannot take another one (known failure).
-		XCHECK([storage newTextureWithDescriptor: bd offset: offset bytesPerRow: bytesPerRow + alignment] != nil);
+		// any bytesPerRow that is a multiple of the alignment and holds a row works, whatever row pitch the device's own
+		// images have: the texture sees the buffer's rows, and what is written to the texture is in the buffer
+		static const NSUInteger multiples[] = { 1, 2, 3, 6, 7, 17 };
+		for (size_t m = 0; m < sizeof multiples / sizeof *multiples; m++) {
+			NSUInteger pitch = bytesPerRow + alignment * multiples[m];
+			id<MTLBuffer> other = [device newBufferWithLength: offset + pitch * height options: MTLResourceStorageModeShared];
+			uint8_t* otherBytes = [other contents];
+			memset(otherBytes, 0, [other length]);
+			for (NSUInteger y = 0; y < height; y++)
+				for (NSUInteger x = 0; x < width; x++) {
+					uint8_t* t = otherBytes + offset + y * pitch + x * 4;
+					t[0] = 10 + x * 20; t[1] = 10 + y * 30; t[2] = 200; t[3] = 255 - x - y;
+				}
+			id<MTLTexture> wide = [other newTextureWithDescriptor: bd offset: offset bytesPerRow: pitch];
+			CHECK(wide != nil);
+			if (wide == nil) continue;
+			CHECK(wide.bufferBytesPerRow == pitch);
+			uint8_t got[5 * 4 * 4];
+			[wide getBytes: got bytesPerRow: width * 4 fromRegion: MTLRegionMake2D(0, 0, width, height) mipmapLevel: 0];
+			int rowsSame = 1;
+			for (NSUInteger y = 0; y < height; y++) rowsSame = rowsSame && memcmp(got + y * width * 4, otherBytes + offset + y * pitch, width * 4) == 0;
+			CHECK(rowsSame);
+			const uint8_t texel[4] = { 9, 8, 7, 6 };
+			[wide replaceRegion: MTLRegionMake2D(1, 2, 1, 1) mipmapLevel: 0 withBytes: texel bytesPerRow: 4];
+			CHECK(memcmp(otherBytes + offset + 2 * pitch + 4, texel, 4) == 0);
+		}
 		// invalid arguments are validation assertions on macOS; Darling returns nil (Darling-only checks)
 		if (onDarling()) {
 			CHECK([storage newTextureWithDescriptor: bd offset: offset bytesPerRow: 0] == nil);
