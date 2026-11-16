@@ -28,6 +28,34 @@ typedef NS_ENUM(NSUInteger, MTLDispatchType) {
 
 typedef void (^MTLCommandBufferHandler)(id<MTLCommandBuffer>);
 
+// Where a command buffer is in its life: created, enqueued on its queue, committed, scheduled for
+// execution, finished, or finished with an error.
+typedef NS_ENUM(NSUInteger, MTLCommandBufferStatus) {
+	MTLCommandBufferStatusNotEnqueued = 0,
+	MTLCommandBufferStatusEnqueued = 1,
+	MTLCommandBufferStatusCommitted = 2,
+	MTLCommandBufferStatusScheduled = 3,
+	MTLCommandBufferStatusCompleted = 4,
+	MTLCommandBufferStatusError = 5,
+};
+
+MTL_EXPORT MTL_EXTERN NSErrorDomain const MTLCommandBufferErrorDomain;
+
+typedef NS_ENUM(NSUInteger, MTLCommandBufferError) {
+	MTLCommandBufferErrorNone = 0,
+	MTLCommandBufferErrorInternal = 1,
+	MTLCommandBufferErrorTimeout = 2,
+	MTLCommandBufferErrorPageFault = 3,
+	MTLCommandBufferErrorBlacklisted = 4,
+	MTLCommandBufferErrorAccessRevoked = 4,
+	MTLCommandBufferErrorNotPermitted = 7,
+	MTLCommandBufferErrorOutOfMemory = 8,
+	MTLCommandBufferErrorInvalidResource = 9,
+	MTLCommandBufferErrorMemoryless = 10,
+	MTLCommandBufferErrorDeviceRemoved = 11,
+	MTLCommandBufferErrorStackOverflow = 12,
+};
+
 @protocol MTLLogState;
 
 typedef NS_OPTIONS(NSUInteger, MTLCommandBufferErrorOption) {
@@ -60,6 +88,17 @@ MTL_EXPORT
 @property (readonly) id<MTLDevice> device;
 @property(nullable, copy, atomic) NSString* label;
 @property(nullable, readonly) NSError* error;
+@property(readonly) MTLCommandBufferStatus status;
+@property(readonly) BOOL retainedReferences;
+@property(readonly) MTLCommandBufferErrorOption errorOptions;
+
+// Host times in seconds, on the clock of CACurrentMediaTime(). They are 0 until the command buffer has
+// started (kernelStartTime, GPUStartTime) or finished (kernelEndTime, GPUEndTime). They are the times at which
+// the command buffer was handed to the device and the completion was seen on the host, not GPU timestamps.
+@property(readonly) CFTimeInterval kernelStartTime;
+@property(readonly) CFTimeInterval kernelEndTime;
+@property(readonly) CFTimeInterval GPUStartTime;
+@property(readonly) CFTimeInterval GPUEndTime;
 
 - (id<MTLComputeCommandEncoder>)computeCommandEncoderWithDescriptor: (MTLComputePassDescriptor*)computePassDescriptor;
 - (id<MTLComputeCommandEncoder>)computeCommandEncoderWithDispatchType: (MTLDispatchType)dispatchType;
@@ -74,10 +113,13 @@ MTL_EXPORT
 - (void)addCompletedHandler: (MTLCommandBufferHandler)block;
 - (void)waitUntilCompleted;
 - (void)presentDrawable: (id<MTLDrawable>)drawable;
+- (void)presentDrawable: (id<MTLDrawable>)drawable
+                  atTime: (CFTimeInterval)presentationTime;
+- (void)presentDrawable: (id<MTLDrawable>)drawable
+   afterMinimumDuration: (CFTimeInterval)duration;
 - (void)enqueue;
 - (void)commit;
 
-// TODO: other methods
 
 @end
 

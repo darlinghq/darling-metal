@@ -973,6 +973,23 @@ MTL_UNSUPPORTED_CLASS
 	_encoder->drawIndexedPrimitives(static_cast<Indium::PrimitiveType>(primitiveType), indexCount, static_cast<Indium::IndexType>(indexType), MTLBufferGetIndium(indexBuffer), indexBufferOffset);
 }
 
+- (void)drawPrimitives: (MTLPrimitiveType)primitiveType
+         indirectBuffer: (id<MTLBuffer>)indirectBuffer
+   indirectBufferOffset: (NSUInteger)indirectBufferOffset
+{
+	_encoder->drawPrimitives(static_cast<Indium::PrimitiveType>(primitiveType), MTLBufferGetIndium(indirectBuffer), indirectBufferOffset);
+}
+
+- (void)drawIndexedPrimitives: (MTLPrimitiveType)primitiveType
+                    indexType: (MTLIndexType)indexType
+                  indexBuffer: (id<MTLBuffer>)indexBuffer
+            indexBufferOffset: (NSUInteger)indexBufferOffset
+               indirectBuffer: (id<MTLBuffer>)indirectBuffer
+         indirectBufferOffset: (NSUInteger)indirectBufferOffset
+{
+	_encoder->drawIndexedPrimitives(static_cast<Indium::PrimitiveType>(primitiveType), static_cast<Indium::IndexType>(indexType), MTLBufferGetIndium(indexBuffer), indexBufferOffset, MTLBufferGetIndium(indirectBuffer), indirectBufferOffset);
+}
+
 #else
 
 @dynamic device;
