@@ -33,6 +33,7 @@ const std::shared_ptr<Indium::Texture>& MTLTextureGetIndium(id<MTLTexture> objec
 @synthesize label = _label;
 @synthesize iosurface = _iosurface;
 @synthesize iosurfacePlane = _iosurfacePlane;
+@synthesize backingBuffer = _backingBuffer;
 
 - (instancetype)initWithTexture: (std::shared_ptr<Indium::Texture>)texture
                          device: (id<MTLDevice>)device
@@ -71,6 +72,7 @@ const std::shared_ptr<Indium::Texture>& MTLTextureGetIndium(id<MTLTexture> objec
 	if (_iosurface != NULL) {
 		CFRelease(_iosurface);
 	}
+	[(id)_backingBuffer release];
 	[_device release];
 	[_label release];
 	[super dealloc];
@@ -79,6 +81,30 @@ const std::shared_ptr<Indium::Texture>& MTLTextureGetIndium(id<MTLTexture> objec
 //
 // properties
 //
+
+- (MTLPurgeableState)setPurgeableState: (MTLPurgeableState)state
+{
+	// QUIRK: every call returns NonVolatile and no state is ever applied (Volatile and Empty included), so the
+	// resource is never purgeable, although the documentation describes returning the previous state. Evidence:
+	// black-box observation on macOS 27.0.1 (Apple silicon), buffers and textures of every storage mode (tier 2).
+	// Test: test/guest/resource_api.m
+	return MTLPurgeableStateNonVolatile;
+}
+
+- (id<MTLBuffer>)buffer
+{
+	return _backingBuffer;
+}
+
+- (NSUInteger)bufferOffset
+{
+	return _texture->bufferOffset();
+}
+
+- (NSUInteger)bufferBytesPerRow
+{
+	return _texture->bufferBytesPerRow();
+}
 
 - (MTLCPUCacheMode)cpuCacheMode
 {
@@ -291,6 +317,10 @@ static void raiseIndiumFailure(const std::exception& e) {
 
 #else
 
+@dynamic backingBuffer;
+@dynamic buffer;
+@dynamic bufferOffset;
+@dynamic bufferBytesPerRow;
 @dynamic textureType;
 @dynamic pixelFormat;
 @dynamic width;

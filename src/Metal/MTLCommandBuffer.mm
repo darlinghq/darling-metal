@@ -11,6 +11,9 @@
 #import <Metal/MTLRenderCommandEncoderInternal.h>
 #import <Metal/MTLIOSurfaceCopy.h>
 
+#include <mach/mach_time.h>
+#include <mutex>
+
 #if DARLING_METAL_ENABLED
 // used to take care of RR while passing the block around in C++ code
 struct MTLCommandBufferHandlerWrapper {
@@ -48,32 +51,157 @@ struct MTLCommandBufferHandlerWrapper {
 };
 #endif
 
+#if DARLING_METAL_ENABLED
+// How Indium's handlers reach a command buffer without keeping it alive: -dealloc empties the box, and a
+// handler that is running holds the mutex, so the command buffer is not freed under it.
+@class MTLCommandBufferInternal;
+struct MTLCommandBufferStatusBox {
+	std::mutex mutex;
+	MTLCommandBufferInternal* target = nil;
+};
+
+// The host clock CACurrentMediaTime() reads, in seconds, which is what the command buffer times are on.
+static CFTimeInterval MTLHostTimeNow(void)
+{
+	static mach_timebase_info_data_t timebase;
+	static dispatch_once_t once;
+	dispatch_once(&once, ^{
+		mach_timebase_info(&timebase);
+	});
+	return (double)mach_absolute_time() * timebase.numer / timebase.denom / 1e9;
+}
+#endif
+
 @implementation MTLCommandBufferInternal
 
 #if DARLING_METAL_ENABLED
 
 {
 	std::shared_ptr<Indium::CommandBuffer> _commandBuffer;
+	// the status, and the times as the bit patterns of doubles, are written by the thread that commits
+	// and by the thread that Indium calls its handlers on, and read by anyone
+	MTLCommandBufferStatus _status;
+	uint64_t _kernelStartTime;
+	uint64_t _kernelEndTime;
+	BOOL _retainedReferences;
+	MTLCommandBufferErrorOption _errorOptions;
+	std::shared_ptr<MTLCommandBufferStatusBox> _statusBox;
 }
 
 @synthesize device = _device;
 @synthesize commandQueue = _commandQueue;
 @synthesize label = _label;
+@synthesize retainedReferences = _retainedReferences;
+@synthesize errorOptions = _errorOptions;
+
+static CFTimeInterval MTLLoadTime(uint64_t* slot)
+{
+	uint64_t bits = __atomic_load_n(slot, __ATOMIC_ACQUIRE);
+	CFTimeInterval time;
+	memcpy(&time, &bits, sizeof(time));
+	return time;
+}
 
 - (instancetype)initWithCommandBuffer: (std::shared_ptr<Indium::CommandBuffer>)commandBuffer
                          commandQueue: (id<MTLCommandQueue>)commandQueue
+{
+	return [self initWithCommandBuffer: commandBuffer commandQueue: commandQueue retainedReferences: YES errorOptions: MTLCommandBufferErrorOptionNone];
+}
+
+- (instancetype)initWithCommandBuffer: (std::shared_ptr<Indium::CommandBuffer>)commandBuffer
+                         commandQueue: (id<MTLCommandQueue>)commandQueue
+                   retainedReferences: (BOOL)retainedReferences
+                         errorOptions: (MTLCommandBufferErrorOption)errorOptions
 {
 	self = [super init];
 	if (self != nil) {
 		_commandBuffer = commandBuffer;
 		_device = [commandQueue.device retain];
 		_commandQueue = [commandQueue retain];
+		_status = MTLCommandBufferStatusNotEnqueued;
+		// Indium keeps every resource a command buffer uses alive until it has completed, which is what a
+		// command buffer that retains its references does, and is also safe for one that does not.
+		_retainedReferences = retainedReferences;
+		_errorOptions = errorOptions;
+
+		// These two handlers are added before any the application adds, so the status and the times are
+		// already updated when an application's handler looks at them. Indium keeps the handlers until the
+		// command buffer has run them, so they must not keep this object alive (an uncommitted command
+		// buffer would then never go away); they reach it through a box that -dealloc empties.
+		_statusBox = std::make_shared<MTLCommandBufferStatusBox>();
+		_statusBox->target = self;
+		auto box = _statusBox;
+		_commandBuffer->addScheduledHandler([box](std::shared_ptr<Indium::CommandBuffer>) {
+			std::lock_guard<std::mutex> lock(box->mutex);
+			[box->target commandBufferWasScheduled];
+		});
+		_commandBuffer->addCompletedHandler([box](std::shared_ptr<Indium::CommandBuffer>) {
+			std::lock_guard<std::mutex> lock(box->mutex);
+			[box->target commandBufferDidComplete];
+		});
 	}
 	return self;
 }
 
+// These two are called from Indium's handlers and from the waits, whichever gets there first: Metal has the
+// command buffer scheduled when -waitUntilScheduled returns and completed when -waitUntilCompleted does,
+// and Indium wakes a waiter before it runs the handlers.
+- (void)commandBufferWasScheduled
+{
+	uint64_t none = 0;
+	CFTimeInterval now = MTLHostTimeNow();
+	uint64_t bits;
+	memcpy(&bits, &now, sizeof(bits));
+	// the start of GPU execution is not observable here; the command buffer is handed to the device when it
+	// is scheduled
+	__atomic_compare_exchange_n(&_kernelStartTime, &none, bits, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE);
+	MTLCommandBufferStatus expected = MTLCommandBufferStatusCommitted;
+	__atomic_compare_exchange_n(&_status, &expected, MTLCommandBufferStatusScheduled, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE);
+}
+
+- (void)commandBufferDidComplete
+{
+	// a command buffer that completed without being seen scheduled started at the latest now
+	[self commandBufferWasScheduled];
+	uint64_t none = 0;
+	CFTimeInterval now = MTLHostTimeNow();
+	uint64_t bits;
+	memcpy(&bits, &now, sizeof(bits));
+	__atomic_compare_exchange_n(&_kernelEndTime, &none, bits, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE);
+	__atomic_store_n(&_status, MTLCommandBufferStatusCompleted, __ATOMIC_RELEASE);
+}
+
+- (MTLCommandBufferStatus)status
+{
+	return __atomic_load_n(&_status, __ATOMIC_ACQUIRE);
+}
+
+- (CFTimeInterval)kernelStartTime
+{
+	return MTLLoadTime(&_kernelStartTime);
+}
+
+- (CFTimeInterval)kernelEndTime
+{
+	return MTLLoadTime(&_kernelEndTime);
+}
+
+- (CFTimeInterval)GPUStartTime
+{
+	return MTLLoadTime(&_kernelStartTime);
+}
+
+- (CFTimeInterval)GPUEndTime
+{
+	return MTLLoadTime(&_kernelEndTime);
+}
+
 - (void)dealloc
 {
+	if (_statusBox) {
+		std::lock_guard<std::mutex> lock(_statusBox->mutex);
+		_statusBox->target = nil;
+	}
 	[_device release];
 	[_commandQueue release];
 	[_label release];
@@ -133,6 +261,9 @@ struct MTLCommandBufferHandlerWrapper {
 - (void)waitUntilScheduled
 {
 	_commandBuffer->waitUntilScheduled();
+	if ([self status] >= MTLCommandBufferStatusCommitted) {
+		[self commandBufferWasScheduled];
+	}
 }
 
 - (void)addCompletedHandler: (MTLCommandBufferHandler)block
@@ -149,11 +280,29 @@ struct MTLCommandBufferHandlerWrapper {
 - (void)waitUntilCompleted
 {
 	_commandBuffer->waitUntilCompleted();
+	if ([self status] >= MTLCommandBufferStatusCommitted) {
+		[self commandBufferDidComplete];
+	}
 }
 
 - (void)presentDrawable: (id<MTLDrawable>)drawable
 {
 	_commandBuffer->presentDrawable(((id<MTLDrawableInternal>)drawable).drawable);
+}
+
+// The drawable decides when the frame is shown (see -[MTLDrawableInternal presentAtTime:]), so a presentation
+// time or a minimum duration is a hint that is not honoured: the drawable is presented when the command
+// buffer has been scheduled, as -presentDrawable: does.
+- (void)presentDrawable: (id<MTLDrawable>)drawable
+                 atTime: (CFTimeInterval)presentationTime
+{
+	[self presentDrawable: drawable];
+}
+
+- (void)presentDrawable: (id<MTLDrawable>)drawable
+   afterMinimumDuration: (CFTimeInterval)duration
+{
+	[self presentDrawable: drawable];
 }
 
 - (void)enqueue
@@ -163,6 +312,9 @@ struct MTLCommandBufferHandlerWrapper {
 	// commit order. This is exact when callers commit in the order they enqueued, which is the usual
 	// pattern. A caller that enqueues A then B and commits B first gets B's work submitted first;
 	// honouring that needs an ordering record in Indium's command queue.
+
+	MTLCommandBufferStatus expected = MTLCommandBufferStatusNotEnqueued;
+	__atomic_compare_exchange_n(&_status, &expected, MTLCommandBufferStatusEnqueued, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE);
 }
 
 - (void)commit
@@ -170,6 +322,11 @@ struct MTLCommandBufferHandlerWrapper {
 	// Textures that copy IOSurface planes get the CPU's writes before the GPU runs the work, and
 	// the next lock of their surfaces copies its results back.
 	MTLIOSurfaceCopyBeforeGPUUse();
+	// committing enqueues the command buffer if it has not been
+	MTLCommandBufferStatus status = __atomic_load_n(&_status, __ATOMIC_ACQUIRE);
+	while (status < MTLCommandBufferStatusCommitted
+		&& !__atomic_compare_exchange_n(&_status, &status, MTLCommandBufferStatusCommitted, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE)) {
+	}
 	_commandBuffer->commit();
 	MTLIOSurfaceCopyGPUMayHaveWritten();
 }
@@ -179,9 +336,20 @@ struct MTLCommandBufferHandlerWrapper {
 @dynamic commandQueue;
 @dynamic device;
 @dynamic label;
+@dynamic status;
+@dynamic retainedReferences;
+@dynamic errorOptions;
+@dynamic kernelStartTime;
+@dynamic kernelEndTime;
+@dynamic GPUStartTime;
+@dynamic GPUEndTime;
 
 MTL_UNSUPPORTED_CLASS
 
 #endif
 
 @end
+
+#if DARLING_METAL_ENABLED
+MTL_EXTERN NSErrorDomain const MTLCommandBufferErrorDomain = @"MTLCommandBufferErrorDomain";
+#endif
