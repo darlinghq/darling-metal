@@ -14,12 +14,19 @@ METAL_DECLARATIONS_BEGIN
 @protocol MTLCommandBuffer;
 @protocol MTLCommandQueue;
 
+@class MTLCommandBufferDescriptor;
+
 @protocol MTLCommandQueue <NSObject>
 
 @property(readonly) id<MTLDevice> device;
 @property(nullable, copy, atomic) NSString* label;
 
 - (id<MTLCommandBuffer>)commandBuffer;
+
+// A command buffer that does not keep the resources it uses alive: the application keeps them until the
+// command buffer has completed.
+- (nullable id<MTLCommandBuffer>)commandBufferWithUnretainedReferences;
+- (nullable id<MTLCommandBuffer>)commandBufferWithDescriptor: (MTLCommandBufferDescriptor*)descriptor;
 
 @end
 

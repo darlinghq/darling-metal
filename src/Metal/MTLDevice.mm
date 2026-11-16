@@ -578,7 +578,14 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 
 - (id<MTLTexture>)newTextureWithDescriptor: (MTLTextureDescriptor*)descriptor
 {
-	auto texture = _device->newTexture([descriptor asIndiumDescriptor]);
+	// indium reports a texture the device cannot make (an unsupported format, usage or sample count) by
+	// throwing; the method's contract is a nil texture.
+	std::shared_ptr<Indium::Texture> texture;
+	try {
+		texture = _device->newTexture([descriptor asIndiumDescriptor]);
+	} catch (const std::exception&) {
+		return nil;
+	}
 	if (!texture) {
 		return nil;
 	}

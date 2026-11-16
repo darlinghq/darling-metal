@@ -10,8 +10,18 @@
 @interface MTLCommandBufferInternal : NSObject <MTLCommandBuffer>
 
 #if DARLING_METAL_ENABLED
+// called from Indium's handlers
+- (void)commandBufferWasScheduled;
+- (void)commandBufferDidComplete;
+#endif
+
+#if DARLING_METAL_ENABLED
 - (instancetype)initWithCommandBuffer: (std::shared_ptr<Indium::CommandBuffer>)commandBuffer
                          commandQueue: (id<MTLCommandQueue>)commandQueue;
+- (instancetype)initWithCommandBuffer: (std::shared_ptr<Indium::CommandBuffer>)commandBuffer
+                         commandQueue: (id<MTLCommandQueue>)commandQueue
+                   retainedReferences: (BOOL)retainedReferences
+                         errorOptions: (MTLCommandBufferErrorOption)errorOptions;
 #endif
 
 @end

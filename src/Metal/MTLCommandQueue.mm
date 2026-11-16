@@ -44,6 +44,27 @@
 	return [[[MTLCommandBufferInternal alloc] initWithCommandBuffer: buf commandQueue: self] autorelease];
 }
 
+- (id<MTLCommandBuffer>)commandBufferWithUnretainedReferences
+{
+	auto buf = _queue->commandBuffer();
+	if (!buf) {
+		return nil;
+	}
+	return [[[MTLCommandBufferInternal alloc] initWithCommandBuffer: buf commandQueue: self retainedReferences: NO errorOptions: MTLCommandBufferErrorOptionNone] autorelease];
+}
+
+- (id<MTLCommandBuffer>)commandBufferWithDescriptor: (MTLCommandBufferDescriptor*)descriptor
+{
+	if (descriptor == nil) {
+		return nil;
+	}
+	auto buf = _queue->commandBuffer();
+	if (!buf) {
+		return nil;
+	}
+	return [[[MTLCommandBufferInternal alloc] initWithCommandBuffer: buf commandQueue: self retainedReferences: descriptor.retainedReferences errorOptions: descriptor.errorOptions] autorelease];
+}
+
 #else
 
 @dynamic device;
