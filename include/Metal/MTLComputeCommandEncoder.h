@@ -21,6 +21,8 @@ typedef struct {
 @protocol MTLBuffer;
 @protocol MTLSamplerState;
 @protocol MTLTexture;
+@protocol MTLResource;
+@protocol MTLHeap;
 
 @class MTLComputePassDescriptor;
 @class MTLComputePassSampleBufferAttachmentDescriptorArray;
@@ -114,6 +116,17 @@ MTL_EXPORT
 - (void)dispatchThreadgroupsWithIndirectBuffer: (id<MTLBuffer>)indirectBuffer
                           indirectBufferOffset: (NSUInteger)indirectBufferOffset
                          threadsPerThreadgroup: (MTLSize)threadsPerThreadgroup;
+
+// Residency hints: the resources the commands that follow use through an argument buffer or a heap. Every
+// resource is resident here, so these change nothing.
+- (void)useResource: (id<MTLResource>)resource
+              usage: (MTLResourceUsage)usage;
+- (void)useResources: (const id<MTLResource> __nonnull [__nonnull])resources
+               count: (NSUInteger)count
+               usage: (MTLResourceUsage)usage;
+- (void)useHeap: (id<MTLHeap>)heap;
+- (void)useHeaps: (const id<MTLHeap> __nonnull [__nonnull])heaps
+           count: (NSUInteger)count;
 
 @end
 

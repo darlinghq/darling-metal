@@ -37,6 +37,9 @@ MTLTextureSwizzleChannels MTLTextureSwizzleChannelsFromIndium(Indium::TextureSwi
 MTL_EXPORT
 @interface MTLTextureInternal : NSObject <MTLTexture>
 
+// The buffer the texture's rows are in, retained, for a texture made from a buffer.
+@property(nonatomic, retain) id<MTLBuffer> backingBuffer;
+
 #if DARLING_METAL_ENABLED
 @property(nonatomic, readonly) std::shared_ptr<Indium::Texture> texture;
 

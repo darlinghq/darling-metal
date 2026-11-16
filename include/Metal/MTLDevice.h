@@ -8,6 +8,7 @@
 #import <IOSurface/IOSurfaceRef.h>
 
 #import <Metal/MTLResource.h>
+#import <Metal/MTLPixelFormat.h>
 #import <Metal/MTLDefines.h>
 
 METAL_DECLARATIONS_BEGIN
@@ -138,6 +139,8 @@ typedef NS_ENUM(NSUInteger, MTLReadWriteTextureTier) {
 	MTLReadWriteTextureTier2 = 2,
 };
 
+typedef uint64_t MTLTimestamp;
+
 @protocol MTLDevice <NSObject>
 
 @property(readonly, nonnull) NSString* name;
@@ -228,6 +231,14 @@ typedef NS_ENUM(NSUInteger, MTLReadWriteTextureTier) {
 
 - (id<MTLBuffer>)newBufferWithLength: (NSUInteger)length
                              options: (MTLResourceOptions)options;
+
+// The row alignment, in bytes, of a texture made from a buffer in `format`: its bytesPerRow is a multiple of it.
+- (NSUInteger)minimumLinearTextureAlignmentForPixelFormat: (MTLPixelFormat)format;
+
+// The host and device clocks sampled together, in nanoseconds. Both are the host's monotonic clock here, so
+// the two timestamps are equal and counter sample buffers do not exist for them to be compared with.
+- (void)sampleTimestamps: (MTLTimestamp*)cpuTimestamp
+            gpuTimestamp: (MTLTimestamp*)gpuTimestamp;
 
 - (id<MTLBuffer>)newBufferWithBytes: (const void*)pointer
                              length: (NSUInteger)length

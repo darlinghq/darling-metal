@@ -3,12 +3,17 @@
 
 #import <Metal/MTLBufferInternal.h>
 #import <Metal/MTLTypesInternal.h>
+#import <Metal/MTLTextureInternal.h>
+#import <Metal/MTLTextureDescriptorInternal.h>
 #import <Metal/MTLDevice.h>
 #import <Metal/stubs.h>
 
 @implementation MTLBufferInternal
 
 #if DARLING_METAL_ENABLED
+
+{
+}
 
 @synthesize buffer = _buffer;
 
@@ -64,6 +69,38 @@ const std::shared_ptr<Indium::Buffer>& MTLBufferGetIndium(id<MTLBuffer> object)
 - (void)didModifyRange: (NSRange)range
 {
 	return _buffer->didModifyRange(NSRangeToIndium(range));
+}
+
+- (MTLPurgeableState)setPurgeableState: (MTLPurgeableState)state
+{
+	// QUIRK: every call returns NonVolatile and no state is ever applied (Volatile and Empty included), so the
+	// resource is never purgeable, although the documentation describes returning the previous state. Evidence:
+	// black-box observation on macOS 27.0.1 (Apple silicon), buffers and textures of every storage mode (tier 2).
+	// Test: test/guest/resource_api.m
+	return MTLPurgeableStateNonVolatile;
+}
+
+- (id<MTLTexture>)newTextureWithDescriptor: (MTLTextureDescriptor*)descriptor
+                                    offset: (NSUInteger)offset
+                               bytesPerRow: (NSUInteger)bytesPerRow
+{
+	if (descriptor == nil) {
+		return nil;
+	}
+	// indium refuses what the device cannot back with a buffer by returning nothing, and what it cannot
+	// represent at all by throwing
+	std::shared_ptr<Indium::Texture> texture;
+	try {
+		texture = _buffer->newTexture([descriptor asIndiumDescriptor], offset, bytesPerRow);
+	} catch (const std::exception&) {
+		return nil;
+	}
+	if (!texture) {
+		return nil;
+	}
+	MTLTextureInternal* result = [[MTLTextureInternal alloc] initWithTexture: texture device: _device resourceOptions: _resourceOptions];
+	result.backingBuffer = self;
+	return result;
 }
 
 - (MTLCPUCacheMode)cpuCacheMode

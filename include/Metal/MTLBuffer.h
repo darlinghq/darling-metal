@@ -11,6 +11,9 @@
 
 METAL_DECLARATIONS_BEGIN
 
+@class MTLTextureDescriptor;
+@protocol MTLTexture;
+
 @protocol MTLBuffer <MTLResource>
 
 @property(readonly) NSUInteger length;
@@ -19,6 +22,15 @@ METAL_DECLARATIONS_BEGIN
 - (void*)contents;
 
 - (void)didModifyRange: (NSRange)range;
+
+// A texture whose rows are the rows of this buffer from `offset` on, `bytesPerRow` apart: what is written to
+// the buffer is seen by the texture and the other way round. nil when the texture cannot be made that way: it
+// has to be a 2D texture with one level, one slice and one sample in an uncompressed format, with the storage
+// mode of the buffer, and `bytesPerRow` has to be a multiple of
+// -[MTLDevice minimumLinearTextureAlignmentForPixelFormat:].
+- (nullable id<MTLTexture>)newTextureWithDescriptor: (MTLTextureDescriptor*)descriptor
+                                              offset: (NSUInteger)offset
+                                         bytesPerRow: (NSUInteger)bytesPerRow;
 
 @end
 
