@@ -7,6 +7,7 @@
 #import <Foundation/Foundation.h>
 
 #import <Metal/MTLDefines.h>
+#import <Metal/MTLEvent.h>
 
 METAL_DECLARATIONS_BEGIN
 
@@ -119,6 +120,14 @@ MTL_EXPORT
    afterMinimumDuration: (CFTimeInterval)duration;
 - (void)enqueue;
 - (void)commit;
+
+/* Makes `event` reach `value` once the work encoded before this call has finished. Not allowed while an encoder is active. */
+- (void)encodeSignalEvent: (id<MTLEvent>)event
+                    value: (uint64_t)value;
+
+/* Holds the work encoded after this call, and the command buffers committed after this one on its queue, until `event` has reached `value`. */
+- (void)encodeWaitForEvent: (id<MTLEvent>)event
+                     value: (uint64_t)value;
 
 
 @end

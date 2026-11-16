@@ -5,6 +5,7 @@
 #define _METAL_MTLRENDERCOMMANDENCODER_H_
 
 #import <Metal/MTLDefines.h>
+#import <Metal/MTLFence.h>
 #import <Foundation/Foundation.h>
 #import <Metal/MTLCommandEncoder.h>
 #import <Metal/MTLRenderPipeline.h>
@@ -252,6 +253,14 @@ MTL_EXPORT
 - (void)memoryBarrierWithScope: (MTLBarrierScope)scope
                    afterStages: (MTLRenderStages)after
                   beforeStages: (MTLRenderStages)before;
+
+/* Updates `fence` once the work of the `stages` of the commands encoded so far has finished. */
+- (void)updateFence: (id<MTLFence>)fence
+        afterStages: (MTLRenderStages)stages;
+
+/* Holds the `stages` of the commands encoded after this call back until the work the fence was updated after in earlier encoders has finished. */
+- (void)waitForFence: (id<MTLFence>)fence
+        beforeStages: (MTLRenderStages)stages;
 - (void)setVisibilityResultMode: (MTLVisibilityResultMode)mode
                           offset: (NSUInteger)offset;
 

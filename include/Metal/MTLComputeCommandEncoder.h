@@ -7,6 +7,7 @@
 #import <Metal/MTLCommandEncoder.h>
 #import <Metal/MTLComputePipeline.h>
 #import <Metal/MTLDefines.h>
+#import <Metal/MTLFence.h>
 #import <Metal/MTLTypes.h>
 
 METAL_DECLARATIONS_BEGIN
@@ -60,6 +61,10 @@ MTL_EXPORT
 @end
 
 @protocol MTLComputeCommandEncoder <MTLCommandEncoder>
+
+/* See MTLBlitCommandEncoder. */
+- (void)updateFence: (id<MTLFence>)fence;
+- (void)waitForFence: (id<MTLFence>)fence;
 
 @property(readonly) MTLDispatchType dispatchType;
 

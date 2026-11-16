@@ -9,6 +9,7 @@
 #import <Metal/MTLRenderPipelineInternal.h>
 #import <Metal/MTLTypesInternal.h>
 #import <Metal/MTLSamplerStateInternal.h>
+#import <Metal/MTLFenceInternal.h>
 #import <Metal/MTLDepthStencilDescriptorInternal.h>
 
 #include <map>
@@ -665,6 +666,19 @@ MTL_UNSUPPORTED_CLASS
 {
 	// MTLBarrierScope and MTLRenderStages have the same bit values as Indium's flags
 	_encoder->memoryBarrier(static_cast<Indium::BarrierScope>(scope), static_cast<Indium::RenderStages>(after), static_cast<Indium::RenderStages>(before));
+}
+
+- (void)updateFence: (id<MTLFence>)fence
+        afterStages: (MTLRenderStages)stages
+{
+	// MTLRenderStages has the same bit values as Indium's flags
+	_encoder->updateFence(MTLFenceGetIndium(fence), static_cast<Indium::RenderStages>(stages));
+}
+
+- (void)waitForFence: (id<MTLFence>)fence
+        beforeStages: (MTLRenderStages)stages
+{
+	_encoder->waitForFence(MTLFenceGetIndium(fence), static_cast<Indium::RenderStages>(stages));
 }
 
 - (void)setVisibilityResultMode: (MTLVisibilityResultMode)mode

@@ -8,6 +8,7 @@
 #import <Metal/MTLBufferInternal.h>
 #import <Metal/MTLTextureInternal.h>
 #import <Metal/MTLSamplerStateInternal.h>
+#import <Metal/MTLFenceInternal.h>
 #import <Metal/stubs.h>
 
 @implementation MTLComputePassSampleBufferAttachmentDescriptor
@@ -206,6 +207,16 @@ MTL_UNSUPPORTED_CLASS
 - (MTLDispatchType)dispatchType
 {
 	return static_cast<MTLDispatchType>(_encoder->dispatchType());
+}
+
+- (void)updateFence: (id<MTLFence>)fence
+{
+	_encoder->updateFence(MTLFenceGetIndium(fence));
+}
+
+- (void)waitForFence: (id<MTLFence>)fence
+{
+	_encoder->waitForFence(MTLFenceGetIndium(fence));
 }
 
 - (void)setComputePipelineState:(id<MTLComputePipelineState>)state
