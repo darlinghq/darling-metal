@@ -273,10 +273,12 @@ typedef uint64_t MTLTimestamp;
                             options: (MTLResourceOptions)options;
 
 // A buffer over memory the application owns: contents is `pointer` itself, with no copy, and what the CPU and the GPU write
-// to it is seen by both. `pointer` has to be page-aligned and `options` must use the shared or the managed storage mode.
+// to it is seen by both. `pointer` and `length` need not be aligned, and `options` must use the shared or the managed storage mode.
 // `deallocator`, if not nil, is called with the pointer and length once the buffer has been released and the GPU is done
 // with it, on an unspecified thread, and the memory must stay valid until then. nil (and no deallocator call) for a null
-// or unaligned pointer, a length of 0, another storage mode or a device that cannot import host memory.
+// pointer, a length of 0 or another storage mode. If the device cannot import the memory, the buffer has memory of its own
+// that is copied from `pointer` when a command buffer is committed and back when one completes, and a warning is printed
+// to stderr once.
 - (nullable id<MTLBuffer>)newBufferWithBytesNoCopy: (void*)pointer
                                             length: (NSUInteger)length
                                            options: (MTLResourceOptions)options
