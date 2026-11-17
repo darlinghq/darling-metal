@@ -61,6 +61,11 @@ typedef NS_ENUM(NSUInteger, MTLDeviceLocation) {
 typedef __autoreleasing MTLComputePipelineReflection* MTLAutoreleasedComputePipelineReflection;
 typedef __autoreleasing MTLRenderPipelineReflection* MTLAutoreleasedRenderPipelineReflection;
 
+typedef void (^MTLNewComputePipelineStateCompletionHandler)(id<MTLComputePipelineState> computePipelineState, NSError* error);
+typedef void (^MTLNewComputePipelineStateWithReflectionCompletionHandler)(id<MTLComputePipelineState> computePipelineState, MTLComputePipelineReflection* reflection, NSError* error);
+typedef void (^MTLNewRenderPipelineStateCompletionHandler)(id<MTLRenderPipelineState> renderPipelineState, NSError* error);
+typedef void (^MTLNewRenderPipelineStateWithReflectionCompletionHandler)(id<MTLRenderPipelineState> renderPipelineState, MTLRenderPipelineReflection* reflection, NSError* error);
+
 typedef NSString* MTLDeviceNotificationName;
 typedef void (^MTLDeviceNotificationHandler)(id<MTLDevice> device, MTLDeviceNotificationName notifyName);
 
@@ -226,6 +231,26 @@ typedef uint64_t MTLTimestamp;
                                                            options: (MTLPipelineOption)options
                                                         reflection: (MTLAutoreleasedRenderPipelineReflection*)reflection
                                                              error: (NSError**)error;
+
+/* The asynchronous variants create the pipeline state on another thread and call the handler exactly once, on a thread of
+ * their own (not the caller's), with either the state or an error. */
+- (void)newComputePipelineStateWithFunction: (id<MTLFunction>)computeFunction
+                          completionHandler: (MTLNewComputePipelineStateCompletionHandler)completionHandler;
+
+- (void)newComputePipelineStateWithFunction: (id<MTLFunction>)computeFunction
+                                    options: (MTLPipelineOption)options
+                          completionHandler: (MTLNewComputePipelineStateWithReflectionCompletionHandler)completionHandler;
+
+- (void)newComputePipelineStateWithDescriptor: (MTLComputePipelineDescriptor*)descriptor
+                                      options: (MTLPipelineOption)options
+                            completionHandler: (MTLNewComputePipelineStateWithReflectionCompletionHandler)completionHandler;
+
+- (void)newRenderPipelineStateWithDescriptor: (MTLRenderPipelineDescriptor*)descriptor
+                           completionHandler: (MTLNewRenderPipelineStateCompletionHandler)completionHandler;
+
+- (void)newRenderPipelineStateWithDescriptor: (MTLRenderPipelineDescriptor*)descriptor
+                                     options: (MTLPipelineOption)options
+                           completionHandler: (MTLNewRenderPipelineStateWithReflectionCompletionHandler)completionHandler;
 
 - (id<MTLTexture>)newTextureWithDescriptor: (MTLTextureDescriptor*)descriptor;
 
