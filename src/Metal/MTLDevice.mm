@@ -30,6 +30,8 @@
 #include <mach/mach_time.h>
 
 #include <dlfcn.h>
+#include <functional>
+#include <memory>
 #include <stdlib.h>
 #include <string.h>
 #include <string>
@@ -846,6 +848,29 @@ static size_t iosurfacePixelSize(MTLPixelFormat format)
                             options: (MTLResourceOptions)options
 {
 	auto buf = _device->newBuffer(pointer, length, static_cast<Indium::ResourceOptions>(options));
+	if (!buf) {
+		return nil;
+	}
+	return [[MTLBufferInternal alloc] initWithBuffer: buf device: self resourceOptions: options];
+}
+
+- (id<MTLBuffer>)newBufferWithBytesNoCopy: (void*)pointer
+                                  length: (NSUInteger)length
+                                 options: (MTLResourceOptions)options
+                             deallocator: (void (^)(void* pointer, NSUInteger length))deallocator
+{
+	// Indium calls its deallocator once, from the thread that releases the buffer last, and drops it with the buffer;
+	// the application's block lives as long as that function does and is released with it
+	std::function<void(void*, size_t)> indiumDeallocator;
+	if (deallocator != nil) {
+		std::shared_ptr<void> block((void*)[deallocator copy], [](void* copied) {
+			[(id)copied release];
+		});
+		indiumDeallocator = [block](void* bytes, size_t bytesLength) {
+			((void (^)(void*, NSUInteger))block.get())(bytes, bytesLength);
+		};
+	}
+	auto buf = _device->newBufferNoCopy(pointer, length, static_cast<Indium::ResourceOptions>(options), std::move(indiumDeallocator));
 	if (!buf) {
 		return nil;
 	}
