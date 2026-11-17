@@ -122,8 +122,8 @@ MTL_EXPORT
                           indirectBufferOffset: (NSUInteger)indirectBufferOffset
                          threadsPerThreadgroup: (MTLSize)threadsPerThreadgroup;
 
-// Residency hints: the resources the commands that follow use through an argument buffer or a heap. Every
-// resource is resident here, so these change nothing.
+// The resources the commands that follow use through an argument buffer or a heap. Every resource is resident
+// here; the declaration tells the encoder what to order the commands by.
 - (void)useResource: (id<MTLResource>)resource
               usage: (MTLResourceUsage)usage;
 - (void)useResources: (const id<MTLResource> __nonnull [__nonnull])resources
@@ -132,6 +132,12 @@ MTL_EXPORT
 - (void)useHeap: (id<MTLHeap>)heap;
 - (void)useHeaps: (const id<MTLHeap> __nonnull [__nonnull])heaps
            count: (NSUInteger)count;
+
+/* Orders what the dispatches encoded so far wrote before what the ones encoded next read or write: for the
+ * concurrent dispatch type, and for resources that are not tracked. */
+- (void)memoryBarrierWithScope: (MTLBarrierScope)scope;
+- (void)memoryBarrierWithResources: (const id<MTLResource> __nonnull [__nonnull])resources
+                             count: (NSUInteger)count;
 
 @end
 

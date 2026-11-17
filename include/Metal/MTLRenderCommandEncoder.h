@@ -376,8 +376,8 @@ MTL_EXPORT
                indirectBuffer: (id<MTLBuffer>)indirectBuffer
          indirectBufferOffset: (NSUInteger)indirectBufferOffset;
 
-// Residency hints: the resources the draws that follow use through an argument buffer or a heap. Every
-// resource is resident here, so these change nothing.
+// The resources the draws that follow use through an argument buffer or a heap. Every resource is resident
+// here; the declaration tells the encoder what to order the work by.
 - (void)useResource: (id<MTLResource>)resource
               usage: (MTLResourceUsage)usage;
 - (void)useResources: (const id<MTLResource> __nonnull [__nonnull])resources
