@@ -4,8 +4,8 @@
 // the deallocator is called once, with the pointer and length, after the buffer is released and the GPU is done with
 // it; a creation that fails (here a zero length) does not call it. The expectations follow the documented contract and
 // what macOS 27.0.1 (Apple silicon) does (checked by compiling this file there).
-// macOS 27.0.1 on Apple silicon also accepts pointers that are not page-aligned (and a null pointer); Darling returns nil
-// for those, as the documented contract allows, so that check runs on Darling only.
+// Pointers and lengths that are not page-aligned are accepted too (as macOS 27.0.1 on Apple silicon does): the buffer is
+// still the caller's memory, the CPU's writes are read by the GPU and the GPU's writes show at the caller's pointer.
 // Exits 77 when there is no Metal device.
 #import <Foundation/Foundation.h>
 #import <Metal/Metal.h>
@@ -94,10 +94,6 @@ int main(void) {
 			deallocCount = 0;
 			id<MTLBuffer> buffer = [device newBufferWithBytesNoCopy: memory length: 0 options: MTLResourceStorageModeShared deallocator: recordDealloc()];
 			CHECK(buffer == nil);
-			if (onDarling()) {
-				buffer = [device newBufferWithBytesNoCopy: memory + 16 length: page options: MTLResourceStorageModeShared deallocator: recordDealloc()];
-				CHECK(buffer == nil);
-			}
 			usleep(50000);
 			CHECK(atomic_load(&deallocCount) == 0);
 		}
@@ -145,6 +141,81 @@ int main(void) {
 			CHECK(eventually(^BOOL { return atomic_load(&deallocCount) == 1; }));
 			CHECK((unsigned char)held[0] == 0x33 && (unsigned char)held[page - 1] == 0x33);
 			[event release];
+		}
+
+		// --- pointers and lengths that are not aligned
+		{
+			const size_t misalignments[] = { 1, 3, 16, 100 };
+			for (size_t m = 0; m < 4; m++) {
+				deallocCount = 0;
+				const size_t misalignment = misalignments[m];
+				const size_t length = 3 * page / 2 + 7;
+				unsigned char* start = (unsigned char*)memory + 2 * page + misalignment;
+				memset(memory, 0xee, 8 * page);
+				for (size_t i = 0; i < length; i++) start[i] = (unsigned char)(i * 7 + misalignment);
+				id<MTLBuffer> buffer = [device newBufferWithBytesNoCopy: start length: length options: MTLResourceStorageModeShared deallocator: recordDealloc()];
+				CHECK(buffer != nil);
+				if (buffer == nil) continue;
+				CHECK([buffer contents] == (void*)start && [buffer length] == length);
+				id<MTLBuffer> other = [device newBufferWithLength: length options: MTLResourceStorageModeShared];
+				memset([other contents], 0x22, length);
+
+				id<MTLCommandBuffer> commands = [queue commandBuffer];
+				id<MTLBlitCommandEncoder> blit = [commands blitCommandEncoder];
+				[blit copyFromBuffer: buffer sourceOffset: 0 toBuffer: other destinationOffset: 0 size: length];
+				[blit endEncoding];
+				[commands commit];
+				[commands waitUntilCompleted];
+				BOOL same = YES;
+				for (size_t i = 0; i < length; i++) {
+					same = same && ((unsigned char*)[other contents])[i] == (unsigned char)(i * 7 + misalignment);
+				}
+				CHECK(same);
+
+				memset([other contents], 0x44, length);
+				commands = [queue commandBuffer];
+				blit = [commands blitCommandEncoder];
+				[blit copyFromBuffer: other sourceOffset: 0 toBuffer: buffer destinationOffset: 8 size: 40];
+				[blit fillBuffer: buffer range: NSMakeRange(100, 32) value: 0x99];
+				[blit endEncoding];
+				[commands commit];
+				[commands waitUntilCompleted];
+				BOOL written = YES;
+				for (size_t i = 0; i < 40; i++) written = written && start[8 + i] == 0x44;
+				for (size_t i = 100; i < 132; i++) written = written && start[i] == 0x99;
+				CHECK(written);
+				CHECK(start[7] == (unsigned char)(7 * 7 + misalignment) && start[48] == (unsigned char)(48 * 7 + misalignment));
+				CHECK((unsigned char)memory[2 * page + misalignment - 1] == 0xee && start[length] == 0xee);
+
+				CHECK(atomic_load(&deallocCount) == 0);
+				[buffer release];
+				[other release];
+				CHECK(eventually(^BOOL { return atomic_load(&deallocCount) == 1; }));
+				CHECK(deallocPointer == (void*)start && atomic_load(&deallocLength) == length);
+			}
+
+			// two buffers over the same pages
+			char* base = memory + 6 * page + 8;
+			memset(memory + 6 * page, 0, 2 * page);
+			id<MTLBuffer> first = [device newBufferWithBytesNoCopy: base length: page options: MTLResourceStorageModeShared deallocator: nil];
+			id<MTLBuffer> second = [device newBufferWithBytesNoCopy: base + 64 length: page / 2 options: MTLResourceStorageModeShared deallocator: nil];
+			CHECK(first != nil && second != nil);
+			if (first != nil && second != nil) {
+				id<MTLBuffer> source = [device newBufferWithLength: 64 options: MTLResourceStorageModeShared];
+				memset([source contents], 0x5c, 64);
+				id<MTLCommandBuffer> commands = [queue commandBuffer];
+				id<MTLBlitCommandEncoder> blit = [commands blitCommandEncoder];
+				[blit copyFromBuffer: source sourceOffset: 0 toBuffer: second destinationOffset: 0 size: 64];
+				[blit endEncoding];
+				[commands commit];
+				[commands waitUntilCompleted];
+				const unsigned char* viaFirst = [first contents];
+				const unsigned char* viaSecond = [second contents];
+				CHECK(viaSecond[0] == 0x5c && viaSecond[63] == 0x5c && viaFirst[64] == 0x5c && viaFirst[127] == 0x5c && viaFirst[63] == 0 && viaFirst[128] == 0);
+				[source release];
+			}
+			[first release];
+			[second release];
 		}
 
 		munmap(memory, 8 * page);
