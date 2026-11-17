@@ -308,11 +308,9 @@ static CFTimeInterval MTLLoadTime(uint64_t* slot)
 
 - (void)enqueue
 {
-	// Metal defines -enqueue as reserving the buffer's place in the queue's execution order. Indium
-	// records no queue position: it submits a buffer's work when it is committed, so buffers run in
-	// commit order. This is exact when callers commit in the order they enqueued, which is the usual
-	// pattern. A caller that enqueues A then B and commits B first gets B's work submitted first;
-	// honouring that needs an ordering record in Indium's command queue.
+	// Reserves the buffer's place in the queue's execution order: the buffers of a queue run in the order they were
+	// enqueued, whatever the order they are committed in.
+	_commandBuffer->enqueue();
 
 	MTLCommandBufferStatus expected = MTLCommandBufferStatusNotEnqueued;
 	__atomic_compare_exchange_n(&_status, &expected, MTLCommandBufferStatusEnqueued, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE);
