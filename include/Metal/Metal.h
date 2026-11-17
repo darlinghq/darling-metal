@@ -35,6 +35,7 @@
 #import <Metal/MTLPipeline.h>
 #import <Metal/MTLPixelFormat.h>
 #import <Metal/MTLRenderCommandEncoder.h>
+#import <Metal/MTLParallelRenderCommandEncoder.h>
 #import <Metal/MTLRenderPipeline.h>
 #import <Metal/MTLResource.h>
 #import <Metal/MTLSamplerDescriptor.h>

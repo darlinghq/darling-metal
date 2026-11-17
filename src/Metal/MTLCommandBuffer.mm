@@ -9,6 +9,7 @@
 #import <Metal/MTLDrawableInternal.h>
 #import <Metal/stubs.h>
 #import <Metal/MTLRenderCommandEncoderInternal.h>
+#import <Metal/MTLParallelRenderCommandEncoderInternal.h>
 #import <Metal/MTLIOSurfaceCopy.h>
 #import <Metal/MTLEventInternal.h>
 
@@ -243,6 +244,15 @@ static CFTimeInterval MTLLoadTime(uint64_t* slot)
 		return nil;
 	}
 	return [[[MTLRenderCommandEncoderInternal alloc] initWithEncoder: encoder device: _device] autorelease];
+}
+
+- (id<MTLParallelRenderCommandEncoder>)parallelRenderCommandEncoderWithDescriptor: (MTLRenderPassDescriptor*)renderPassDescriptor
+{
+	auto encoder = _commandBuffer->parallelRenderCommandEncoder([renderPassDescriptor asIndiumDescriptor]);
+	if (!encoder) {
+		return nil;
+	}
+	return [[[MTLParallelRenderCommandEncoderInternal alloc] initWithEncoder: encoder device: _device] autorelease];
 }
 
 - (id<MTLBlitCommandEncoder>)blitCommandEncoder
