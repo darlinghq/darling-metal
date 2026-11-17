@@ -19,4 +19,9 @@
 
 @end
 
+#if DARLING_METAL_ENABLED
+// The Indium heap behind `object`, or null when it is not one of ours.
+const std::shared_ptr<Indium::Heap>& MTLHeapGetIndium(id<MTLHeap> object);
+#endif
+
 #endif // _METAL_MTLHEAPINTERNAL_H_

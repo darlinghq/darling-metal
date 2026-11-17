@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MPL-2.0
 
 #import <Metal/MTLHeapInternal.h>
+#import <Metal/MTLTypesInternal.h>
 #import <Metal/MTLBufferInternal.h>
 #import <Metal/MTLTextureInternal.h>
 #import <Metal/MTLTextureDescriptorInternal.h>
@@ -80,6 +81,17 @@ static MTLResourceOptions MTLHeapDescriptorResourceOptions(MTLHeapDescriptor* de
 
 @synthesize device = _device;
 @synthesize label = _label;
+
+const std::shared_ptr<Indium::Heap>& MTLHeapGetIndium(id<MTLHeap> object)
+{
+	static const std::shared_ptr<Indium::Heap> none;
+	static const Class internalClass = [MTLHeapInternal class];
+
+	if (!MTLObjectIsInstanceOf(object, internalClass)) {
+		return none;
+	}
+	return ((MTLHeapInternal*)object)->_heap;
+}
 
 - (instancetype)initWithHeap: (std::shared_ptr<Indium::Heap>)heap
                       device: (id<MTLDevice>)device

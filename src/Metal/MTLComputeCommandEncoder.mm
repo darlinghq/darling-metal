@@ -9,6 +9,7 @@
 #import <Metal/MTLTextureInternal.h>
 #import <Metal/MTLSamplerStateInternal.h>
 #import <Metal/MTLFenceInternal.h>
+#import <Metal/MTLResourceInternal.h>
 #import <Metal/stubs.h>
 
 @implementation MTLComputePassSampleBufferAttachmentDescriptor
@@ -351,27 +352,47 @@ MTL_UNSUPPORTED_CLASS
 	_encoder->dispatchThreadgroups(MTLBufferGetIndium(indirectBuffer), indirectBufferOffset, MTLSizeToIndium(threadsPerThreadgroup));
 }
 
-// Every resource is resident for the GPU, so telling the encoder which ones the commands use changes nothing.
-// What the application bound or put in a buffer still has to be alive until the command buffer completes, as
-// with Metal, since a resource is only kept alive by the encoder when it is bound.
+// Every resource is resident for the GPU, so the residency itself needs nothing. What the commands that follow
+// reach through an argument buffer or a heap is not visible to Indium, so it is declared to the encoder, which
+// orders the commands that use those resources. A resource that is not tracked gets no ordering from it.
 - (void)useResource: (id<MTLResource>)resource
               usage: (MTLResourceUsage)usage
 {
+	if (auto indiumResource = MTLResourceGetIndium(resource)) {
+		_encoder->useResource(std::move(indiumResource), static_cast<Indium::ResourceUsage>(usage));
+	}
 }
 
 - (void)useResources: (const id<MTLResource> __nonnull [__nonnull])resources
                count: (NSUInteger)count
                usage: (MTLResourceUsage)usage
 {
+	_encoder->useResources(MTLResourcesGetIndium(resources, count), static_cast<Indium::ResourceUsage>(usage));
 }
 
 - (void)useHeap: (id<MTLHeap>)heap
 {
+	if (auto& indiumHeap = MTLHeapGetIndium(heap)) {
+		_encoder->useHeap(indiumHeap);
+	}
 }
 
 - (void)useHeaps: (const id<MTLHeap> __nonnull [__nonnull])heaps
            count: (NSUInteger)count
 {
+	_encoder->useHeaps(MTLHeapsGetIndium(heaps, count));
+}
+
+// MTLBarrierScope has the same bit values as Indium's BarrierScope.
+- (void)memoryBarrierWithScope: (MTLBarrierScope)scope
+{
+	_encoder->memoryBarrier(static_cast<Indium::BarrierScope>(scope));
+}
+
+- (void)memoryBarrierWithResources: (const id<MTLResource> __nonnull [__nonnull])resources
+                             count: (NSUInteger)count
+{
+	_encoder->memoryBarrier(MTLResourcesGetIndium(resources, count));
 }
 
 #else
