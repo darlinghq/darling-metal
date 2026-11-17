@@ -584,6 +584,101 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 	return [[MTLRenderPipelineStateInternal alloc] initWithState: pso device: self label: descriptor.label];
 }
 
+// The asynchronous variants: the pipeline state is made on a global queue, so the handler runs on a thread other
+// than the caller's, and is called exactly once whether the creation worked or not. The arguments are
+// captured when the method is called (descriptors are copied, as the caller may change them right after).
+
+- (void)newComputePipelineStateWithFunction: (id<MTLFunction>)computeFunction
+                          completionHandler: (MTLNewComputePipelineStateCompletionHandler)completionHandler
+{
+	MTLNewComputePipelineStateCompletionHandler handler = [completionHandler copy];
+	id<MTLFunction> function = [computeFunction retain];
+	dispatch_async(dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^{
+		@autoreleasepool {
+			NSError* error = nil;
+			id<MTLComputePipelineState> state = [self newComputePipelineStateWithFunction: function error: &error];
+			handler(state, state ? nil : error);
+			[state release];
+		}
+		[function release];
+		[handler release];
+	});
+}
+
+- (void)newComputePipelineStateWithFunction: (id<MTLFunction>)computeFunction
+                                    options: (MTLPipelineOption)options
+                          completionHandler: (MTLNewComputePipelineStateWithReflectionCompletionHandler)completionHandler
+{
+	MTLNewComputePipelineStateWithReflectionCompletionHandler handler = [completionHandler copy];
+	id<MTLFunction> function = [computeFunction retain];
+	dispatch_async(dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^{
+		@autoreleasepool {
+			NSError* error = nil;
+			MTLAutoreleasedComputePipelineReflection reflection = nil;
+			id<MTLComputePipelineState> state = [self newComputePipelineStateWithFunction: function options: options reflection: &reflection error: &error];
+			handler(state, state ? reflection : nil, state ? nil : error);
+			[state release];
+		}
+		[function release];
+		[handler release];
+	});
+}
+
+- (void)newComputePipelineStateWithDescriptor: (MTLComputePipelineDescriptor*)descriptor
+                                      options: (MTLPipelineOption)options
+                            completionHandler: (MTLNewComputePipelineStateWithReflectionCompletionHandler)completionHandler
+{
+	MTLNewComputePipelineStateWithReflectionCompletionHandler handler = [completionHandler copy];
+	MTLComputePipelineDescriptor* copy = [descriptor copy];
+	dispatch_async(dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^{
+		@autoreleasepool {
+			NSError* error = nil;
+			MTLAutoreleasedComputePipelineReflection reflection = nil;
+			id<MTLComputePipelineState> state = [self newComputePipelineStateWithDescriptor: copy options: options reflection: &reflection error: &error];
+			handler(state, state ? reflection : nil, state ? nil : error);
+			[state release];
+		}
+		[copy release];
+		[handler release];
+	});
+}
+
+- (void)newRenderPipelineStateWithDescriptor: (MTLRenderPipelineDescriptor*)descriptor
+                           completionHandler: (MTLNewRenderPipelineStateCompletionHandler)completionHandler
+{
+	MTLNewRenderPipelineStateCompletionHandler handler = [completionHandler copy];
+	MTLRenderPipelineDescriptor* copy = [descriptor copy];
+	dispatch_async(dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^{
+		@autoreleasepool {
+			NSError* error = nil;
+			id<MTLRenderPipelineState> state = [self newRenderPipelineStateWithDescriptor: copy error: &error];
+			handler(state, state ? nil : error);
+			[state release];
+		}
+		[copy release];
+		[handler release];
+	});
+}
+
+- (void)newRenderPipelineStateWithDescriptor: (MTLRenderPipelineDescriptor*)descriptor
+                                     options: (MTLPipelineOption)options
+                           completionHandler: (MTLNewRenderPipelineStateWithReflectionCompletionHandler)completionHandler
+{
+	MTLNewRenderPipelineStateWithReflectionCompletionHandler handler = [completionHandler copy];
+	MTLRenderPipelineDescriptor* copy = [descriptor copy];
+	dispatch_async(dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^{
+		@autoreleasepool {
+			NSError* error = nil;
+			MTLAutoreleasedRenderPipelineReflection reflection = nil;
+			id<MTLRenderPipelineState> state = [self newRenderPipelineStateWithDescriptor: copy options: options reflection: &reflection error: &error];
+			handler(state, state ? reflection : nil, state ? nil : error);
+			[state release];
+		}
+		[copy release];
+		[handler release];
+	});
+}
+
 - (id<MTLTexture>)newTextureWithDescriptor: (MTLTextureDescriptor*)descriptor
 {
 	// indium reports a texture the device cannot make (an unsupported format, usage or sample count) by
