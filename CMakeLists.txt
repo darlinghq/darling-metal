@@ -101,6 +101,7 @@ add_framework(Metal
 		src/Metal/MTLCounterSampleBuffer.mm
 		src/Metal/MTLDepthStencilDescriptor.mm
 		src/Metal/MTLDevice.mm
+		src/Metal/MTLDiagnostics.mm
 		src/Metal/MTLDrawable.mm
 		src/Metal/MTLEvent.mm
 		src/Metal/MTLFence.mm
