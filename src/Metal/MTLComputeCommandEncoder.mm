@@ -6,6 +6,7 @@
 #import <Metal/MTLTypesInternal.h>
 #import <Metal/MTLComputePipelineInternal.h>
 #import <Metal/MTLBufferInternal.h>
+#import <Metal/MTLCountersInternal.h>
 #import <Metal/MTLTextureInternal.h>
 #import <Metal/MTLSamplerStateInternal.h>
 #import <Metal/MTLFenceInternal.h>
@@ -15,6 +16,16 @@
 @implementation MTLComputePassSampleBufferAttachmentDescriptor
 
 #if DARLING_METAL_ENABLED
+
+- (instancetype)init
+{
+	self = [super init];
+	if (self != nil) {
+		self.startOfEncoderSampleIndex = MTLCounterDontSample;
+		self.endOfEncoderSampleIndex = MTLCounterDontSample;
+	}
+	return self;
+}
 
 - (id)copyWithZone: (NSZone*)zone
 {
@@ -87,7 +98,26 @@ MTL_UNSUPPORTED_CLASS
 -    (void)setObject: (MTLComputePassSampleBufferAttachmentDescriptor*)desc
   atIndexedSubscript: (NSUInteger)index
 {
-	_dict[@(index)] = desc;
+	if (desc == nil) {
+		[_dict removeObjectForKey: @(index)];
+	} else {
+		_dict[@(index)] = desc;
+	}
+}
+
+- (std::unordered_map<size_t, Indium::ComputePassSampleBufferAttachmentDescriptor>)asIndiumAttachments
+{
+	__block std::unordered_map<size_t, Indium::ComputePassSampleBufferAttachmentDescriptor> result;
+	[_dict enumerateKeysAndObjectsUsingBlock: ^(NSNumber* key, MTLComputePassSampleBufferAttachmentDescriptor* value, BOOL* stop) {
+		if (value.sampleBuffer != nil) {
+			result[key.unsignedIntegerValue] = Indium::ComputePassSampleBufferAttachmentDescriptor {
+				MTLCounterSampleBufferGetIndium(value.sampleBuffer),
+				value.startOfEncoderSampleIndex,
+				value.endOfEncoderSampleIndex,
+			};
+		}
+	}];
+	return result;
 }
 
 #else
@@ -140,7 +170,8 @@ MTL_UNSUPPORTED_CLASS
 {
 	MTLComputePassDescriptor* copy = [[MTLComputePassDescriptor alloc] init];
 	copy.dispatchType = self.dispatchType;
-	_sampleBufferAttachments = [_sampleBufferAttachments copy];
+	[copy->_sampleBufferAttachments release];
+	copy->_sampleBufferAttachments = [_sampleBufferAttachments copy];
 	return copy;
 }
 
@@ -162,7 +193,7 @@ MTL_UNSUPPORTED_CLASS
 - (Indium::ComputePassDescriptor)asIndiumDescriptor
 {
 	return Indium::ComputePassDescriptor {
-		{}, // TODO
+		[_sampleBufferAttachments asIndiumAttachments],
 		static_cast<Indium::DispatchType>(_dispatchType),
 	};
 }
@@ -198,6 +229,13 @@ MTL_UNSUPPORTED_CLASS
 	[_device release];
 	[_label release];
 	[super dealloc];
+}
+
+- (void)sampleCountersInBuffer: (id<MTLCounterSampleBuffer>)sampleBuffer
+                 atSampleIndex: (NSUInteger)sampleIndex
+                   withBarrier: (BOOL)barrier
+{
+	_encoder->sampleCounters(MTLCounterSampleBufferGetIndium(sampleBuffer), sampleIndex, barrier);
 }
 
 - (void)endEncoding

@@ -6,6 +6,7 @@
 #import <Metal/MTLCommandBuffer.h>
 #import <Metal/MTLCommandEncoder.h>
 #import <Metal/MTLComputePipeline.h>
+#import <Metal/MTLCounters.h>
 #import <Metal/MTLDefines.h>
 #import <Metal/MTLFence.h>
 #import <Metal/MTLTypes.h>
@@ -28,9 +29,6 @@ typedef struct {
 @class MTLComputePassDescriptor;
 @class MTLComputePassSampleBufferAttachmentDescriptorArray;
 @class MTLComputePassSampleBufferAttachmentDescriptor;
-
-// TODO: check what the actual value is
-#define MTLCounterDontSample 0
 
 MTL_EXPORT
 @interface MTLComputePassSampleBufferAttachmentDescriptor : NSObject <NSCopying>
@@ -138,6 +136,12 @@ MTL_EXPORT
 - (void)memoryBarrierWithScope: (MTLBarrierScope)scope;
 - (void)memoryBarrierWithResources: (const id<MTLResource> __nonnull [__nonnull])resources
                              count: (NSUInteger)count;
+
+// Samples the counters of `sampleBuffer` into `sampleIndex` at this point in the encoder. Taking a sample inside
+// the pass is supported where -supportsCounterSampling: says so for the matching sampling point.
+- (void)sampleCountersInBuffer: (id<MTLCounterSampleBuffer>)sampleBuffer
+                 atSampleIndex: (NSUInteger)sampleIndex
+                   withBarrier: (BOOL)barrier;
 
 @end
 

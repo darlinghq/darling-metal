@@ -12,6 +12,7 @@
 #import <Metal/MTLDefines.h>
 #import <Metal/MTLEvent.h>
 #import <Metal/MTLFence.h>
+#import <Metal/MTLCounters.h>
 
 METAL_DECLARATIONS_BEGIN
 
@@ -34,6 +35,8 @@ typedef struct MTLSizeAndAlign {
 @protocol MTLHeap;
 @class MTLHeapDescriptor;
 @protocol MTLCounterSet;
+@protocol MTLCounterSampleBuffer;
+@class MTLCounterSampleBufferDescriptor;
 
 @class MTLCompileOptions;
 @class MTLComputePipelineDescriptor;
@@ -156,6 +159,15 @@ typedef NS_ENUM(NSUInteger, MTLReadWriteTextureTier) {
 
 typedef uint64_t MTLTimestamp;
 
+// The points in a pass at which a device can take a counter sample.
+typedef NS_ENUM(NSUInteger, MTLCounterSamplingPoint) {
+	MTLCounterSamplingPointAtStageBoundary = 0,
+	MTLCounterSamplingPointAtDrawBoundary = 1,
+	MTLCounterSamplingPointAtDispatchBoundary = 2,
+	MTLCounterSamplingPointAtTileDispatchBoundary = 3,
+	MTLCounterSamplingPointAtBlitBoundary = 4,
+};
+
 @protocol MTLDevice <NSObject>
 
 @property(readonly, nonnull) NSString* name;
@@ -198,7 +210,7 @@ typedef uint64_t MTLTimestamp;
 /* For a built-in GPU 0 when it is the low-power one and 1 otherwise; 0 for other locations. */
 @property(readonly) NSUInteger locationNumber;
 
-/* nil: indium offers no GPU counter sets. */
+/* The counter sets the device can sample: only the timestamp set, and none where the device cannot sample timestamps. */
 @property(readonly, nullable) NSArray<id<MTLCounterSet>>* counterSets;
 
 /* Reports Tier 1 argument buffers support (baseline tier). indium does not
@@ -290,10 +302,20 @@ typedef uint64_t MTLTimestamp;
                                             options: (MTLResourceOptions)options;
 - (MTLSizeAndAlign)heapTextureSizeAndAlignWithDescriptor: (MTLTextureDescriptor*)desc;
 
-// The host and device clocks sampled together, in nanoseconds. Both are the host's monotonic clock here, so
-// the two timestamps are equal and counter sample buffers do not exist for them to be compared with.
+// The host and device clocks sampled together, in nanoseconds. Where the driver cannot correlate the two, both are
+// the host's monotonic clock.
 - (void)sampleTimestamps: (MTLTimestamp*)cpuTimestamp
             gpuTimestamp: (MTLTimestamp*)gpuTimestamp;
+
+// Whether a sample can be taken at `samplingPoint`: stage, dispatch and blit boundaries where the device samples
+// timestamps; never draw or tile dispatch boundaries.
+- (BOOL)supportsCounterSampling: (MTLCounterSamplingPoint)samplingPoint;
+
+// Allocates a sample buffer for the descriptor's counter set. Returns nil and sets MTLCounterErrorDomain's
+// MTLCounterSampleBufferErrorInvalid if the counter set is not one of -counterSets or the sample count is not
+// in 1...4096.
+- (nullable id<MTLCounterSampleBuffer>)newCounterSampleBufferWithDescriptor: (MTLCounterSampleBufferDescriptor*)descriptor
+                                                                      error: (NSError**)error;
 
 - (id<MTLBuffer>)newBufferWithBytes: (const void*)pointer
                              length: (NSUInteger)length

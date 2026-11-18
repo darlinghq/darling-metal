@@ -8,12 +8,14 @@
 #import <Metal/MTLDefines.h>
 #import <Metal/MTLFence.h>
 #import <Metal/MTLCommandEncoder.h>
+#import <Metal/MTLCounters.h>
 #import <Metal/MTLResource.h>
 #import <Metal/MTLTypes.h>
 
 METAL_DECLARATIONS_BEGIN
 
 @protocol MTLBuffer;
+@protocol MTLCounterSampleBuffer;
 @protocol MTLTexture;
 
 typedef NS_OPTIONS(NSUInteger, MTLBlitOption) {
@@ -109,6 +111,12 @@ destinationBytesPerImage: (NSUInteger)destinationBytesPerImage
 - (void)generateMipmapsForTexture: (id<MTLTexture>)texture;
 
 // TODO: the synchronize methods; indium has no equivalent
+
+// Samples the counters of `sampleBuffer` into `sampleIndex` at this point in the encoder. Taking a sample inside
+// the pass is supported where -supportsCounterSampling: says so for the matching sampling point.
+- (void)sampleCountersInBuffer: (id<MTLCounterSampleBuffer>)sampleBuffer
+                 atSampleIndex: (NSUInteger)sampleIndex
+                   withBarrier: (BOOL)barrier;
 
 @end
 

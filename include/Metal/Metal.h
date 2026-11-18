@@ -19,7 +19,8 @@
 #import <Metal/MTLCompileOptions.h>
 #import <Metal/MTLComputeCommandEncoder.h>
 #import <Metal/MTLComputePipeline.h>
-#import <Metal/MTLCounterSampleBuffer.h>
+#import <Metal/MTLCounters.h>
+#import <Metal/MTLBlitPass.h>
 #import <Metal/MTLDefines.h>
 #import <Metal/MTLDepthStencilDescriptor.h>
 #import <Metal/MTLDevice.h>

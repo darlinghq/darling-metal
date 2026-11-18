@@ -5,6 +5,7 @@
 #import <Metal/stubs.h>
 #import <Metal/MTLTextureInternal.h>
 #import <Metal/MTLBufferInternal.h>
+#import <Metal/MTLCountersInternal.h>
 #import <Metal/MTLDevice.h>
 #import <Metal/MTLRenderPipelineInternal.h>
 #import <Metal/MTLTypesInternal.h>
@@ -386,6 +387,134 @@ MTL_UNSUPPORTED_CLASS
 
 @end
 
+@implementation MTLRenderPassSampleBufferAttachmentDescriptor
+
+#if DARLING_METAL_ENABLED
+
+@synthesize sampleBuffer = _sampleBuffer;
+@synthesize startOfVertexSampleIndex = _startOfVertexSampleIndex;
+@synthesize endOfVertexSampleIndex = _endOfVertexSampleIndex;
+@synthesize startOfFragmentSampleIndex = _startOfFragmentSampleIndex;
+@synthesize endOfFragmentSampleIndex = _endOfFragmentSampleIndex;
+
+- (instancetype)init
+{
+	self = [super init];
+	if (self != nil) {
+		_startOfVertexSampleIndex = MTLCounterDontSample;
+		_endOfVertexSampleIndex = MTLCounterDontSample;
+		_startOfFragmentSampleIndex = MTLCounterDontSample;
+		_endOfFragmentSampleIndex = MTLCounterDontSample;
+	}
+	return self;
+}
+
+- (void)dealloc
+{
+	[(id)_sampleBuffer release];
+	[super dealloc];
+}
+
+- (id)copyWithZone: (NSZone*)zone
+{
+	MTLRenderPassSampleBufferAttachmentDescriptor* copy = [[MTLRenderPassSampleBufferAttachmentDescriptor allocWithZone: zone] init];
+	copy.sampleBuffer = _sampleBuffer;
+	copy.startOfVertexSampleIndex = _startOfVertexSampleIndex;
+	copy.endOfVertexSampleIndex = _endOfVertexSampleIndex;
+	copy.startOfFragmentSampleIndex = _startOfFragmentSampleIndex;
+	copy.endOfFragmentSampleIndex = _endOfFragmentSampleIndex;
+	return copy;
+}
+
+#else
+
+@dynamic sampleBuffer;
+@dynamic startOfVertexSampleIndex;
+@dynamic endOfVertexSampleIndex;
+@dynamic startOfFragmentSampleIndex;
+@dynamic endOfFragmentSampleIndex;
+
+MTL_UNSUPPORTED_CLASS
+
+#endif
+
+@end
+
+@implementation MTLRenderPassSampleBufferAttachmentDescriptorArray
+
+#if DARLING_METAL_ENABLED
+
+{
+	NSMutableDictionary<NSNumber*, MTLRenderPassSampleBufferAttachmentDescriptor*>* _dict;
+}
+
+- (instancetype)init
+{
+	self = [super init];
+	if (self != nil) {
+		_dict = [NSMutableDictionary new];
+	}
+	return self;
+}
+
+- (void)dealloc
+{
+	[_dict release];
+	[super dealloc];
+}
+
+- (MTLRenderPassSampleBufferAttachmentDescriptor*)objectAtIndexedSubscript: (NSUInteger)index
+{
+	if (!_dict[@(index)]) {
+		_dict[@(index)] = [[MTLRenderPassSampleBufferAttachmentDescriptor new] autorelease];
+	}
+	return [[_dict[@(index)] retain] autorelease];
+}
+
+-    (void)setObject: (MTLRenderPassSampleBufferAttachmentDescriptor*)desc
+  atIndexedSubscript: (NSUInteger)index
+{
+	if (desc == nil) {
+		[_dict removeObjectForKey: @(index)];
+	} else {
+		_dict[@(index)] = desc;
+	}
+}
+
+- (id)copyWithZone: (NSZone*)zone
+{
+	MTLRenderPassSampleBufferAttachmentDescriptorArray* copy = [[MTLRenderPassSampleBufferAttachmentDescriptorArray allocWithZone: zone] init];
+	[_dict enumerateKeysAndObjectsUsingBlock: ^(NSNumber* key, MTLRenderPassSampleBufferAttachmentDescriptor* value, BOOL* stop) {
+		copy->_dict[key] = [[value copy] autorelease];
+	}];
+	return copy;
+}
+
+- (std::unordered_map<size_t, Indium::RenderPassSampleBufferAttachmentDescriptor>)asIndiumAttachments
+{
+	__block std::unordered_map<size_t, Indium::RenderPassSampleBufferAttachmentDescriptor> result;
+	[_dict enumerateKeysAndObjectsUsingBlock: ^(NSNumber* key, MTLRenderPassSampleBufferAttachmentDescriptor* value, BOOL* stop) {
+		if (value.sampleBuffer != nil) {
+			result[key.unsignedIntegerValue] = Indium::RenderPassSampleBufferAttachmentDescriptor {
+				MTLCounterSampleBufferGetIndium(value.sampleBuffer),
+				value.startOfVertexSampleIndex,
+				value.endOfVertexSampleIndex,
+				value.startOfFragmentSampleIndex,
+				value.endOfFragmentSampleIndex,
+			};
+		}
+	}];
+	return result;
+}
+
+#else
+
+MTL_UNSUPPORTED_CLASS
+
+#endif
+
+@end
+
 @implementation MTLRenderPassDescriptor
 
 #if DARLING_METAL_ENABLED
@@ -413,6 +542,7 @@ MTL_UNSUPPORTED_CLASS
 - (void)_doInit
 {
 	_colorAttachments = [MTLRenderPassColorAttachmentDescriptorArray new];
+	_sampleBufferAttachments = [MTLRenderPassSampleBufferAttachmentDescriptorArray new];
 }
 
 // Like the color attachments, the depth and stencil attachment descriptors always exist, so
@@ -475,7 +605,8 @@ MTL_UNSUPPORTED_CLASS
 	copy.tileHeight = _tileHeight;
 	copy.defaultRasterSampleCount = _defaultRasterSampleCount;
 	copy.rasterizationRateMap = _rasterizationRateMap;
-	// TODO: sampleBufferAttachments
+	[copy->_sampleBufferAttachments release];
+	copy->_sampleBufferAttachments = [_sampleBufferAttachments copy];
 }
 
 - (instancetype)copyWithZone: (NSZone*)zone
@@ -541,7 +672,7 @@ MTL_UNSUPPORTED_CLASS
 		_renderTargetWidth,
 		_renderTargetHeight,
 		nullptr, // TODO
-		nullptr, // TODO
+		[_sampleBufferAttachments asIndiumAttachments],
 		{}, // TODO
 	};
 }
@@ -579,6 +710,13 @@ MTL_UNSUPPORTED_CLASS
 //
 // overridden methods
 //
+
+- (void)sampleCountersInBuffer: (id<MTLCounterSampleBuffer>)sampleBuffer
+                 atSampleIndex: (NSUInteger)sampleIndex
+                   withBarrier: (BOOL)barrier
+{
+	_encoder->sampleCounters(MTLCounterSampleBufferGetIndium(sampleBuffer), sampleIndex, barrier);
+}
 
 - (void)endEncoding
 {

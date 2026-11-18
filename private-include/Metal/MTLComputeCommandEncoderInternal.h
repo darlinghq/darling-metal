@@ -9,6 +9,10 @@
 
 @interface MTLComputePassSampleBufferAttachmentDescriptorArray (Internal) <NSCopying>
 
+#if DARLING_METAL_ENABLED
+- (std::unordered_map<size_t, Indium::ComputePassSampleBufferAttachmentDescriptor>)asIndiumAttachments;
+#endif
+
 @end
 
 @interface MTLComputePassDescriptor (Internal)
