@@ -72,7 +72,7 @@ int main(void) {
 		runEmptyBlit(drain);
 		[drain commit];
 		[drain waitUntilCompleted];
-		for (int i = 0; i < 200 && statusWhenCompleted != MTLCommandBufferStatusCompleted; i++) usleep(5000);
+		for (int i = 0; i < 200 && (statusWhenCompleted != MTLCommandBufferStatusCompleted || statusWhenScheduled != MTLCommandBufferStatusScheduled); i++) usleep(5000);
 		CHECK(statusWhenScheduled == MTLCommandBufferStatusScheduled);
 		CHECK(statusWhenCompleted == MTLCommandBufferStatusCompleted);
 		CHECK(startInHandler >= before && endInHandler >= startInHandler);
