@@ -8,6 +8,7 @@
 #import <Metal/MTLFence.h>
 #import <Foundation/Foundation.h>
 #import <Metal/MTLCommandEncoder.h>
+#import <Metal/MTLCounters.h>
 #import <Metal/MTLRenderPipeline.h>
 
 METAL_DECLARATIONS_BEGIN
@@ -201,6 +202,29 @@ MTL_EXPORT
 @end
 
 MTL_EXPORT
+@interface MTLRenderPassSampleBufferAttachmentDescriptor : NSObject <NSCopying>
+
+@property(nullable, nonatomic, retain) id<MTLCounterSampleBuffer> sampleBuffer;
+// MTLCounterDontSample (the default) takes no sample. Where the device cannot tell the stages apart at the edges
+// of a pass, the start samples are taken when the pass begins and the end samples when it ends.
+@property(nonatomic) NSUInteger startOfVertexSampleIndex;
+@property(nonatomic) NSUInteger endOfVertexSampleIndex;
+@property(nonatomic) NSUInteger startOfFragmentSampleIndex;
+@property(nonatomic) NSUInteger endOfFragmentSampleIndex;
+
+@end
+
+MTL_EXPORT
+@interface MTLRenderPassSampleBufferAttachmentDescriptorArray : NSObject
+
+- (MTLRenderPassSampleBufferAttachmentDescriptor*)objectAtIndexedSubscript: (NSUInteger)attachmentIndex;
+
+-    (void)setObject: (nullable MTLRenderPassSampleBufferAttachmentDescriptor*)attachment
+  atIndexedSubscript: (NSUInteger)attachmentIndex;
+
+@end
+
+MTL_EXPORT
 @interface MTLRenderPassDescriptor : NSObject <NSCopying>
 
 @property(readonly) MTLRenderPassColorAttachmentDescriptorArray* colorAttachments;
@@ -229,6 +253,12 @@ MTL_EXPORT
 @end
 
 @protocol MTLRenderCommandEncoder <MTLCommandEncoder>
+
+// Samples the counters of `sampleBuffer` into `sampleIndex` at this point in the encoder. Taking a sample inside
+// the pass is supported where -supportsCounterSampling: says so for the matching sampling point.
+- (void)sampleCountersInBuffer: (id<MTLCounterSampleBuffer>)sampleBuffer
+                 atSampleIndex: (NSUInteger)sampleIndex
+                   withBarrier: (BOOL)barrier;
 
 - (void)setRenderPipelineState: (id<MTLRenderPipelineState>)pipelineState;
 - (void)setTriangleFillMode: (MTLTriangleFillMode)fillMode;

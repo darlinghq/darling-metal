@@ -26,6 +26,7 @@
 #import <Metal/MTLCompileOptions.h>
 #import <Metal/MTLMSLReflection.h>
 #import <Metal/MTLDiagnostics.h>
+#import <Metal/MTLCountersInternal.h>
 
 #include <mslc/mslc.h>
 #include <mach/mach_time.h>
@@ -477,7 +478,48 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 
 - (NSArray<id<MTLCounterSet>>*)counterSets
 {
-	return nil;
+	NSMutableArray<id<MTLCounterSet>>* result = [NSMutableArray array];
+
+	for (const auto& set: _device->counterSets()) {
+		NSMutableArray<id<MTLCounter>>* counters = [NSMutableArray array];
+		for (const auto& counter: set.counters) {
+			[counters addObject: [[[MTLCounterInternal alloc] initWithName: @(counter.name.c_str())] autorelease]];
+		}
+		[result addObject: [[[MTLCounterSetInternal alloc] initWithName: @(set.name.c_str()) counters: counters] autorelease]];
+	}
+
+	return result;
+}
+
+- (BOOL)supportsCounterSampling: (MTLCounterSamplingPoint)samplingPoint
+{
+	if (samplingPoint > MTLCounterSamplingPointAtBlitBoundary) {
+		return NO;
+	}
+	return _device->supportsCounterSampling(static_cast<Indium::CounterSamplingPoint>(samplingPoint));
+}
+
+- (id<MTLCounterSampleBuffer>)newCounterSampleBufferWithDescriptor: (MTLCounterSampleBufferDescriptor*)descriptor
+                                                             error: (NSError**)error
+{
+	Indium::CounterSampleBufferDescriptor indiumDescriptor;
+	indiumDescriptor.counterSetName = descriptor.counterSet.name.UTF8String ?: "";
+	indiumDescriptor.sampleCount = descriptor.sampleCount;
+	indiumDescriptor.label = descriptor.label.UTF8String ?: "";
+
+	Indium::CounterSampleBufferFailure failure;
+	auto sampleBuffer = _device->newCounterSampleBuffer(indiumDescriptor, &failure);
+
+	if (!sampleBuffer) {
+		if (error) {
+			*error = [NSError errorWithDomain: MTLCounterErrorDomain
+			                             code: static_cast<NSInteger>(failure.error)
+			                         userInfo: @{ NSLocalizedDescriptionKey: @(failure.message.c_str()) }];
+		}
+		return nil;
+	}
+
+	return [[MTLCounterSampleBufferInternal alloc] initWithSampleBuffer: sampleBuffer device: self label: descriptor.label];
 }
 
 - (MTLArgumentBuffersTier)argumentBuffersSupport
@@ -877,20 +919,14 @@ static size_t iosurfacePixelSize(MTLPixelFormat format)
 - (void)sampleTimestamps: (MTLTimestamp*)cpuTimestamp
             gpuTimestamp: (MTLTimestamp*)gpuTimestamp
 {
-	// indium has no device timestamps to correlate with the host clock, and no way to ask for any; the
-	// monotonic nanosecond clock of the host stands in for both, which is also what the timestamps of the
-	// command buffers are measured against.
-	static mach_timebase_info_data_t timebase;
-	static dispatch_once_t once;
-	dispatch_once(&once, ^{
-		mach_timebase_info(&timebase);
-	});
-	uint64_t now = mach_absolute_time() * timebase.numer / timebase.denom;
+	uint64_t cpu = 0;
+	uint64_t gpu = 0;
+	_device->sampleTimestamps(&cpu, &gpu);
 	if (cpuTimestamp != NULL) {
-		*cpuTimestamp = now;
+		*cpuTimestamp = cpu;
 	}
 	if (gpuTimestamp != NULL) {
-		*gpuTimestamp = now;
+		*gpuTimestamp = gpu;
 	}
 }
 

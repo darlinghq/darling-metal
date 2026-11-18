@@ -20,6 +20,7 @@ METAL_DECLARATIONS_BEGIN
 @protocol MTLRenderCommandEncoder;
 @protocol MTLParallelRenderCommandEncoder;
 
+@class MTLBlitPassDescriptor;
 @class MTLComputePassDescriptor;
 @class MTLRenderPassDescriptor;
 
@@ -112,6 +113,7 @@ MTL_EXPORT
 - (nullable id<MTLParallelRenderCommandEncoder>)parallelRenderCommandEncoderWithDescriptor: (MTLRenderPassDescriptor*)renderPassDescriptor;
 
 - (id<MTLBlitCommandEncoder>)blitCommandEncoder;
+- (id<MTLBlitCommandEncoder>)blitCommandEncoderWithDescriptor: (MTLBlitPassDescriptor*)blitPassDescriptor;
 
 - (void)addScheduledHandler: (MTLCommandBufferHandler)block;
 - (void)waitUntilScheduled;

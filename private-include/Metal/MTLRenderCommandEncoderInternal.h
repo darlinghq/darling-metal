@@ -72,6 +72,12 @@ Indium::ScissorRect MTLScissorRectToIndium(MTLScissorRect rect) {
 
 @end
 
+@interface MTLRenderPassSampleBufferAttachmentDescriptorArray (Internal) <NSCopying>
+
+- (std::unordered_map<size_t, Indium::RenderPassSampleBufferAttachmentDescriptor>)asIndiumAttachments;
+
+@end
+
 @interface MTLRenderPassDescriptor (Internal)
 
 - (Indium::RenderPassDescriptor)asIndiumDescriptor;

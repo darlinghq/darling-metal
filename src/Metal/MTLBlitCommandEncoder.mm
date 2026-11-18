@@ -3,6 +3,7 @@
 
 #import <Metal/MTLBlitCommandEncoderInternal.h>
 #import <Metal/MTLBufferInternal.h>
+#import <Metal/MTLCountersInternal.h>
 #import <Metal/MTLDevice.h>
 #import <Metal/MTLFenceInternal.h>
 #import <Metal/MTLTextureInternal.h>
@@ -41,6 +42,13 @@
 //
 // overridden methods
 //
+
+- (void)sampleCountersInBuffer: (id<MTLCounterSampleBuffer>)sampleBuffer
+                 atSampleIndex: (NSUInteger)sampleIndex
+                   withBarrier: (BOOL)barrier
+{
+	_encoder->sampleCounters(MTLCounterSampleBufferGetIndium(sampleBuffer), sampleIndex, barrier);
+}
 
 - (void)endEncoding
 {

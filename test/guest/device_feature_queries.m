@@ -46,9 +46,10 @@ int main(void) {
 			CHECK(device.locationNumber == 0);
 		}
 
-		// no counter sets: nil, which iterates as empty
-		CHECK(device.counterSets == nil);
-		CHECK(device.counterSets.count == 0);
+		// the timestamp set is the only counter set a device offers here (test counters covers it)
+		for (id<MTLCounterSet> set in device.counterSets) {
+			CHECK([set.name isEqualToString: MTLCommonCounterSetTimestamp]);
+		}
 	}
 	printf(failures ? "FAILED: %d\n" : "OK\n", failures);
 	return failures != 0;
