@@ -7,3 +7,7 @@ for t in compile_options resource_api fill_mode_depth_clip indirect_draw_dispatc
 	~/darling-skills/darling-guest-testing/scripts/guest-cc.sh -o "$O/$t" "$(dirname "$0")/$t.m" \
 		-I "$W/include" -fno-objc-arc -framework Foundation -framework Metal -Wno-deprecated-declarations -Wno-nullability-completeness
 done
+
+# needs a window system
+~/darling-skills/darling-guest-testing/scripts/guest-cc.sh -o "$O/metal_layer_window" "$(dirname "$0")/metal_layer_window.m" \
+	-I "$W/include" -fno-objc-arc -framework Foundation -framework AppKit -framework QuartzCore -framework Metal -Wno-deprecated-declarations -Wno-nullability-completeness
