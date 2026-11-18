@@ -165,6 +165,8 @@ typedef uint64_t MTLTimestamp;
 @property(readonly, getter=isRemovable) BOOL removable;
 @property(readonly) BOOL hasUnifiedMemory;
 @property(readonly) uint64_t recommendedMaxWorkingSetSize;
+// The bytes of memory currently allocated for the device's buffers, textures and heaps.
+@property(readonly) NSUInteger currentAllocatedSize;
 @property(readonly) NSUInteger maxBufferLength;
 @property(readonly, getter=isDepth24Stencil8PixelFormatSupported) BOOL depth24Stencil8PixelFormatSupported;
 @property(readonly) MTLReadWriteTextureTier readWriteTextureSupport;

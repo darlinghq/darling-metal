@@ -25,6 +25,7 @@
 #import <Metal/MTLDeviceInfo.h>
 #import <Metal/MTLCompileOptions.h>
 #import <Metal/MTLMSLReflection.h>
+#import <Metal/MTLDiagnostics.h>
 
 #include <mslc/mslc.h>
 #include <mach/mach_time.h>
@@ -179,6 +180,7 @@ static void ensureDevices(void) {
 		}
 
 		applyPlatformIdentity(systemDefaultDevice);
+		MTLDiagnosticsConfigure(devices);
 	});
 };
 
@@ -366,6 +368,11 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 - (uint64_t)recommendedMaxWorkingSetSize
 {
 	return _reportedWorkingSetSize != 0 ? _reportedWorkingSetSize : _device->recommendedMaxWorkingSetSize();
+}
+
+- (NSUInteger)currentAllocatedSize
+{
+	return static_cast<NSUInteger>(_device->currentAllocatedSize());
 }
 
 - (void)setReportedName: (NSString*)name
