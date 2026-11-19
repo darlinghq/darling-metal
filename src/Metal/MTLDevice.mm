@@ -795,6 +795,9 @@ static size_t iosurfacePixelSize(MTLPixelFormat format)
 		return nil;
 	}
 
+	// The surface's users learn of GPU writes through these callbacks, whatever the storage.
+	MTLIOSurfaceCopyRegisterCallbacks();
+
 	std::shared_ptr<Indium::Texture> texture;
 	_IOSurfaceDMABuf buffer {};
 	buffer.version = _IOSURFACE_DMABUF_VERSION;

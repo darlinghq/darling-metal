@@ -208,6 +208,7 @@ MTL_UNSUPPORTED_CLASS
 
 {
 	std::shared_ptr<Indium::ComputeCommandEncoder> _encoder;
+	std::shared_ptr<MTLIOSurfaceWriteSet> _iosurfaceWrites;
 }
 
 @synthesize device = _device;
@@ -222,6 +223,19 @@ MTL_UNSUPPORTED_CLASS
 		_device = [device retain];
 	}
 	return self;
+}
+
+- (void)setIOSurfaceWrites: (std::shared_ptr<MTLIOSurfaceWriteSet>)writes
+{
+	_iosurfaceWrites = writes;
+}
+
+// A texture the kernel can write may change its IOSurface.
+- (void)noteWritable: (id<MTLTexture>)texture
+{
+	if (_iosurfaceWrites && (texture.usage & MTLTextureUsageShaderWrite)) {
+		MTLIOSurfaceWriteSetNote(*_iosurfaceWrites, texture);
+	}
 }
 
 - (void)dealloc
@@ -306,6 +320,7 @@ MTL_UNSUPPORTED_CLASS
 - (void)setTexture: (id<MTLTexture>)texture
           atIndex: (NSUInteger)index
 {
+	[self noteWritable: texture];
 	_encoder->setTexture(MTLTextureGetIndium(texture), index);
 }
 
@@ -314,6 +329,7 @@ MTL_UNSUPPORTED_CLASS
 {
 	std::vector<std::shared_ptr<Indium::Texture>> indiumTextures;
 	for (size_t i = 0; i < range.length; ++i) {
+		[self noteWritable: textures[i]];
 		indiumTextures.push_back(MTLTextureGetIndium(textures[i]));
 	}
 	_encoder->setTextures(indiumTextures, NSRangeToIndium(range));

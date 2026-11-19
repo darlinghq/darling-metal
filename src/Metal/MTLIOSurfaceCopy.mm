@@ -97,15 +97,101 @@ static void writeBack(IOSurfaceRef surface)
 	}
 }
 
-static void registerCallbacks()
+// Committed command buffers that may write surfaces and have not been reported yet.
+struct PendingWrites {
+	std::shared_ptr<Indium::CommandBuffer> buffer;
+	std::vector<MTLIOSurfaceWrite> writes;
+};
+static std::mutex g_pendingMutex;
+static std::vector<PendingWrites> g_pending;
+
+void MTLIOSurfaceCopyCommitted(const std::shared_ptr<Indium::CommandBuffer>& buffer, const std::vector<MTLIOSurfaceWrite>& writes)
+{
+	if (writes.empty()) {
+		return;
+	}
+	PendingWrites pending { buffer, writes };
+	for (const auto& write: pending.writes) {
+		CFRetain(write.surface);
+	}
+	std::lock_guard lock(g_pendingMutex);
+	g_pending.push_back(std::move(pending));
+}
+
+void MTLIOSurfaceCopyCompleted(const std::shared_ptr<Indium::CommandBuffer>& buffer)
+{
+	PendingWrites done;
+	{
+		std::lock_guard lock(g_pendingMutex);
+		auto it = std::find_if(g_pending.begin(), g_pending.end(), [&](const PendingWrites& entry) { return entry.buffer == buffer; });
+		if (it == g_pending.end()) {
+			return;
+		}
+		done = std::move(*it);
+		g_pending.erase(it);
+	}
+	// Reported without a lock of ours held: IOSurface may call back into the writeback.
+	for (const auto& write: done.writes) {
+		if (write.viaCopy) {
+			_IOSurfaceGPUDidWrite(write.surface);
+		} else {
+			_IOSurfaceGPUDidWriteMemory(write.surface);
+		}
+		CFRelease(write.surface);
+	}
+}
+
+// IOSurface's finish callback, for a lock that must not wait for rendering through copies: waits
+// for the command buffers already submitted that write the surface's own memory, and reports
+// them. Copies are neither written back nor waited for.
+static void finish(IOSurfaceRef surface)
+{
+	std::vector<std::shared_ptr<Indium::CommandBuffer>> buffers;
+	{
+		std::lock_guard lock(g_pendingMutex);
+		for (const auto& entry: g_pending) {
+			for (const auto& write: entry.writes) {
+				if (write.surface == surface && !write.viaCopy) {
+					buffers.push_back(entry.buffer);
+					break;
+				}
+			}
+		}
+	}
+	for (const auto& buffer: buffers) {
+		buffer->waitUntilCompleted();
+		MTLIOSurfaceCopyCompleted(buffer);
+	}
+}
+
+MTLIOSurfaceWriteSet::~MTLIOSurfaceWriteSet()
+{
+	for (const auto& write: writes) {
+		CFRelease(write.surface);
+	}
+}
+
+void MTLIOSurfaceWriteSet::add(IOSurfaceRef surface, bool viaCopy)
+{
+	std::lock_guard lock(mutex);
+	for (const auto& write: writes) {
+		if (write.surface == surface && write.viaCopy == viaCopy) {
+			return;
+		}
+	}
+	writes.push_back({ (IOSurfaceRef) CFRetain(surface), viaCopy });
+}
+
+void MTLIOSurfaceCopyRegisterCallbacks()
 {
 	static std::once_flag once;
 	std::call_once(once, []() {
 		static const _IOSurfaceGPUCallbacks callbacks = {
-			.version = _IOSURFACE_GPU_CALLBACKS_VERSION,
+			.version = _IOSURFACE_GPU_CALLBACKS_VERSION_REPORTS_WRITES,
 			.writeback = writeBack,
 			// Every copy retains its surface, so none is freed while a copy has state for it.
 			.forget = nullptr,
+			.finish = finish,
 		};
 		_IOSurfaceSetGPUCallbacks(&callbacks);
 	});
@@ -113,7 +199,7 @@ static void registerCallbacks()
 
 MTLIOSurfaceCopy* MTLIOSurfaceCopyCreate(std::shared_ptr<Indium::Texture> texture, IOSurfaceRef surface, size_t plane)
 {
-	registerCallbacks();
+	MTLIOSurfaceCopyRegisterCallbacks();
 	auto copy = new MTLIOSurfaceCopy { std::move(texture), surface, plane, 0, 0 };
 	std::lock_guard lock(g_copiesMutex);
 	upload(copy);

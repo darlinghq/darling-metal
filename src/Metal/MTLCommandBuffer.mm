@@ -12,6 +12,7 @@
 #import <Metal/MTLRenderCommandEncoderInternal.h>
 #import <Metal/MTLParallelRenderCommandEncoderInternal.h>
 #import <Metal/MTLIOSurfaceCopy.h>
+#import <Metal/MTLTextureInternal.h>
 #import <Metal/MTLEventInternal.h>
 
 #include <mach/mach_time.h>
@@ -81,6 +82,8 @@ static CFTimeInterval MTLHostTimeNow(void)
 
 {
 	std::shared_ptr<Indium::CommandBuffer> _commandBuffer;
+	// The IOSurfaces the commands encoded so far may write.
+	std::shared_ptr<MTLIOSurfaceWriteSet> _iosurfaceWrites;
 	// the status, and the times as the bit patterns of doubles, are written by the thread that commits
 	// and by the thread that Indium calls its handlers on, and read by anyone
 	MTLCommandBufferStatus _status;
@@ -119,6 +122,7 @@ static CFTimeInterval MTLLoadTime(uint64_t* slot)
 	self = [super init];
 	if (self != nil) {
 		_commandBuffer = commandBuffer;
+		_iosurfaceWrites = std::make_shared<MTLIOSurfaceWriteSet>();
 		_device = [commandQueue.device retain];
 		_commandQueue = [commandQueue retain];
 		_status = MTLCommandBufferStatusNotEnqueued;
@@ -211,13 +215,19 @@ static CFTimeInterval MTLLoadTime(uint64_t* slot)
 	[super dealloc];
 }
 
+- (id<MTLComputeCommandEncoder>)computeEncoder: (MTLComputeCommandEncoderInternal*)encoder
+{
+	[encoder setIOSurfaceWrites: _iosurfaceWrites];
+	return encoder;
+}
+
 - (id<MTLComputeCommandEncoder>)computeCommandEncoderWithDescriptor: (MTLComputePassDescriptor*)computePassDescriptor
 {
 	auto encoder = _commandBuffer->computeCommandEncoder(computePassDescriptor.asIndiumDescriptor);
 	if (!encoder) {
 		return nil;
 	}
-	return [[[MTLComputeCommandEncoderInternal alloc] initWithEncoder: encoder device: _device] autorelease];
+	return [self computeEncoder: [[[MTLComputeCommandEncoderInternal alloc] initWithEncoder: encoder device: _device] autorelease]];
 }
 
 - (id<MTLComputeCommandEncoder>)computeCommandEncoderWithDispatchType: (MTLDispatchType)dispatchType
@@ -226,7 +236,7 @@ static CFTimeInterval MTLLoadTime(uint64_t* slot)
 	if (!encoder) {
 		return nil;
 	}
-	return [[[MTLComputeCommandEncoderInternal alloc] initWithEncoder: encoder device: _device] autorelease];
+	return [self computeEncoder: [[[MTLComputeCommandEncoderInternal alloc] initWithEncoder: encoder device: _device] autorelease]];
 }
 
 - (id<MTLComputeCommandEncoder>)computeCommandEncoder
@@ -235,7 +245,25 @@ static CFTimeInterval MTLLoadTime(uint64_t* slot)
 	if (!encoder) {
 		return nil;
 	}
-	return [[[MTLComputeCommandEncoderInternal alloc] initWithEncoder: encoder device: _device] autorelease];
+	return [self computeEncoder: [[[MTLComputeCommandEncoderInternal alloc] initWithEncoder: encoder device: _device] autorelease]];
+}
+
+// The attachments a pass stores, and what it resolves into, are written.
+- (void)noteWrittenAttachments: (MTLRenderPassDescriptor*)renderPassDescriptor
+{
+	auto note = [&](MTLRenderPassAttachmentDescriptor* attachment) {
+		if (attachment.storeAction != MTLStoreActionDontCare) {
+			MTLIOSurfaceWriteSetNote(*_iosurfaceWrites, attachment.texture);
+		}
+		if (attachment.resolveTexture != nil) {
+			MTLIOSurfaceWriteSetNote(*_iosurfaceWrites, attachment.resolveTexture);
+		}
+	};
+	for (NSUInteger i = 0; i < 8; ++i) {
+		note(renderPassDescriptor.colorAttachments[i]);
+	}
+	note(renderPassDescriptor.depthAttachment);
+	note(renderPassDescriptor.stencilAttachment);
 }
 
 - (id<MTLRenderCommandEncoder>)renderCommandEncoderWithDescriptor: (MTLRenderPassDescriptor*)renderPassDescriptor
@@ -244,6 +272,7 @@ static CFTimeInterval MTLLoadTime(uint64_t* slot)
 	if (!encoder) {
 		return nil;
 	}
+	[self noteWrittenAttachments: renderPassDescriptor];
 	return [[[MTLRenderCommandEncoderInternal alloc] initWithEncoder: encoder device: _device] autorelease];
 }
 
@@ -253,6 +282,7 @@ static CFTimeInterval MTLLoadTime(uint64_t* slot)
 	if (!encoder) {
 		return nil;
 	}
+	[self noteWrittenAttachments: renderPassDescriptor];
 	return [[[MTLParallelRenderCommandEncoderInternal alloc] initWithEncoder: encoder device: _device] autorelease];
 }
 
@@ -262,7 +292,9 @@ static CFTimeInterval MTLLoadTime(uint64_t* slot)
 	if (!encoder) {
 		return nil;
 	}
-	return [[[MTLBlitCommandEncoderInternal alloc] initWithEncoder: encoder device: _device] autorelease];
+	MTLBlitCommandEncoderInternal* blit = [[[MTLBlitCommandEncoderInternal alloc] initWithEncoder: encoder device: _device] autorelease];
+	[blit setIOSurfaceWrites: _iosurfaceWrites];
+	return blit;
 }
 
 - (id<MTLBlitCommandEncoder>)blitCommandEncoderWithDescriptor: (MTLBlitPassDescriptor*)blitPassDescriptor
@@ -271,7 +303,9 @@ static CFTimeInterval MTLLoadTime(uint64_t* slot)
 	if (!encoder) {
 		return nil;
 	}
-	return [[[MTLBlitCommandEncoderInternal alloc] initWithEncoder: encoder device: _device] autorelease];
+	MTLBlitCommandEncoderInternal* blit = [[[MTLBlitCommandEncoderInternal alloc] initWithEncoder: encoder device: _device] autorelease];
+	[blit setIOSurfaceWrites: _iosurfaceWrites];
+	return blit;
 }
 
 - (void)addScheduledHandler: (MTLCommandBufferHandler)block
@@ -289,7 +323,13 @@ static CFTimeInterval MTLLoadTime(uint64_t* slot)
 
 - (void)addCompletedHandler: (MTLCommandBufferHandler)block
 {
-	_commandBuffer->addCompletedHandler(MTLCommandBufferHandlerWrapper(block, self));
+	// The writes to IOSurfaces are reported before any handler runs, as the work counts as
+	// complete once its results are visible.
+	MTLCommandBufferHandlerWrapper handler(block, self);
+	_commandBuffer->addCompletedHandler([handler](std::shared_ptr<Indium::CommandBuffer> buffer) mutable {
+		MTLIOSurfaceCopyCompleted(buffer);
+		handler(buffer);
+	});
 }
 
 // Indium currently has no command-buffer error result to translate.
@@ -301,6 +341,8 @@ static CFTimeInterval MTLLoadTime(uint64_t* slot)
 - (void)waitUntilCompleted
 {
 	_commandBuffer->waitUntilCompleted();
+	// Indium wakes this thread before it runs the completion handlers.
+	MTLIOSurfaceCopyCompleted(_commandBuffer);
 	if ([self status] >= MTLCommandBufferStatusCommitted) {
 		[self commandBufferDidComplete];
 	}
@@ -357,6 +399,19 @@ static CFTimeInterval MTLLoadTime(uint64_t* slot)
 	MTLCommandBufferStatus status = __atomic_load_n(&_status, __ATOMIC_ACQUIRE);
 	while (status < MTLCommandBufferStatusCommitted
 		&& !__atomic_compare_exchange_n(&_status, &status, MTLCommandBufferStatusCommitted, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE)) {
+	}
+	std::vector<MTLIOSurfaceWrite> writes;
+	{
+		std::lock_guard lock(_iosurfaceWrites->mutex);
+		writes = _iosurfaceWrites->writes;
+	}
+	auto buffer = _commandBuffer;
+	MTLIOSurfaceCopyCommitted(buffer, writes);
+	if (!writes.empty()) {
+		// Reported when the work completes, also when nobody waits for it.
+		_commandBuffer->addCompletedHandler([](std::shared_ptr<Indium::CommandBuffer> completed) {
+			MTLIOSurfaceCopyCompleted(completed);
+		});
 	}
 	_commandBuffer->commit();
 	MTLIOSurfaceCopyGPUMayHaveWritten();

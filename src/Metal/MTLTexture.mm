@@ -28,6 +28,20 @@ const std::shared_ptr<Indium::Texture>& MTLTextureGetIndium(id<MTLTexture> objec
 	}
 	return ((MTLTextureInternal*)object)->_texture;
 }
+
+void MTLIOSurfaceWriteSetNote(MTLIOSurfaceWriteSet& set, id<MTLTexture> texture)
+{
+	static const Class internalClass = [MTLTextureInternal class];
+
+	if (!MTLObjectIsInstanceOf(texture, internalClass)) {
+		return;
+	}
+	MTLTextureInternal* internal = (MTLTextureInternal*)texture;
+	if (internal->_iosurface != NULL) {
+		set.add(internal->_iosurface, internal->_iosurfaceCopy != nullptr);
+	}
+}
+
 @synthesize device = _device;
 @synthesize resourceOptions = _resourceOptions;
 @synthesize label = _label;

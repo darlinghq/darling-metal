@@ -16,6 +16,7 @@
 
 {
 	std::shared_ptr<Indium::BlitCommandEncoder> _encoder;
+	std::shared_ptr<MTLIOSurfaceWriteSet> _iosurfaceWrites;
 }
 
 @synthesize device = _device;
@@ -30,6 +31,18 @@
 		_device = [device retain];
 	}
 	return self;
+}
+
+- (void)setIOSurfaceWrites: (std::shared_ptr<MTLIOSurfaceWriteSet>)writes
+{
+	_iosurfaceWrites = writes;
+}
+
+- (void)noteWritten: (id<MTLTexture>)texture
+{
+	if (_iosurfaceWrites) {
+		MTLIOSurfaceWriteSetNote(*_iosurfaceWrites, texture);
+	}
 }
 
 - (void)dealloc
@@ -112,6 +125,7 @@
  destinationOrigin: (MTLOrigin)destinationOrigin
                options: (MTLBlitOption)options
 {
+	[self noteWritten: destinationTexture];
 	_encoder->copy(MTLBufferGetIndium(sourceBuffer), sourceOffset,
 	               sourceBytesPerRow, sourceBytesPerImage, MTLSizeToIndium(sourceSize),
 	               MTLTextureGetIndium(destinationTexture), destinationSlice,
@@ -177,6 +191,7 @@ destinationBytesPerImage: (NSUInteger)destinationBytesPerImage
 	// not-yet-created source texture or encode a zero-extent Vulkan copy.
 	if (sourceSize.width == 0 || sourceSize.height == 0 || sourceSize.depth == 0)
 		return;
+	[self noteWritten: destinationTexture];
 	_encoder->copy(MTLTextureGetIndium(sourceTexture), sourceSlice, sourceLevel,
 	               MTLOriginToIndium(sourceOrigin), MTLSizeToIndium(sourceSize),
 	               MTLTextureGetIndium(destinationTexture), destinationSlice,
@@ -186,6 +201,7 @@ destinationBytesPerImage: (NSUInteger)destinationBytesPerImage
 - (void)copyFromTexture: (id<MTLTexture>)sourceTexture
               toTexture: (id<MTLTexture>)destinationTexture
 {
+	[self noteWritten: destinationTexture];
 	_encoder->copy(MTLTextureGetIndium(sourceTexture),
 	               MTLTextureGetIndium(destinationTexture));
 }
@@ -199,6 +215,7 @@ destinationBytesPerImage: (NSUInteger)destinationBytesPerImage
             sliceCount: (NSUInteger)sliceCount
             levelCount: (NSUInteger)levelCount
 {
+	[self noteWritten: destinationTexture];
 	_encoder->copy(MTLTextureGetIndium(sourceTexture), sourceSlice, sourceLevel,
 	               MTLTextureGetIndium(destinationTexture), destinationSlice,
 	               destinationLevel, sliceCount, levelCount);
@@ -213,6 +230,7 @@ destinationBytesPerImage: (NSUInteger)destinationBytesPerImage
 
 - (void)generateMipmapsForTexture: (id<MTLTexture>)texture
 {
+	[self noteWritten: texture];
 	_encoder->generateMipmapsForTexture(MTLTextureGetIndium(texture));
 }
 
