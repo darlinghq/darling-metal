@@ -69,6 +69,10 @@ MTL_EXPORT
 // the shared pointer, for the command encoders. Empty for nil and for objects
 // this framework did not create.
 const std::shared_ptr<Indium::Texture>& MTLTextureGetIndium(id<MTLTexture> object);
+
+// Adds the IOSurface that `texture` is made from, if it is one, to the surfaces a command buffer
+// may write. Does nothing for other textures and for nil.
+void MTLIOSurfaceWriteSetNote(MTLIOSurfaceWriteSet& set, id<MTLTexture> texture);
 #endif
 
 #endif // _METAL_MTLTEXTUREINTERNAL_H_

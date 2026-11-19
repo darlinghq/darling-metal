@@ -5,6 +5,7 @@
 
 #if DARLING_METAL_ENABLED
 #include <indium/indium.hpp>
+#include <Metal/MTLIOSurfaceCopy.h>
 #endif
 
 @interface MTLComputePassSampleBufferAttachmentDescriptorArray (Internal) <NSCopying>
@@ -28,6 +29,10 @@
 #if DARLING_METAL_ENABLED
 - (instancetype)initWithEncoder: (std::shared_ptr<Indium::ComputeCommandEncoder>)encoder
                          device: (id<MTLDevice>)device;
+
+// The set that collects the IOSurfaces the encoder's commands write, which the command buffer
+// reports when it completes.
+- (void)setIOSurfaceWrites: (std::shared_ptr<MTLIOSurfaceWriteSet>)writes;
 #endif
 
 @end
