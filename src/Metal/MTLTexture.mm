@@ -210,8 +210,7 @@ void MTLIOSurfaceWriteSetNote(MTLIOSurfaceWriteSet& set, id<MTLTexture> texture)
 
 - (MTLTextureUsage)usage
 {
-	// TODO
-	return MTLTextureUsageUnknown;
+	return static_cast<MTLTextureUsage>(_texture->usage());
 }
 
 - (BOOL)allowGPUOptimizedContents
