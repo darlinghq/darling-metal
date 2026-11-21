@@ -5,6 +5,7 @@
 #define _METALKIT_MTKTEXTURELOADER_H_
 
 #import <Foundation/Foundation.h>
+#import <AppKit/AppKit.h>
 #import <CoreGraphics/CoreGraphics.h>
 #import <Metal/Metal.h>
 
@@ -29,6 +30,9 @@ MTL_EXPORT MTL_EXTERN const MTKTextureLoaderOption MTKTextureLoaderOptionOrigin;
 MTL_EXPORT MTL_EXTERN const MTKTextureLoaderOrigin MTKTextureLoaderOriginTopLeft;
 MTL_EXPORT MTL_EXTERN const MTKTextureLoaderOrigin MTKTextureLoaderOriginBottomLeft;
 MTL_EXPORT MTL_EXTERN const MTKTextureLoaderOrigin MTKTextureLoaderOriginFlippedVertically;
+
+typedef void (^MTKTextureLoaderCallback)(id<MTLTexture> texture, NSError* error);
+typedef void (^MTKTextureLoaderArrayCallback)(NSArray<id<MTLTexture>>* textures, NSError* error);
 
 MTL_EXPORT
 @interface MTKTextureLoader : NSObject
@@ -58,6 +62,63 @@ MTL_EXPORT
                               bundle: (NSBundle*)bundle
                              options: (NSDictionary<MTKTextureLoaderOption, id>*)options
                                error: (NSError**)error;
+
+- (void)newTextureWithContentsOfURL: (NSURL*)URL
+                           options: (NSDictionary<MTKTextureLoaderOption, id>*)options
+                 completionHandler: (MTKTextureLoaderCallback)completionHandler;
+
+- (void)newTextureWithData: (NSData*)data
+                   options: (NSDictionary<MTKTextureLoaderOption, id>*)options
+         completionHandler: (MTKTextureLoaderCallback)completionHandler;
+
+- (void)newTextureWithCGImage: (CGImageRef)cgImage
+                      options: (NSDictionary<MTKTextureLoaderOption, id>*)options
+            completionHandler: (MTKTextureLoaderCallback)completionHandler;
+
+- (void)newTextureWithMDLTexture: (MDLTexture*)texture
+                         options: (NSDictionary<MTKTextureLoaderOption, id>*)options
+               completionHandler: (MTKTextureLoaderCallback)completionHandler;
+
+- (void)newTextureWithName: (NSString*)name
+               scaleFactor: (CGFloat)scaleFactor
+                    bundle: (NSBundle*)bundle
+                   options: (NSDictionary<MTKTextureLoaderOption, id>*)options
+         completionHandler: (MTKTextureLoaderCallback)completionHandler;
+
+- (id<MTLTexture>)newTextureWithName: (NSString*)name
+                         scaleFactor: (CGFloat)scaleFactor
+                        displayGamut: (NSDisplayGamut)displayGamut
+                              bundle: (NSBundle*)bundle
+                             options: (NSDictionary<MTKTextureLoaderOption, id>*)options
+                               error: (NSError**)error;
+
+- (void)newTextureWithName: (NSString*)name
+               scaleFactor: (CGFloat)scaleFactor
+              displayGamut: (NSDisplayGamut)displayGamut
+                    bundle: (NSBundle*)bundle
+                   options: (NSDictionary<MTKTextureLoaderOption, id>*)options
+         completionHandler: (MTKTextureLoaderCallback)completionHandler;
+
+- (void)newTexturesWithNames: (NSArray<NSString*>*)names
+                 scaleFactor: (CGFloat)scaleFactor
+                displayGamut: (NSDisplayGamut)displayGamut
+                      bundle: (NSBundle*)bundle
+                     options: (NSDictionary<MTKTextureLoaderOption, id>*)options
+           completionHandler: (MTKTextureLoaderArrayCallback)completionHandler;
+
+- (NSArray<id<MTLTexture>>*)newTexturesWithContentsOfURLs: (NSArray<NSURL*>*)URLs
+                                                  options: (NSDictionary<MTKTextureLoaderOption, id>*)options
+                                                    error: (NSError**)error;
+
+- (void)newTexturesWithContentsOfURLs: (NSArray<NSURL*>*)URLs
+                              options: (NSDictionary<MTKTextureLoaderOption, id>*)options
+                    completionHandler: (MTKTextureLoaderArrayCallback)completionHandler;
+
+- (void)newTexturesWithNames: (NSArray<NSString*>*)names
+                 scaleFactor: (CGFloat)scaleFactor
+                      bundle: (NSBundle*)bundle
+                     options: (NSDictionary<MTKTextureLoaderOption, id>*)options
+           completionHandler: (MTKTextureLoaderArrayCallback)completionHandler;
 
 @end
 

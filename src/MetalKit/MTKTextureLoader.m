@@ -53,6 +53,80 @@ static void MTKTextureLoaderUnsupported(NSString* what) {
 	abort();
 }
 
+// The documentation does not say what a nil handler does. GUESS: refuse it here, where the call
+// is made, instead of crashing later on a background thread.
+static void MTKTextureLoaderRequireHandler(id handler) {
+	if (handler == nil) {
+		[NSException raise: NSInvalidArgumentException format: @"MTKTextureLoader: a completion handler is required"];
+	}
+}
+
+// The documentation says only that these loaders work asynchronously. GUESS: the work runs on the
+// global default-priority queue, and so does the handler.
+static dispatch_queue_t MTKTextureLoaderQueue(void) {
+	return dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+}
+
+// Runs a loader off the calling thread and then reports its outcome. The loaders return a
+// texture the caller owns, so it is released once the handler has seen it.
+static void MTKTextureLoaderLoadAsync(id<MTLTexture> (^load)(NSError** error), MTKTextureLoaderCallback completionHandler) {
+	MTKTextureLoaderRequireHandler(completionHandler);
+	dispatch_async(MTKTextureLoaderQueue(), ^{
+		@autoreleasepool {
+			NSError* error = nil;
+			id<MTLTexture> texture = load(&error);
+			completionHandler(texture, texture ? nil : error);
+			[texture release];
+		}
+	});
+}
+
+// Loads every item in order. A failed item leaves an NSNull in its place. The callback pages say
+// error is the first problem that occurred and nil when everything loaded; the synchronous page
+// says only that which item the error belongs to is undefined, so reporting the first failed item
+// is a choice made here (GUESS). The items are loaded one after the other (GUESS: the
+// documentation does not say whether they may overlap).
+static NSArray<id<MTLTexture>>* MTKTextureLoaderLoadAll(NSUInteger count, NSError** error, id<MTLTexture> (^load)(NSUInteger index, NSError** itemError)) {
+	NSMutableArray* textures = [[NSMutableArray alloc] initWithCapacity: count];
+	NSError* firstError = nil;
+
+	for (NSUInteger i = 0; i < count; ++i) {
+		@autoreleasepool {
+			NSError* itemError = nil;
+			id<MTLTexture> texture = load(i, &itemError);
+			if (texture) {
+				[textures addObject: texture];
+				[texture release];
+			} else {
+				[textures addObject: [NSNull null]];
+				if (!firstError) {
+					// the error is autoreleased into this pass's pool, so keep it past the pool
+					firstError = [itemError retain];
+				}
+			}
+		}
+	}
+
+	if (error) {
+		*error = [firstError autorelease];
+	} else {
+		[firstError release];
+	}
+	return textures;
+}
+
+static void MTKTextureLoaderLoadAllAsync(NSUInteger count, id<MTLTexture> (^load)(NSUInteger index, NSError** itemError), MTKTextureLoaderArrayCallback completionHandler) {
+	MTKTextureLoaderRequireHandler(completionHandler);
+	dispatch_async(MTKTextureLoaderQueue(), ^{
+		@autoreleasepool {
+			NSError* error = nil;
+			NSArray<id<MTLTexture>>* textures = MTKTextureLoaderLoadAll(count, &error, load);
+			completionHandler(textures, error);
+			[textures release];
+		}
+	});
+}
+
 #endif
 
 @implementation MTKTextureLoader
@@ -271,6 +345,15 @@ static void MTKTextureLoaderUnsupported(NSString* what) {
 
 	NSBundle* searchBundle = bundle ?: [NSBundle mainBundle];
 
+	// the documentation says this loader ignores the generateMipmaps, SRGB, cubeLayout and origin options
+	NSMutableDictionary<MTKTextureLoaderOption, id>* nameOptions = [[options mutableCopy] autorelease];
+	[nameOptions removeObjectsForKeys: @[
+		MTKTextureLoaderOptionGenerateMipmaps,
+		MTKTextureLoaderOptionSRGB,
+		MTKTextureLoaderOptionCubeLayout,
+		MTKTextureLoaderOptionOrigin,
+	]];
+
 	NSMutableArray<NSString*>* candidates = [NSMutableArray array];
 	if (scaleFactor > 1.0) {
 		[candidates addObject: [NSString stringWithFormat: @"%@@%lux", name, (unsigned long)lround(scaleFactor)]];
@@ -281,7 +364,7 @@ static void MTKTextureLoaderUnsupported(NSString* what) {
 		for (size_t i = 0; i < sizeof(kImageResourceExtensions) / sizeof(*kImageResourceExtensions); ++i) {
 			NSURL* url = [searchBundle URLForResource: candidate withExtension: kImageResourceExtensions[i]];
 			if (url != nil) {
-				return [self newTextureWithContentsOfURL: url options: options error: error];
+				return [self newTextureWithContentsOfURL: url options: nameOptions error: error];
 			}
 		}
 	}
@@ -291,12 +374,131 @@ static void MTKTextureLoaderUnsupported(NSString* what) {
 	return MTKTextureLoaderFail(error, @"no image resource named \"%@\" in %@ (asset catalogs are not supported)", name, searchBundle.bundlePath);
 }
 
+- (id<MTLTexture>)newTextureWithName: (NSString*)name
+                         scaleFactor: (CGFloat)scaleFactor
+                        displayGamut: (NSDisplayGamut)displayGamut
+                              bundle: (NSBundle*)bundle
+                             options: (NSDictionary<MTKTextureLoaderOption, id>*)options
+                               error: (NSError**)error
+{
+	// the gamut selects between variants of an asset in a catalog; the loose files searched here
+	// have none, so every gamut gets the same file
+	return [self newTextureWithName: name scaleFactor: scaleFactor bundle: bundle options: options error: error];
+}
+
 - (id<MTLTexture>)newTextureWithMDLTexture: (MDLTexture*)texture
                                    options: (NSDictionary<MTKTextureLoaderOption, id>*)options
                                      error: (NSError**)error
 {
 	// MDLTexture holds no real pixel data in Darling: ModelIO is a set of forwarding stubs
 	MTKTextureLoaderUnsupported(@"loading textures from ModelIO");
+}
+
+- (void)newTextureWithContentsOfURL: (NSURL*)URL
+                           options: (NSDictionary<MTKTextureLoaderOption, id>*)options
+                 completionHandler: (MTKTextureLoaderCallback)completionHandler
+{
+	MTKTextureLoaderLoadAsync(^id<MTLTexture>(NSError** error) {
+		return [self newTextureWithContentsOfURL: URL options: options error: error];
+	}, completionHandler);
+}
+
+- (void)newTextureWithData: (NSData*)data
+                   options: (NSDictionary<MTKTextureLoaderOption, id>*)options
+         completionHandler: (MTKTextureLoaderCallback)completionHandler
+{
+	MTKTextureLoaderLoadAsync(^id<MTLTexture>(NSError** error) {
+		return [self newTextureWithData: data options: options error: error];
+	}, completionHandler);
+}
+
+- (void)newTextureWithCGImage: (CGImageRef)cgImage
+                      options: (NSDictionary<MTKTextureLoaderOption, id>*)options
+            completionHandler: (MTKTextureLoaderCallback)completionHandler
+{
+	// refuse a nil handler before taking anything that would then leak
+	MTKTextureLoaderRequireHandler(completionHandler);
+
+	// the image is read on another thread, so hold it until the load is done
+	CGImageRetain(cgImage);
+	MTKTextureLoaderLoadAsync(^id<MTLTexture>(NSError** error) {
+		id<MTLTexture> texture = [self newTextureWithCGImage: cgImage options: options error: error];
+		CGImageRelease(cgImage);
+		return texture;
+	}, completionHandler);
+}
+
+- (void)newTextureWithMDLTexture: (MDLTexture*)texture
+                         options: (NSDictionary<MTKTextureLoaderOption, id>*)options
+               completionHandler: (MTKTextureLoaderCallback)completionHandler
+{
+	MTKTextureLoaderLoadAsync(^id<MTLTexture>(NSError** error) {
+		return [self newTextureWithMDLTexture: texture options: options error: error];
+	}, completionHandler);
+}
+
+- (void)newTextureWithName: (NSString*)name
+               scaleFactor: (CGFloat)scaleFactor
+                    bundle: (NSBundle*)bundle
+                   options: (NSDictionary<MTKTextureLoaderOption, id>*)options
+         completionHandler: (MTKTextureLoaderCallback)completionHandler
+{
+	MTKTextureLoaderLoadAsync(^id<MTLTexture>(NSError** error) {
+		return [self newTextureWithName: name scaleFactor: scaleFactor bundle: bundle options: options error: error];
+	}, completionHandler);
+}
+
+- (void)newTextureWithName: (NSString*)name
+               scaleFactor: (CGFloat)scaleFactor
+              displayGamut: (NSDisplayGamut)displayGamut
+                    bundle: (NSBundle*)bundle
+                   options: (NSDictionary<MTKTextureLoaderOption, id>*)options
+         completionHandler: (MTKTextureLoaderCallback)completionHandler
+{
+	MTKTextureLoaderLoadAsync(^id<MTLTexture>(NSError** error) {
+		return [self newTextureWithName: name scaleFactor: scaleFactor displayGamut: displayGamut bundle: bundle options: options error: error];
+	}, completionHandler);
+}
+
+- (void)newTexturesWithNames: (NSArray<NSString*>*)names
+                 scaleFactor: (CGFloat)scaleFactor
+                displayGamut: (NSDisplayGamut)displayGamut
+                      bundle: (NSBundle*)bundle
+                     options: (NSDictionary<MTKTextureLoaderOption, id>*)options
+           completionHandler: (MTKTextureLoaderArrayCallback)completionHandler
+{
+	MTKTextureLoaderLoadAllAsync(names.count, ^id<MTLTexture>(NSUInteger index, NSError** itemError) {
+		return [self newTextureWithName: names[index] scaleFactor: scaleFactor displayGamut: displayGamut bundle: bundle options: options error: itemError];
+	}, completionHandler);
+}
+
+- (NSArray<id<MTLTexture>>*)newTexturesWithContentsOfURLs: (NSArray<NSURL*>*)URLs
+                                                  options: (NSDictionary<MTKTextureLoaderOption, id>*)options
+                                                    error: (NSError**)error
+{
+	return MTKTextureLoaderLoadAll(URLs.count, error, ^id<MTLTexture>(NSUInteger index, NSError** itemError) {
+		return [self newTextureWithContentsOfURL: URLs[index] options: options error: itemError];
+	});
+}
+
+- (void)newTexturesWithContentsOfURLs: (NSArray<NSURL*>*)URLs
+                              options: (NSDictionary<MTKTextureLoaderOption, id>*)options
+                    completionHandler: (MTKTextureLoaderArrayCallback)completionHandler
+{
+	MTKTextureLoaderLoadAllAsync(URLs.count, ^id<MTLTexture>(NSUInteger index, NSError** itemError) {
+		return [self newTextureWithContentsOfURL: URLs[index] options: options error: itemError];
+	}, completionHandler);
+}
+
+- (void)newTexturesWithNames: (NSArray<NSString*>*)names
+                 scaleFactor: (CGFloat)scaleFactor
+                      bundle: (NSBundle*)bundle
+                     options: (NSDictionary<MTKTextureLoaderOption, id>*)options
+           completionHandler: (MTKTextureLoaderArrayCallback)completionHandler
+{
+	MTKTextureLoaderLoadAllAsync(names.count, ^id<MTLTexture>(NSUInteger index, NSError** itemError) {
+		return [self newTextureWithName: names[index] scaleFactor: scaleFactor bundle: bundle options: options error: itemError];
+	}, completionHandler);
 }
 
 #else

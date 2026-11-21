@@ -13,3 +13,9 @@ for t in metal_layer_window metal_layer_framebuffer_only; do
 	~/darling-skills/darling-guest-testing/scripts/guest-cc.sh -o "$O/$t" "$(dirname "$0")/$t.m" \
 		-I "$W/include" -fno-objc-arc -framework Foundation -framework AppKit -framework QuartzCore -framework Metal -Wno-deprecated-declarations -Wno-nullability-completeness
 done
+
+# need MetalKit
+for t in texture_loader_async; do
+	~/darling-skills/darling-guest-testing/scripts/guest-cc.sh -o "$O/$t" "$(dirname "$0")/$t.m" \
+		-I "$W/include" -fno-objc-arc -framework Foundation -framework AppKit -framework CoreGraphics -framework ImageIO -framework Metal -framework MetalKit -Wno-deprecated-declarations -Wno-nullability-completeness
+done
