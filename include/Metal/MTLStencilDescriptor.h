@@ -4,9 +4,7 @@
 #ifndef _METAL_MTLSTENCILDESCRIPTOR_H_
 #define _METAL_MTLSTENCILDESCRIPTOR_H_
 
-#import <Foundation/Foundation.h>
-
-@interface MTLStencilDescriptor : NSObject
-@end
+// MTLStencilDescriptor and MTLStencilOperation are declared together with the depth-stencil descriptor.
+#import <Metal/MTLDepthStencilDescriptor.h>
 
 #endif // _METAL_MTLSTENCILDESCRIPTOR_H_

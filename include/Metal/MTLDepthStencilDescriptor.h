@@ -23,12 +23,37 @@ typedef NS_ENUM(NSUInteger, MTLCompareFunction) {
 	MTLCompareFunctionAlways = 7,
 };
 
+typedef NS_ENUM(NSUInteger, MTLStencilOperation) {
+	MTLStencilOperationKeep = 0,
+	MTLStencilOperationZero = 1,
+	MTLStencilOperationReplace = 2,
+	MTLStencilOperationIncrementClamp = 3,
+	MTLStencilOperationDecrementClamp = 4,
+	MTLStencilOperationInvert = 5,
+	MTLStencilOperationIncrementWrap = 6,
+	MTLStencilOperationDecrementWrap = 7,
+};
+
+MTL_EXPORT
+@interface MTLStencilDescriptor : NSObject <NSCopying>
+
+@property(nonatomic) MTLCompareFunction stencilCompareFunction;
+@property(nonatomic) MTLStencilOperation stencilFailureOperation;
+@property(nonatomic) MTLStencilOperation depthFailureOperation;
+@property(nonatomic) MTLStencilOperation depthStencilPassOperation;
+@property(nonatomic) uint32_t readMask;
+@property(nonatomic) uint32_t writeMask;
+
+@end
+
 MTL_EXPORT
 @interface MTLDepthStencilDescriptor : NSObject
 
 @property(nullable, copy, nonatomic) NSString* label;
 @property(nonatomic, getter=isDepthWriteEnabled) BOOL depthWriteEnabled;
 @property(nonatomic) MTLCompareFunction depthCompareFunction;
+@property(null_resettable, copy, nonatomic) MTLStencilDescriptor* frontFaceStencil;
+@property(null_resettable, copy, nonatomic) MTLStencilDescriptor* backFaceStencil;
 
 @end
 

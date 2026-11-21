@@ -6,6 +6,12 @@
 #import <Metal/stubs.h>
 
 @implementation MTLDepthStencilDescriptor
+#if DARLING_METAL_ENABLED
+{
+	MTLStencilDescriptor* _frontFaceStencil;
+	MTLStencilDescriptor* _backFaceStencil;
+}
+#endif
 
 #if DARLING_METAL_ENABLED
 
@@ -13,12 +19,40 @@
 @synthesize depthWriteEnabled = _depthWriteEnabled;
 @synthesize depthCompareFunction = _depthCompareFunction;
 
+- (MTLStencilDescriptor*)frontFaceStencil
+{
+	return _frontFaceStencil;
+}
+
+- (void)setFrontFaceStencil: (MTLStencilDescriptor*)stencil
+{
+	// null_resettable: nil restores a default descriptor. The descriptor is copied, so later changes to
+	// the argument do not affect this one.
+	MTLStencilDescriptor* copy = stencil != nil ? [stencil copy] : [[MTLStencilDescriptor alloc] init];
+	[_frontFaceStencil release];
+	_frontFaceStencil = copy;
+}
+
+- (MTLStencilDescriptor*)backFaceStencil
+{
+	return _backFaceStencil;
+}
+
+- (void)setBackFaceStencil: (MTLStencilDescriptor*)stencil
+{
+	MTLStencilDescriptor* copy = stencil != nil ? [stencil copy] : [[MTLStencilDescriptor alloc] init];
+	[_backFaceStencil release];
+	_backFaceStencil = copy;
+}
+
 - (instancetype)init
 {
 	self = [super init];
 	if (self != nil) {
 		_depthWriteEnabled = YES;
 		_depthCompareFunction = MTLCompareFunctionAlways;
+		_frontFaceStencil = [[MTLStencilDescriptor alloc] init];
+		_backFaceStencil = [[MTLStencilDescriptor alloc] init];
 	}
 	return self;
 }
@@ -26,6 +60,8 @@
 - (void)dealloc
 {
 	[_label release];
+	[_frontFaceStencil release];
+	[_backFaceStencil release];
 	[super dealloc];
 }
 
@@ -34,6 +70,8 @@
 @dynamic label;
 @dynamic depthWriteEnabled;
 @dynamic depthCompareFunction;
+@dynamic frontFaceStencil;
+@dynamic backFaceStencil;
 
 MTL_UNSUPPORTED_CLASS
 
@@ -52,9 +90,8 @@ MTL_UNSUPPORTED_CLASS
 	return Indium::DepthStencilDescriptor {
 		static_cast<Indium::CompareFunction>(_depthCompareFunction),
 		static_cast<bool>(_depthWriteEnabled),
-		// MTLStencilDescriptor is still a stub, so there is no stencil to forward.
-		std::nullopt,
-		std::nullopt,
+		[_frontFaceStencil hasEffect] ? std::optional<Indium::StencilDescriptor>([_frontFaceStencil asIndiumDescriptor]) : std::nullopt,
+		[_backFaceStencil hasEffect] ? std::optional<Indium::StencilDescriptor>([_backFaceStencil asIndiumDescriptor]) : std::nullopt,
 	};
 }
 
