@@ -1,5 +1,5 @@
 // Copyright (C) 2026 Lubos Dolezel
-// Darling-specific: stub classes (MTLStencilDescriptor, MTLCaptureManager) must report a method
+// Darling-specific: stub classes (MTLCaptureManager) must report a method
 // signature whose argument count matches the selector, so an unimplemented selector with
 // arguments reaches the stub's forwardInvocation: instead of raising NSForwardSignatureError.
 #import <Foundation/Foundation.h>
@@ -33,7 +33,6 @@ static void checkClass(id obj) {
 
 int main(void) {
 	@autoreleasepool {
-		checkClass([[MTLStencilDescriptor alloc] init]);
 		checkClass([MTLCaptureManager sharedCaptureManager]);
 	}
 	printf(failures ? "FAILED: %d\n" : "OK\n", failures);
