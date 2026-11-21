@@ -5,6 +5,7 @@
 #define _METALKIT_MTKTEXTURELOADER_H_
 
 #import <Foundation/Foundation.h>
+#import <AppKit/AppKit.h>
 #import <CoreGraphics/CoreGraphics.h>
 #import <Metal/Metal.h>
 
@@ -83,6 +84,27 @@ MTL_EXPORT
                     bundle: (NSBundle*)bundle
                    options: (NSDictionary<MTKTextureLoaderOption, id>*)options
          completionHandler: (MTKTextureLoaderCallback)completionHandler;
+
+- (id<MTLTexture>)newTextureWithName: (NSString*)name
+                         scaleFactor: (CGFloat)scaleFactor
+                        displayGamut: (NSDisplayGamut)displayGamut
+                              bundle: (NSBundle*)bundle
+                             options: (NSDictionary<MTKTextureLoaderOption, id>*)options
+                               error: (NSError**)error;
+
+- (void)newTextureWithName: (NSString*)name
+               scaleFactor: (CGFloat)scaleFactor
+              displayGamut: (NSDisplayGamut)displayGamut
+                    bundle: (NSBundle*)bundle
+                   options: (NSDictionary<MTKTextureLoaderOption, id>*)options
+         completionHandler: (MTKTextureLoaderCallback)completionHandler;
+
+- (void)newTexturesWithNames: (NSArray<NSString*>*)names
+                 scaleFactor: (CGFloat)scaleFactor
+                displayGamut: (NSDisplayGamut)displayGamut
+                      bundle: (NSBundle*)bundle
+                     options: (NSDictionary<MTKTextureLoaderOption, id>*)options
+           completionHandler: (MTKTextureLoaderArrayCallback)completionHandler;
 
 - (NSArray<id<MTLTexture>>*)newTexturesWithContentsOfURLs: (NSArray<NSURL*>*)URLs
                                                   options: (NSDictionary<MTKTextureLoaderOption, id>*)options

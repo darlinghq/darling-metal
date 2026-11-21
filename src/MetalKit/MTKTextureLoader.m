@@ -365,6 +365,18 @@ static void MTKTextureLoaderLoadAllAsync(NSUInteger count, id<MTLTexture> (^load
 	return MTKTextureLoaderFail(error, @"no image resource named \"%@\" in %@ (asset catalogs are not supported)", name, searchBundle.bundlePath);
 }
 
+- (id<MTLTexture>)newTextureWithName: (NSString*)name
+                         scaleFactor: (CGFloat)scaleFactor
+                        displayGamut: (NSDisplayGamut)displayGamut
+                              bundle: (NSBundle*)bundle
+                             options: (NSDictionary<MTKTextureLoaderOption, id>*)options
+                               error: (NSError**)error
+{
+	// the gamut selects between variants of an asset in a catalog; the loose files searched here
+	// have none, so every gamut gets the same file
+	return [self newTextureWithName: name scaleFactor: scaleFactor bundle: bundle options: options error: error];
+}
+
 - (id<MTLTexture>)newTextureWithMDLTexture: (MDLTexture*)texture
                                    options: (NSDictionary<MTKTextureLoaderOption, id>*)options
                                      error: (NSError**)error
@@ -424,6 +436,30 @@ static void MTKTextureLoaderLoadAllAsync(NSUInteger count, id<MTLTexture> (^load
 {
 	MTKTextureLoaderLoadAsync(^id<MTLTexture>(NSError** error) {
 		return [self newTextureWithName: name scaleFactor: scaleFactor bundle: bundle options: options error: error];
+	}, completionHandler);
+}
+
+- (void)newTextureWithName: (NSString*)name
+               scaleFactor: (CGFloat)scaleFactor
+              displayGamut: (NSDisplayGamut)displayGamut
+                    bundle: (NSBundle*)bundle
+                   options: (NSDictionary<MTKTextureLoaderOption, id>*)options
+         completionHandler: (MTKTextureLoaderCallback)completionHandler
+{
+	MTKTextureLoaderLoadAsync(^id<MTLTexture>(NSError** error) {
+		return [self newTextureWithName: name scaleFactor: scaleFactor displayGamut: displayGamut bundle: bundle options: options error: error];
+	}, completionHandler);
+}
+
+- (void)newTexturesWithNames: (NSArray<NSString*>*)names
+                 scaleFactor: (CGFloat)scaleFactor
+                displayGamut: (NSDisplayGamut)displayGamut
+                      bundle: (NSBundle*)bundle
+                     options: (NSDictionary<MTKTextureLoaderOption, id>*)options
+           completionHandler: (MTKTextureLoaderArrayCallback)completionHandler
+{
+	MTKTextureLoaderLoadAllAsync(names.count, ^id<MTLTexture>(NSUInteger index, NSError** itemError) {
+		return [self newTextureWithName: names[index] scaleFactor: scaleFactor displayGamut: displayGamut bundle: bundle options: options error: itemError];
 	}, completionHandler);
 }
 
