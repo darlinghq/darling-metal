@@ -787,6 +787,38 @@ MTL_UNSUPPORTED_CLASS
 	_encoder->setStencilReferenceValue(frontReferenceValue, backReferenceValue);
 }
 
+- (void)setColorStoreAction: (MTLStoreAction)storeAction
+                    atIndex: (NSUInteger)colorAttachmentIndex
+{
+	_encoder->setColorStoreAction(static_cast<Indium::StoreAction>(storeAction), colorAttachmentIndex);
+}
+
+- (void)setDepthStoreAction: (MTLStoreAction)storeAction
+{
+	_encoder->setDepthStoreAction(static_cast<Indium::StoreAction>(storeAction));
+}
+
+- (void)setStencilStoreAction: (MTLStoreAction)storeAction
+{
+	_encoder->setStencilStoreAction(static_cast<Indium::StoreAction>(storeAction));
+}
+
+- (void)setColorStoreActionOptions: (MTLStoreActionOptions)storeActionOptions
+                           atIndex: (NSUInteger)colorAttachmentIndex
+{
+	_encoder->setColorStoreActionOptions(static_cast<Indium::StoreActionOptions>(storeActionOptions), colorAttachmentIndex);
+}
+
+- (void)setDepthStoreActionOptions: (MTLStoreActionOptions)storeActionOptions
+{
+	_encoder->setDepthStoreActionOptions(static_cast<Indium::StoreActionOptions>(storeActionOptions));
+}
+
+- (void)setStencilStoreActionOptions: (MTLStoreActionOptions)storeActionOptions
+{
+	_encoder->setStencilStoreActionOptions(static_cast<Indium::StoreActionOptions>(storeActionOptions));
+}
+
 - (void)setDepthBias: (float)depthBias
           slopeScale: (float)slopeScale
                clamp: (float)clamp
