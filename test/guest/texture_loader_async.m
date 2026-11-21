@@ -7,6 +7,7 @@
 // an NSNull in the place of a failed one, and the first failure as the error (nil when everything loaded).
 // Exits 77 when there is no Metal device.
 #import <Foundation/Foundation.h>
+#import <AppKit/AppKit.h>
 #import <CoreGraphics/CoreGraphics.h>
 #import <ImageIO/ImageIO.h>
 #import <Metal/Metal.h>
@@ -152,6 +153,16 @@ int main(void) {
 		});
 		checkFailed(result);
 
+		// the displayGamut variants load like the others and fail like the others
+		result = runSingle(^(MTKTextureLoaderCallback handler) {
+			[loader newTextureWithName: @"texture_loader_async_no_such_texture" scaleFactor: 1.0 displayGamut: NSDisplayGamutSRGB bundle: nil options: nil completionHandler: handler];
+		});
+		checkFailed(result);
+
+		NSError* gamutError = nil;
+		CHECK([loader newTextureWithName: @"texture_loader_async_no_such_texture" scaleFactor: 1.0 displayGamut: NSDisplayGamutP3 bundle: nil options: nil error: &gamutError] == nil);
+		CHECK(gamutError != nil);
+
 		// array loaders: request order, NSNull for the failed one, first failure as the error
 		NSArray* urls = @[goodURL, missingURL, goodURL];
 		NSError* error = (NSError*)@"unset";
@@ -193,6 +204,12 @@ int main(void) {
 		CHECK(arrayResult.textures.count == 2);
 		CHECK(arrayResult.textures[0] == [NSNull null] && arrayResult.textures[1] == [NSNull null]);
 		CHECK(arrayResult.error != nil);
+		[arrayResult.textures release];
+
+		arrayResult = runArray(^(MTKTextureLoaderArrayCallback handler) {
+			[loader newTexturesWithNames: @[@"texture_loader_async_no_such_a"] scaleFactor: 1.0 displayGamut: NSDisplayGamutSRGB bundle: nil options: nil completionHandler: handler];
+		});
+		CHECK(arrayResult.calls == 1 && arrayResult.textures.count == 1 && arrayResult.textures[0] == [NSNull null] && arrayResult.error != nil);
 		[arrayResult.textures release];
 
 		CGImageRelease(image);

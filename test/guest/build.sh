@@ -17,5 +17,5 @@ done
 # need MetalKit
 for t in texture_loader_async; do
 	~/darling-skills/darling-guest-testing/scripts/guest-cc.sh -o "$O/$t" "$(dirname "$0")/$t.m" \
-		-I "$W/include" -fno-objc-arc -framework Foundation -framework CoreGraphics -framework ImageIO -framework Metal -framework MetalKit -Wno-deprecated-declarations -Wno-nullability-completeness
+		-I "$W/include" -fno-objc-arc -framework Foundation -framework AppKit -framework CoreGraphics -framework ImageIO -framework Metal -framework MetalKit -Wno-deprecated-declarations -Wno-nullability-completeness
 done
