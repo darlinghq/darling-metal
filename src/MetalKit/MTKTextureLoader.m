@@ -345,6 +345,15 @@ static void MTKTextureLoaderLoadAllAsync(NSUInteger count, id<MTLTexture> (^load
 
 	NSBundle* searchBundle = bundle ?: [NSBundle mainBundle];
 
+	// the documentation says this loader ignores the generateMipmaps, SRGB, cubeLayout and origin options
+	NSMutableDictionary<MTKTextureLoaderOption, id>* nameOptions = [[options mutableCopy] autorelease];
+	[nameOptions removeObjectsForKeys: @[
+		MTKTextureLoaderOptionGenerateMipmaps,
+		MTKTextureLoaderOptionSRGB,
+		MTKTextureLoaderOptionCubeLayout,
+		MTKTextureLoaderOptionOrigin,
+	]];
+
 	NSMutableArray<NSString*>* candidates = [NSMutableArray array];
 	if (scaleFactor > 1.0) {
 		[candidates addObject: [NSString stringWithFormat: @"%@@%lux", name, (unsigned long)lround(scaleFactor)]];
@@ -355,7 +364,7 @@ static void MTKTextureLoaderLoadAllAsync(NSUInteger count, id<MTLTexture> (^load
 		for (size_t i = 0; i < sizeof(kImageResourceExtensions) / sizeof(*kImageResourceExtensions); ++i) {
 			NSURL* url = [searchBundle URLForResource: candidate withExtension: kImageResourceExtensions[i]];
 			if (url != nil) {
-				return [self newTextureWithContentsOfURL: url options: options error: error];
+				return [self newTextureWithContentsOfURL: url options: nameOptions error: error];
 			}
 		}
 	}

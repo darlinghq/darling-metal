@@ -169,6 +169,21 @@ int main(void) {
 		CHECK([loader newTextureWithName: @"texture_loader_async_no_such_texture" scaleFactor: 1.0 displayGamut: NSDisplayGamutP3 bundle: nil options: nil error: &gamutError] == nil);
 		CHECK(gamutError != nil);
 
+		// name loaders ignore the generateMipmaps, SRGB, cubeLayout and origin options (documented), so
+		// options that the URL loader would refuse or act on do not matter here
+		CHECK([png writeToFile: [directory stringByAppendingPathComponent: @"named.png"] atomically: YES]);
+		NSBundle* directoryBundle = [NSBundle bundleWithPath: directory];
+		NSDictionary* ignored = @{
+			MTKTextureLoaderOptionGenerateMipmaps: @YES,
+			MTKTextureLoaderOptionSRGB: @NO,
+			MTKTextureLoaderOptionCubeLayout: @"MTKTextureLoaderCubeLayoutVertical",
+			MTKTextureLoaderOptionOrigin: MTKTextureLoaderOriginBottomLeft,
+		};
+		NSError* nameError = nil;
+		id<MTLTexture> named = [loader newTextureWithName: @"named" scaleFactor: 1.0 bundle: directoryBundle options: ignored error: &nameError];
+		CHECK(named != nil && nameError == nil && named.width == kWidth && named.height == kHeight);
+		[named release];
+
 		// array loaders: request order, NSNull for the failed one, first failure as the error
 		NSArray* urls = @[goodURL, missingURL, goodURL];
 		NSError* error = (NSError*)@"unset";
