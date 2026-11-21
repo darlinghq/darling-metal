@@ -278,6 +278,14 @@ MTL_EXPORT
 - (void)setStencilReferenceValue: (uint32_t)refValue;
 - (void)setStencilFrontReferenceValue: (uint32_t)frontReferenceValue
                    backReferenceValue: (uint32_t)backReferenceValue;
+- (void)setColorStoreAction: (MTLStoreAction)storeAction
+                    atIndex: (NSUInteger)colorAttachmentIndex;
+- (void)setDepthStoreAction: (MTLStoreAction)storeAction;
+- (void)setStencilStoreAction: (MTLStoreAction)storeAction;
+- (void)setColorStoreActionOptions: (MTLStoreActionOptions)storeActionOptions
+                           atIndex: (NSUInteger)colorAttachmentIndex;
+- (void)setDepthStoreActionOptions: (MTLStoreActionOptions)storeActionOptions;
+- (void)setStencilStoreActionOptions: (MTLStoreActionOptions)storeActionOptions;
 - (void)setDepthBias: (float)depthBias
           slopeScale: (float)slopeScale
                clamp: (float)clamp;
