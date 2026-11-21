@@ -276,6 +276,8 @@ MTL_EXPORT
                     blue: (float)blue
                    alpha: (float)alpha;
 - (void)setStencilReferenceValue: (uint32_t)refValue;
+- (void)setStencilFrontReferenceValue: (uint32_t)frontReferenceValue
+                   backReferenceValue: (uint32_t)backReferenceValue;
 - (void)setDepthBias: (float)depthBias
           slopeScale: (float)slopeScale
                clamp: (float)clamp;

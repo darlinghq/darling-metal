@@ -781,6 +781,12 @@ MTL_UNSUPPORTED_CLASS
 	_encoder->setStencilReferenceValue(refValue);
 }
 
+- (void)setStencilFrontReferenceValue: (uint32_t)frontReferenceValue
+                   backReferenceValue: (uint32_t)backReferenceValue
+{
+	_encoder->setStencilReferenceValue(frontReferenceValue, backReferenceValue);
+}
+
 - (void)setDepthBias: (float)depthBias
           slopeScale: (float)slopeScale
                clamp: (float)clamp

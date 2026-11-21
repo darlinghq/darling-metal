@@ -25,7 +25,6 @@
 @synthesize colorAttachments = _colorAttachments;
 @synthesize depthAttachmentPixelFormat = _depthAttachmentPixelFormat;
 @synthesize stencilAttachmentPixelFormat = _stencilAttachmentPixelFormat;
-@synthesize sampleCount = _sampleCount;
 @synthesize alphaToCoverageEnabled = _alphaToCoverageEnabled;
 @synthesize alphaToOneEnabled = _alphaToOneEnabled;
 @synthesize rasterizationEnabled = _rasterizationEnabled;
@@ -58,10 +57,9 @@
 	_colorAttachments = [MTLRenderPipelineColorAttachmentDescriptorArray new];
 	_depthAttachmentPixelFormat = MTLPixelFormatInvalid;
 	_stencilAttachmentPixelFormat = MTLPixelFormatInvalid;
-	_sampleCount = 1;
 	_rasterizationEnabled = YES;
 	_inputPrimitiveTopology = MTLPrimitiveTopologyClassUnspecified;
-	_rasterSampleCount = 1; // good guess; TODO: check the actual default
+	_rasterSampleCount = 1;
 	_maxTessellationFactor = 16;
 	_tessellationFactorFormat = MTLTessellationFactorFormatHalf;
 	_tessellationControlPointIndexType = MTLTessellationControlPointIndexTypeNone;
@@ -70,6 +68,17 @@
 	_tessellationPartitionMode = MTLTessellationPartitionModePow2;
 	_fragmentPreloadedLibraries = [NSArray new];
 	_vertexPreloadedLibraries = [NSArray new];
+}
+
+// sampleCount is the older name of rasterSampleCount; the two are the same setting
+- (NSUInteger)sampleCount
+{
+	return _rasterSampleCount;
+}
+
+- (void)setSampleCount:(NSUInteger)sampleCount
+{
+	_rasterSampleCount = sampleCount;
 }
 
 - (void)_doDealloc
@@ -120,7 +129,6 @@
 	copy->_colorAttachments = [_colorAttachments copy];
 	copy.depthAttachmentPixelFormat = _depthAttachmentPixelFormat;
 	copy.stencilAttachmentPixelFormat = _stencilAttachmentPixelFormat;
-	copy.sampleCount = _sampleCount;
 	copy.alphaToCoverageEnabled = _alphaToCoverageEnabled;
 	copy.alphaToOneEnabled = _alphaToOneEnabled;
 	copy.rasterizationEnabled = _rasterizationEnabled;
