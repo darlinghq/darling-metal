@@ -39,7 +39,7 @@
 		_lodMaxClamp = FLT_MAX;
 		_supportArgumentBuffers = NO;
 		_borderColor = MTLSamplerBorderColorTransparentBlack;
-		_compareFunction = MTLCompareFunctionAlways;
+		_compareFunction = MTLCompareFunctionNever;
 	}
 	return self;
 }
