@@ -66,6 +66,8 @@ static SingleResult runSingle(void (^start)(MTKTextureLoaderCallback handler)) {
 		dispatch_semaphore_signal(done);
 	} copy] autorelease]);
 	CHECK(waitFor(done));
+	// a handler that is called twice would show up as a second call shortly after the first
+	usleep(200 * 1000);
 	dispatch_release(done);
 	return result;
 }
@@ -80,6 +82,8 @@ static ArrayResult runArray(void (^start)(MTKTextureLoaderArrayCallback handler)
 		dispatch_semaphore_signal(done);
 	} copy] autorelease]);
 	CHECK(waitFor(done));
+	// a handler that is called twice would show up as a second call shortly after the first
+	usleep(200 * 1000);
 	dispatch_release(done);
 	return result;
 }
@@ -91,12 +95,14 @@ static void checkLoaded(SingleResult result, id<MTLDevice> device) {
 	CHECK(result.texture.width == kWidth);
 	CHECK(result.texture.height == kHeight);
 	CHECK(result.texture.device == device);
+	[result.error release];
 }
 
 static void checkFailed(SingleResult result) {
 	CHECK(result.calls == 1);
 	CHECK(result.texture == nil);
 	CHECK(result.error != nil);
+	[result.error release];
 }
 
 int main(void) {
@@ -190,12 +196,14 @@ int main(void) {
 		CHECK([arrayResult.textures[2] conformsToProtocol: @protocol(MTLTexture)]);
 		CHECK(arrayResult.error != nil);
 		[arrayResult.textures release];
+		[arrayResult.error release];
 
 		arrayResult = runArray(^(MTKTextureLoaderArrayCallback handler) {
 			[loader newTexturesWithContentsOfURLs: @[goodURL] options: nil completionHandler: handler];
 		});
 		CHECK(arrayResult.calls == 1 && arrayResult.textures.count == 1 && arrayResult.error == nil);
 		[arrayResult.textures release];
+		[arrayResult.error release];
 
 		arrayResult = runArray(^(MTKTextureLoaderArrayCallback handler) {
 			[loader newTexturesWithNames: @[@"texture_loader_async_no_such_a", @"texture_loader_async_no_such_b"] scaleFactor: 1.0 bundle: nil options: nil completionHandler: handler];
@@ -205,12 +213,14 @@ int main(void) {
 		CHECK(arrayResult.textures[0] == [NSNull null] && arrayResult.textures[1] == [NSNull null]);
 		CHECK(arrayResult.error != nil);
 		[arrayResult.textures release];
+		[arrayResult.error release];
 
 		arrayResult = runArray(^(MTKTextureLoaderArrayCallback handler) {
 			[loader newTexturesWithNames: @[@"texture_loader_async_no_such_a"] scaleFactor: 1.0 displayGamut: NSDisplayGamutSRGB bundle: nil options: nil completionHandler: handler];
 		});
 		CHECK(arrayResult.calls == 1 && arrayResult.textures.count == 1 && arrayResult.textures[0] == [NSNull null] && arrayResult.error != nil);
 		[arrayResult.textures release];
+		[arrayResult.error release];
 
 		CGImageRelease(image);
 		[[NSFileManager defaultManager] removeItemAtPath: directory error: nil];
