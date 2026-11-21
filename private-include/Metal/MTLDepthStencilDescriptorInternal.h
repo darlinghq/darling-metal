@@ -14,6 +14,14 @@
 METAL_DECLARATIONS_BEGIN
 
 #if DARLING_METAL_ENABLED
+@interface MTLStencilDescriptor (Internal)
+
+// Whether the descriptor can change the outcome of a stencil test (see the implementation).
+- (BOOL)hasEffect;
+- (Indium::StencilDescriptor)asIndiumDescriptor;
+
+@end
+
 @interface MTLDepthStencilDescriptor (Internal)
 
 - (Indium::DepthStencilDescriptor)asIndiumDescriptor;
