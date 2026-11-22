@@ -187,6 +187,28 @@ static bool MTLReadBindings(NSArray* bindings, Indium::FunctionReflection& outFu
 			outFunction.bindings.push_back(binding);
 			continue;
 		}
+		else if ([kind isEqualToString: @"StageOutput"] || [kind isEqualToString: @"StageInput"]) {
+			// A varying of a vertex function's returned struct, or of a fragment function's stage-in struct.
+			// It is no resource: indium pairs the fragment inputs with the vertex outputs by name when it
+			// makes a pipeline, so the entry only gives name, type and Location.
+			const bool output = [kind isEqualToString: @"StageOutput"];
+			Indium::StageInterfaceField field;
+			size_t location = 0;
+			NSString* name = nil;
+			NSString* type = nil;
+			if (outFunction.functionType != (output ? Indium::FunctionType::Vertex : Indium::FunctionType::Fragment) ||
+				!MTLReadIndex([object objectForKey: @"location"], location) || location > UINT32_MAX ||
+				!MTLReadString(object, @"name", name) || !MTLReadString(object, @"type", type))
+			{
+				outError = MTLReflectionError(@"invalid stage interface entry");
+				return false;
+			}
+			field.name = name.UTF8String;
+			field.type = type.UTF8String;
+			field.location = (uint32_t)location;
+			outFunction.stageInterface.push_back(field);
+			continue;
+		}
 		else {
 			outError = MTLReflectionError(@"unsupported reflection binding kind '%@'", kind);
 			return false;
