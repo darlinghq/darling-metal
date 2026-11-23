@@ -399,6 +399,17 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 	return length > NSUIntegerMax ? NSUIntegerMax : static_cast<NSUInteger>(length);
 }
 
+- (MTLSize)maxThreadsPerThreadgroup
+{
+	auto size = _device->maxThreadsPerThreadgroup();
+	return MTLSizeMake(size.width, size.height, size.depth);
+}
+
+- (NSUInteger)maxThreadgroupMemoryLength
+{
+	return _device->maxThreadgroupMemoryLength();
+}
+
 - (BOOL)isDepth24Stencil8PixelFormatSupported
 {
 	return _device->supportsDepth24Stencil8PixelFormat();

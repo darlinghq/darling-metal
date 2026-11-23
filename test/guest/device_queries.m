@@ -1,6 +1,6 @@
 // Copyright (C) 2026 Lubos Dolezel
-// Darling-specific: MTLDevice's argument-buffer tier and barycentric support answers, and
-// MTLCommandBuffer enqueue / scheduling waits. Exits 77 when there is no Metal device.
+// Darling-specific: MTLDevice's argument-buffer tier and barycentric support answers, its threadgroup
+// limits, and MTLCommandBuffer enqueue / scheduling waits. Exits 77 when there is no Metal device.
 #import <Foundation/Foundation.h>
 #import <Metal/Metal.h>
 #import <objc/message.h>
@@ -25,6 +25,21 @@ int main(void) {
 		CHECK([device respondsToSelector: @selector(supportsShaderBarycentricCoordinates)]);
 		BOOL bary = ((BOOL (*)(id, SEL))objc_msgSend)(device, @selector(supportsShaderBarycentricCoordinates));
 		CHECK(bary == NO);
+
+		BOOL limits = [device respondsToSelector: @selector(maxThreadsPerThreadgroup)]
+			&& [device respondsToSelector: @selector(maxThreadgroupMemoryLength)];
+		CHECK(limits);
+		if (limits) {
+			// a 24-byte MTLSize, returned through objc_msgSend_stret on x86_64
+			MTLSize threads = device.maxThreadsPerThreadgroup;
+			NSUInteger memory = device.maxThreadgroupMemoryLength;
+			printf("maxThreadsPerThreadgroup %lu x %lu x %lu, maxThreadgroupMemoryLength %lu\n",
+				(unsigned long)threads.width, (unsigned long)threads.height, (unsigned long)threads.depth, (unsigned long)memory);
+			CHECK(threads.width >= 1 && threads.width <= 1024);
+			CHECK(threads.height >= 1 && threads.height <= 1024);
+			CHECK(threads.depth >= 1 && threads.depth <= 1024);
+			CHECK(memory > 0);
+		}
 
 		id<MTLCommandQueue> queue = [device newCommandQueue];
 		CHECK(queue != nil);
