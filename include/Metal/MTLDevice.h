@@ -210,6 +210,9 @@ typedef NS_ENUM(NSUInteger, MTLCounterSamplingPoint) {
 /* For a built-in GPU 0 when it is the low-power one and 1 otherwise; 0 for other locations. */
 @property(readonly) NSUInteger locationNumber;
 
+/* 0: Apple specifies 0 for built-in GPUs, and Vulkan reports no link rate for the others. */
+@property(readonly) uint64_t maxTransferRate;
+
 /* The counter sets the device can sample: only the timestamp set, and none where the device cannot sample timestamps. */
 @property(readonly, nullable) NSArray<id<MTLCounterSet>>* counterSets;
 
