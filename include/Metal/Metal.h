@@ -29,6 +29,7 @@
 #import <Metal/MTLEvent.h>
 #import <Metal/MTLFence.h>
 #import <Metal/MTLFunctionConstantValues.h>
+#import <Metal/MTLFunctionDescriptor.h>
 #import <Metal/MTLHeap.h>
 #import <Metal/MTLIndirectCommandBuffer.h>
 #import <Metal/MTLIntersectionFunctionTable.h>

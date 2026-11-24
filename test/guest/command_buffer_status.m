@@ -95,7 +95,17 @@ int main(void) {
 		[commands waitUntilCompleted];
 		CHECK(commands.status == MTLCommandBufferStatusCompleted);
 
+		// a new descriptor makes command buffers like -commandBuffer does
 		MTLCommandBufferDescriptor* descriptor = [[MTLCommandBufferDescriptor alloc] init];
+		CHECK(descriptor.retainedReferences == YES);
+		CHECK(descriptor.errorOptions == MTLCommandBufferErrorOptionNone);
+		commands = [queue commandBufferWithDescriptor: descriptor];
+		CHECK(commands.retainedReferences == YES);
+		CHECK(commands.errorOptions == MTLCommandBufferErrorOptionNone);
+		MTLCommandBufferDescriptor* copy = [descriptor copy];
+		CHECK(copy.retainedReferences == YES);
+		[copy release];
+
 		descriptor.retainedReferences = NO;
 		descriptor.errorOptions = MTLCommandBufferErrorOptionEncoderExecutionStatus;
 		commands = [queue commandBufferWithDescriptor: descriptor];

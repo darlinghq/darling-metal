@@ -30,8 +30,7 @@ MTL_EXPORT
 @interface MTLSharedEventInternal : NSObject <MTLSharedEvent>
 
 #if DARLING_METAL_ENABLED
-- (instancetype)initWithEvent: (std::shared_ptr<Indium::SharedEvent>)event
-                       device: (id<MTLDevice>)device;
+- (instancetype)initWithEvent: (std::shared_ptr<Indium::SharedEvent>)event;
 - (std::shared_ptr<Indium::SharedEvent>)indiumSharedEvent;
 #endif
 

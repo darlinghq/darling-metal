@@ -81,6 +81,7 @@ MTL_EXPORT
 @interface MTLCommandBufferDescriptor : NSObject <NSCopying>
 
 @property(nullable, nonatomic, retain) id<MTLLogState> logState;
+// YES by default, like -[MTLCommandQueue commandBuffer].
 @property(nonatomic) BOOL retainedReferences;
 @property(nonatomic) MTLCommandBufferErrorOption errorOptions;
 

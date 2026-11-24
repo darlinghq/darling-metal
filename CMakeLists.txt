@@ -110,6 +110,7 @@ add_framework(Metal
 		src/Metal/MTLEvent.mm
 		src/Metal/MTLFence.mm
 		src/Metal/MTLFunctionConstantValues.mm
+		src/Metal/MTLFunctionDescriptor.mm
 		src/Metal/MTLHeap.mm
 		src/Metal/MTLIndirectCommandBuffer.mm
 		src/Metal/MTLIntersectionFunctionTable.mm

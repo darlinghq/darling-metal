@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MPL-2.0
 
 #import <Metal/MTLLibraryInternal.h>
+#import <Metal/MTLFunctionDescriptor.h>
 #import <Metal/MTLDevice.h>
 #import <Metal/stubs.h>
 #import <Metal/MTLIndiumErrors.h>
@@ -210,6 +211,18 @@ MTL_EXTERN NSErrorDomain const MTLLibraryErrorDomain = @"MTLLibraryErrorDomain";
 		}
 	}
 	return self;
+}
+
+- (void)setName: (NSString*)name
+{
+	NSString* old = _name;
+	_name = [name copy];
+	[old release];
+}
+
+- (void)setOptions: (MTLFunctionOptions)options
+{
+	_options = options;
 }
 
 - (void)dealloc
@@ -450,6 +463,45 @@ MTL_UNSUPPORTED_CLASS
 {
 	NSError* error = nil;
 	id<MTLFunction> function = [self newFunctionWithName: functionName constantValues: constantValues error: &error];
+	void (^handler)(id<MTLFunction>, NSError*) = [completionHandler copy];
+	dispatch_async(dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^{
+		handler(function, error);
+		[function release];
+		[handler release];
+	});
+}
+
+- (id<MTLFunction>)newFunctionWithDescriptor: (MTLFunctionDescriptor*)descriptor
+                                       error: (NSError**)error
+{
+	if (error) {
+		*error = nil;
+	}
+	NSString* functionName = descriptor.name;
+	MTLFunctionInternal* function;
+	if (descriptor.constantValues) {
+		function = [self newFunctionWithName: functionName constantValues: descriptor.constantValues error: error];
+	} else {
+		function = [self newFunctionWithName: functionName];
+		if (!function) {
+			MTLSetError(error, MTLLibraryErrorFunctionNotFound, [NSString stringWithFormat: @"Function '%@' was not found in the library", functionName]);
+		}
+	}
+	if (!function) {
+		return nil;
+	}
+	if (descriptor.specializedName) {
+		function.name = descriptor.specializedName;
+	}
+	function.options = descriptor.options;
+	return function;
+}
+
+- (void)newFunctionWithDescriptor: (MTLFunctionDescriptor*)descriptor
+                completionHandler: (void (^)(id<MTLFunction> function, NSError* error))completionHandler
+{
+	NSError* error = nil;
+	id<MTLFunction> function = [self newFunctionWithDescriptor: descriptor error: &error];
 	void (^handler)(id<MTLFunction>, NSError*) = [completionHandler copy];
 	dispatch_async(dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^{
 		handler(function, error);
