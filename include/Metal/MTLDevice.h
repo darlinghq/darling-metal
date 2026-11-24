@@ -38,6 +38,8 @@ typedef struct MTLSizeAndAlign {
 @protocol MTLCounterSet;
 @protocol MTLCounterSampleBuffer;
 @class MTLCounterSampleBufferDescriptor;
+@protocol MTLBinaryArchive;
+@class MTLBinaryArchiveDescriptor;
 
 @class MTLCompileOptions;
 @class MTLComputePipelineDescriptor;
@@ -354,6 +356,9 @@ typedef NS_ENUM(NSUInteger, MTLCounterSamplingPoint) {
 - (nullable id<MTLLibrary>)newLibraryWithSource: (NSString*)source
                                         options: (nullable MTLCompileOptions*)options
                                           error: (NSError**)error;
+
+- (nullable id<MTLBinaryArchive>)newBinaryArchiveWithDescriptor: (MTLBinaryArchiveDescriptor*)descriptor
+                                                          error: (NSError**)error;
 
 // TODO: other methods and properties
 

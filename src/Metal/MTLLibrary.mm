@@ -6,7 +6,12 @@
 #import <Metal/stubs.h>
 #import <Metal/MTLIndiumErrors.h>
 #import <Metal/MTLAttributeInfo.h>
+#include <algorithm>
 #include <cstring>
+
+#if DARLING_METAL_ENABLED
+#include <CommonCrypto/CommonDigest.h>
+#endif
 
 MTL_EXTERN NSErrorDomain const MTLLibraryErrorDomain = @"MTLLibraryErrorDomain";
 
@@ -140,6 +145,7 @@ MTL_EXTERN NSErrorDomain const MTLLibraryErrorDomain = @"MTLLibraryErrorDomain";
 #if DARLING_METAL_ENABLED
 
 @synthesize function = _function;
+@synthesize archiveKey = _archiveKey;
 @synthesize device = _device;
 @synthesize functionType = _functionType;
 @synthesize name = _name;
@@ -153,11 +159,13 @@ MTL_EXTERN NSErrorDomain const MTLLibraryErrorDomain = @"MTLLibraryErrorDomain";
 
 - (instancetype)initWithFunction: (std::shared_ptr<Indium::Function>)function
                           device: (id<MTLDevice>)device
+                      archiveKey: (NSData*)archiveKey
 {
 	self = [super init];
 	if (self != nil) {
 		_function = function;
 		_device = [device retain];
+		_archiveKey = [archiveKey copy];
 
 		// cache the name
 		_name = [[NSString alloc] initWithUTF8String: _function->name().c_str()];
@@ -207,6 +215,7 @@ MTL_EXTERN NSErrorDomain const MTLLibraryErrorDomain = @"MTLLibraryErrorDomain";
 - (void)dealloc
 {
 	[_device release];
+	[_archiveKey release];
 	[_name release];
 	[_vertexAttributes release];
 	[_stageInputAttributes release];
@@ -271,6 +280,7 @@ MTL_UNSUPPORTED_CLASS
 
 {
 	std::shared_ptr<Indium::Library> _library;
+	unsigned char _digest[CC_SHA256_DIGEST_LENGTH];
 }
 
 @synthesize installName = _installName;
@@ -281,10 +291,18 @@ MTL_UNSUPPORTED_CLASS
 
 - (instancetype)initWithLibrary: (std::shared_ptr<Indium::Library>)library
                          device: (id<MTLDevice>)device
+                       contents: (const void*)contents
+                         length: (size_t)length
 {
 	self = [super init];
 	if (self != nil) {
 		_library = library;
+		CC_SHA256_CTX context;
+		CC_SHA256_Init(&context);
+		for (size_t offset = 0; offset < length; offset += UINT32_MAX) {
+			CC_SHA256_Update(&context, static_cast<const char*>(contents) + offset, static_cast<CC_LONG>(std::min<size_t>(length - offset, UINT32_MAX)));
+		}
+		CC_SHA256_Final(_digest, &context);
 
 		// TODO: dynamic libraries
 		_installName = nil;
@@ -307,6 +325,33 @@ MTL_UNSUPPORTED_CLASS
 	[super dealloc];
 }
 
+// A function of this library, by its name and the values given for its constants, as the SHA-256 of the
+// library's digest, the name and its terminating NUL, and each value (in the order of the constant indices)
+// as a little-endian 64-bit index, the constant type's byte and the value's 32 bits in little-endian order.
+- (NSData*)archiveKeyForFunction: (NSString*)functionName
+                          values: (const Indium::FunctionConstantValues&)values
+{
+	CC_SHA256_CTX context;
+	CC_SHA256_Init(&context);
+	CC_SHA256_Update(&context, _digest, sizeof(_digest));
+	const char* name = functionName.UTF8String;
+	CC_SHA256_Update(&context, name, static_cast<CC_LONG>(strlen(name) + 1));
+	for (const auto& [index, value]: values.byIndex()) {
+		unsigned char entry[13];
+		for (int i = 0; i < 8; i++) {
+			entry[i] = static_cast<unsigned char>(static_cast<uint64_t>(index) >> (8 * i));
+		}
+		entry[8] = static_cast<unsigned char>(value.type);
+		for (int i = 0; i < 4; i++) {
+			entry[9 + i] = static_cast<unsigned char>(value.bits >> (8 * i));
+		}
+		CC_SHA256_Update(&context, entry, sizeof(entry));
+	}
+	NSMutableData* key = [NSMutableData dataWithLength: CC_SHA256_DIGEST_LENGTH];
+	CC_SHA256_Final(static_cast<unsigned char*>(key.mutableBytes), &context);
+	return key;
+}
+
 - (id<MTLFunction>)newFunctionWithName: (NSString*)functionName
 {
 	if (!functionName) {
@@ -319,7 +364,7 @@ MTL_UNSUPPORTED_CLASS
 	if (!func) {
 		return nil;
 	}
-	return [[MTLFunctionInternal alloc] initWithFunction: func device: _device];
+	return [[MTLFunctionInternal alloc] initWithFunction: func device: _device archiveKey: [self archiveKeyForFunction: functionName values: {}]];
 }
 
 - (id<MTLFunction>)newFunctionWithName: (NSString*)functionName
@@ -396,7 +441,7 @@ MTL_UNSUPPORTED_CLASS
 		}
 		return nil;
 	}
-	return [[MTLFunctionInternal alloc] initWithFunction: func device: _device];
+	return [[MTLFunctionInternal alloc] initWithFunction: func device: _device archiveKey: [self archiveKeyForFunction: functionName values: values]];
 }
 
 - (void)newFunctionWithName: (NSString*)functionName
