@@ -906,7 +906,7 @@ static size_t iosurfacePixelSize(MTLPixelFormat format)
 	if (!event) {
 		return nil;
 	}
-	return [[MTLSharedEventInternal alloc] initWithEvent: event device: self];
+	return [[MTLSharedEventInternal alloc] initWithEvent: event];
 }
 
 - (id<MTLSharedEvent>)newSharedEventWithHandle: (MTLSharedEventHandle*)sharedEventHandle
@@ -918,7 +918,7 @@ static size_t iosurfacePixelSize(MTLPixelFormat format)
 	if (!event) {
 		return nil;
 	}
-	return [[MTLSharedEventInternal alloc] initWithEvent: event device: self];
+	return [[MTLSharedEventInternal alloc] initWithEvent: event];
 }
 
 - (id<MTLFence>)newFence

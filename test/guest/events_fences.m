@@ -74,8 +74,8 @@ int main(void) {
 			id<MTLFence> fence = [device newFence];
 			CHECK(event != nil && shared != nil && fence != nil);
 			CHECK(event.device == device && fence.device == device);
-			// a shared event's device is nil on macOS 27 and the device here (the property is nullable)
-			CHECK(shared.device == nil || shared.device == device);
+			// a shared event is not tied to a device
+			CHECK(shared.device == nil);
 			CHECK([shared conformsToProtocol: @protocol(MTLEvent)]);
 			CHECK(![(id)event respondsToSelector: @selector(signaledValue)]);
 			CHECK(![(id)event respondsToSelector: @selector(setSignaledValue:)]);
@@ -316,7 +316,7 @@ int main(void) {
 			MTLSharedEventHandle* handle = [shared newSharedEventHandle];
 			CHECK(handle != nil && handle.label == nil);
 			id<MTLSharedEvent> copy = [device newSharedEventWithHandle: handle];
-			CHECK(copy != nil && copy != shared);
+			CHECK(copy != nil && copy != shared && copy.device == nil);
 			CHECK(copy.signaledValue == 7);
 			copy.signaledValue = 9;
 			CHECK(shared.signaledValue == 9);
