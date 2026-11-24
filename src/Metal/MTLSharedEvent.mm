@@ -140,7 +140,6 @@ MTL_UNSUPPORTED_CLASS
 	std::shared_ptr<Indium::SharedEvent> _event;
 }
 
-@synthesize device = _device;
 @synthesize label = _label;
 
 // What Indium calls when the value is reached, which is on its event loop thread: the notification block is
@@ -189,14 +188,18 @@ struct MTLSharedEventNotification {
 };
 
 - (instancetype)initWithEvent: (std::shared_ptr<Indium::SharedEvent>)event
-                       device: (id<MTLDevice>)device
 {
 	self = [super init];
 	if (self != nil) {
 		_event = event;
-		_device = [device retain];
 	}
 	return self;
+}
+
+// A shared event can be used across devices, so it has none, as Apple's MTLEvent.h says and as on macOS 27.
+- (id<MTLDevice>)device
+{
+	return nil;
 }
 
 - (std::shared_ptr<Indium::SharedEvent>)indiumSharedEvent
@@ -206,7 +209,6 @@ struct MTLSharedEventNotification {
 
 - (void)dealloc
 {
-	[_device release];
 	[_label release];
 	[super dealloc];
 }
