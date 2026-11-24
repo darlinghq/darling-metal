@@ -20,6 +20,10 @@
 // the values of its function constants
 @property(readonly) NSData* archiveKey;
 
+// set by -[MTLLibrary newFunctionWithDescriptor:error:] from the descriptor
+- (void)setName: (NSString*)name;
+- (void)setOptions: (MTLFunctionOptions)options;
+
 - (instancetype)initWithFunction: (std::shared_ptr<Indium::Function>)function
                           device: (id<MTLDevice>)device
                       archiveKey: (NSData*)archiveKey;
