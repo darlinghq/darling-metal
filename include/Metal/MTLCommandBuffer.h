@@ -19,6 +19,7 @@ METAL_DECLARATIONS_BEGIN
 @protocol MTLCommandQueue;
 @protocol MTLRenderCommandEncoder;
 @protocol MTLParallelRenderCommandEncoder;
+@protocol MTLResidencySet;
 
 @class MTLBlitPassDescriptor;
 @class MTLComputePassDescriptor;
@@ -135,6 +136,11 @@ MTL_EXPORT
 /* Holds the work encoded after this call, and the command buffers committed after this one on its queue, until `event` has reached `value`. */
 - (void)encodeWaitForEvent: (id<MTLEvent>)event
                      value: (uint64_t)value;
+
+// Residency sets for this command buffer. Every allocation is resident here, so these change nothing.
+- (void)useResidencySet: (id<MTLResidencySet>)residencySet;
+- (void)useResidencySets: (const id<MTLResidencySet> __nonnull[__nonnull])residencySets
+                   count: (NSUInteger)count;
 
 
 @end

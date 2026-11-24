@@ -390,6 +390,17 @@ static CFTimeInterval MTLLoadTime(uint64_t* slot)
 	_commandBuffer->encodeWaitForEvent(MTLEventGetIndium(event), value);
 }
 
+// Vulkan keeps all memory resident, and residency sets do not track hazards: there is nothing to do.
+
+- (void)useResidencySet: (id<MTLResidencySet>)residencySet
+{
+}
+
+- (void)useResidencySets: (const id<MTLResidencySet> __nonnull[__nonnull])residencySets
+                   count: (NSUInteger)count
+{
+}
+
 - (void)commit
 {
 	// Textures that copy IOSurface planes get the CPU's writes before the GPU runs the work, and

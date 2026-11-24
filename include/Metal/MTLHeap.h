@@ -7,6 +7,7 @@
 #import <Foundation/Foundation.h>
 
 #import <Metal/MTLDefines.h>
+#import <Metal/MTLAllocation.h>
 #import <Metal/MTLResource.h>
 
 METAL_DECLARATIONS_BEGIN
@@ -48,7 +49,7 @@ MTL_EXPORT
  * -[MTLDevice heapBufferSizeAndAlignWithLength:options:] and heapTextureSizeAndAlignWithDescriptor: return, and
  * resources that overlap share their memory.
  */
-@protocol MTLHeap <NSObject>
+@protocol MTLHeap <MTLAllocation>
 
 @property(nullable, copy, nonatomic) NSString* label;
 @property(readonly) id<MTLDevice> device;
@@ -67,6 +68,9 @@ MTL_EXPORT
 
 // The memory the heap has allocated: all of it.
 @property(readonly) NSUInteger currentAllocatedSize;
+
+// The memory the heap takes, its size.
+@property(readonly) NSUInteger allocatedSize;
 
 // The size of the largest resource an automatic heap could place now at an offset that is a multiple of `alignment`.
 // Always 0 for a placement heap.

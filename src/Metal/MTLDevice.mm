@@ -28,6 +28,7 @@
 #import <Metal/MTLDiagnostics.h>
 #import <Metal/MTLCountersInternal.h>
 #import <Metal/MTLBinaryArchiveInternal.h>
+#import <Metal/MTLResidencySetInternal.h>
 
 #include <mslc/mslc.h>
 #include <mach/mach_time.h>
@@ -543,6 +544,15 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
                                                  error: (NSError**)error
 {
 	return [[MTLBinaryArchiveInternal alloc] initWithDevice: self url: descriptor.url error: error];
+}
+
+- (id<MTLResidencySet>)newResidencySetWithDescriptor: (MTLResidencySetDescriptor*)descriptor
+                                               error: (NSError**)error
+{
+	if (error) {
+		*error = nil;
+	}
+	return [[MTLResidencySetInternal alloc] initWithDevice: self label: descriptor.label initialCapacity: descriptor.initialCapacity];
 }
 
 - (MTLArgumentBuffersTier)argumentBuffersSupport

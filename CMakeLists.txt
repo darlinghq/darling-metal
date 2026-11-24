@@ -121,6 +121,7 @@ add_framework(Metal
 		src/Metal/MTLPipeline.mm
 		src/Metal/MTLRenderCommandEncoder.mm
 		src/Metal/MTLRenderPipeline.mm
+		src/Metal/MTLResidencySet.mm
 		src/Metal/MTLSamplerDescriptor.mm
 		src/Metal/MTLSamplerState.mm
 		src/Metal/MTLSharedEvent.mm

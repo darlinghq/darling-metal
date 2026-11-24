@@ -7,6 +7,7 @@
 #import <Foundation/Foundation.h>
 
 #import <Metal/MTLDefines.h>
+#import <Metal/MTLAllocation.h>
 
 METAL_DECLARATIONS_BEGIN
 
@@ -57,7 +58,7 @@ typedef NS_OPTIONS(NSUInteger, MTLResourceOptions) {
 	MTLResourceHazardTrackingModeUntracked = MTLHazardTrackingModeUntracked << MTLResourceHazardTrackingModeShift,
 };
 
-@protocol MTLResource <NSObject>
+@protocol MTLResource <MTLAllocation>
 
 @property(readonly) id<MTLDevice> device;
 @property(readonly) MTLCPUCacheMode cpuCacheMode;
