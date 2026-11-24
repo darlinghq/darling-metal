@@ -9,6 +9,7 @@
 
 #import <Metal/MTLResource.h>
 #import <Metal/MTLPixelFormat.h>
+#import <Metal/MTLTypes.h>
 #import <Metal/MTLDefines.h>
 #import <Metal/MTLEvent.h>
 #import <Metal/MTLFence.h>
@@ -180,6 +181,8 @@ typedef NS_ENUM(NSUInteger, MTLCounterSamplingPoint) {
 // The bytes of memory currently allocated for the device's buffers, textures and heaps.
 @property(readonly) NSUInteger currentAllocatedSize;
 @property(readonly) NSUInteger maxBufferLength;
+@property(readonly) MTLSize maxThreadsPerThreadgroup;
+@property(readonly) NSUInteger maxThreadgroupMemoryLength;
 @property(readonly, getter=isDepth24Stencil8PixelFormatSupported) BOOL depth24Stencil8PixelFormatSupported;
 @property(readonly) MTLReadWriteTextureTier readWriteTextureSupport;
 
