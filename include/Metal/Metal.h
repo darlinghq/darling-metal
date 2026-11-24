@@ -10,6 +10,7 @@
 #import <Metal/MTLBinaryArchive.h>
 #import <Metal/MTLBuffer.h>
 #import <Metal/MTLArgument.h>
+#import <Metal/MTLAllocation.h>
 #import <Metal/MTLArgumentDescriptor.h>
 #import <Metal/MTLBlitCommandEncoder.h>
 #import <Metal/MTLCaptureManager.h>
@@ -38,6 +39,7 @@
 #import <Metal/MTLRenderCommandEncoder.h>
 #import <Metal/MTLParallelRenderCommandEncoder.h>
 #import <Metal/MTLRenderPipeline.h>
+#import <Metal/MTLResidencySet.h>
 #import <Metal/MTLResource.h>
 #import <Metal/MTLSamplerDescriptor.h>
 #import <Metal/MTLSamplerState.h>

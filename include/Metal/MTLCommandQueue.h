@@ -15,6 +15,7 @@ METAL_DECLARATIONS_BEGIN
 @protocol MTLCommandQueue;
 
 @class MTLCommandBufferDescriptor;
+@protocol MTLResidencySet;
 
 @protocol MTLCommandQueue <NSObject>
 
@@ -27,6 +28,14 @@ METAL_DECLARATIONS_BEGIN
 // command buffer has completed.
 - (nullable id<MTLCommandBuffer>)commandBufferWithUnretainedReferences;
 - (nullable id<MTLCommandBuffer>)commandBufferWithDescriptor: (MTLCommandBufferDescriptor*)descriptor;
+
+// Residency sets for the queue's command buffers. Every allocation is resident here, so these change nothing.
+- (void)addResidencySet: (id<MTLResidencySet>)residencySet;
+- (void)addResidencySets: (const id<MTLResidencySet> __nonnull[__nonnull])residencySets
+                   count: (NSUInteger)count;
+- (void)removeResidencySet: (id<MTLResidencySet>)residencySet;
+- (void)removeResidencySets: (const id<MTLResidencySet> __nonnull[__nonnull])residencySets
+                      count: (NSUInteger)count;
 
 @end
 

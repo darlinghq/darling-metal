@@ -158,6 +158,11 @@ const std::shared_ptr<Indium::Heap>& MTLHeapGetIndium(id<MTLHeap> object)
 	return _heap->currentAllocatedSize();
 }
 
+- (NSUInteger)allocatedSize
+{
+	return _heap->size();
+}
+
 - (NSUInteger)maxAvailableSizeWithAlignment: (NSUInteger)alignment
 {
 	return _heap->maxAvailableSize(alignment);
@@ -252,6 +257,7 @@ const std::shared_ptr<Indium::Heap>& MTLHeapGetIndium(id<MTLHeap> object)
 @dynamic size;
 @dynamic usedSize;
 @dynamic currentAllocatedSize;
+@dynamic allocatedSize;
 @dynamic label;
 
 MTL_UNSUPPORTED_CLASS
