@@ -487,6 +487,11 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 	return MTLDeviceInfo::locationNumberForDeviceType(static_cast<int>(_device->deviceType()), _lowPower);
 }
 
+- (uint64_t)maxTransferRate
+{
+	return 0;
+}
+
 - (NSArray<id<MTLCounterSet>>*)counterSets
 {
 	NSMutableArray<id<MTLCounterSet>>* result = [NSMutableArray array];
