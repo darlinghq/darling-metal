@@ -10,6 +10,12 @@
 
 @synthesize url = _url;
 
+- (void)dealloc
+{
+	[_url release];
+	[super dealloc];
+}
+
 - (id)copyWithZone: (NSZone*)zone
 {
 	MTLBinaryArchiveDescriptor* copy = [[MTLBinaryArchiveDescriptor allocWithZone: zone] init];
