@@ -12,6 +12,15 @@
 @synthesize retainedReferences = _retainedReferences;
 @synthesize errorOptions = _errorOptions;
 
+- (instancetype)init
+{
+	self = [super init];
+	if (self != nil) {
+		_retainedReferences = YES;
+	}
+	return self;
+}
+
 - (void)dealloc
 {
 	[(id)_logState release];
