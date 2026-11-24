@@ -51,6 +51,7 @@ typedef struct MTLSizeAndAlign {
 typedef NS_OPTIONS(NSUInteger, MTLPipelineOption) {
 	MTLPipelineOptionNone = 0,
 	MTLPipelineOptionArgumentInfo = 1 << 0,
+	MTLPipelineOptionBindingInfo = MTLPipelineOptionArgumentInfo,
 	MTLPipelineOptionBufferTypeInfo = 1 << 1,
 	MTLPipelineOptionFailOnBinaryArchiveMiss = 1 << 2,
 };

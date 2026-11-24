@@ -24,10 +24,28 @@ typedef NS_ENUM(NSUInteger, MTLArgumentType) {
 	MTLArgumentTypeIntersectionFunctionTable = 27,
 };
 
+typedef NS_ENUM(NSInteger, MTLBindingType) {
+	MTLBindingTypeBuffer = 0,
+	MTLBindingTypeThreadgroupMemory = 1,
+	MTLBindingTypeTexture = 2,
+	MTLBindingTypeSampler = 3,
+	MTLBindingTypeImageblockData = 16,
+	MTLBindingTypeImageblock = 17,
+	MTLBindingTypeVisibleFunctionTable = 24,
+	MTLBindingTypePrimitiveAccelerationStructure = 25,
+	MTLBindingTypeInstanceAccelerationStructure = 26,
+	MTLBindingTypeIntersectionFunctionTable = 27,
+	MTLBindingTypeObjectPayload = 34,
+	MTLBindingTypeTensor = 37,
+};
+
+@class MTLPointerType;
+
 @interface MTLStructMember : NSObject
 
 @property(readonly) NSString* name;
 @property(readonly) NSUInteger offset;
+@property(readonly) MTLDataType dataType;
 
 @end
 
@@ -51,14 +69,47 @@ typedef NS_ENUM(NSUInteger, MTLArgumentType) {
 
 @end
 
+@protocol MTLBinding <NSObject>
+
+@property(readonly, nonnull) NSString* name;
+@property(readonly) MTLBindingType type;
+@property(readonly) MTLBindingAccess access;
+@property(readonly) NSUInteger index;
+@property(readonly, getter=isUsed) BOOL used;
+@property(readonly, getter=isArgument) BOOL argument;
+
+@end
+
+@protocol MTLBufferBinding <MTLBinding>
+
+@property(readonly) NSUInteger bufferAlignment;
+@property(readonly) NSUInteger bufferDataSize;
+@property(readonly) MTLDataType bufferDataType;
+@property(readonly, nullable) MTLStructType* bufferStructType;
+@property(readonly, nullable) MTLPointerType* bufferPointerType;
+
+@end
+
+@protocol MTLTextureBinding <MTLBinding>
+
+@property(readonly) MTLTextureType textureType;
+@property(readonly) MTLDataType textureDataType;
+@property(readonly, getter=isDepthTexture) BOOL depthTexture;
+@property(readonly) NSUInteger arrayLength;
+
+@end
+
 @interface MTLComputePipelineReflection : NSObject
 
+@property(readonly, nonnull) NSArray<id<MTLBinding>>* bindings;
 @property(readonly) NSArray<MTLArgument*>* arguments;
 
 @end
 
 @interface MTLRenderPipelineReflection : NSObject
 
+@property(readonly, nonnull) NSArray<id<MTLBinding>>* vertexBindings;
+@property(readonly, nonnull) NSArray<id<MTLBinding>>* fragmentBindings;
 @property(readonly) NSArray<MTLArgument*>* vertexArguments;
 @property(readonly) NSArray<MTLArgument*>* fragmentArguments;
 
