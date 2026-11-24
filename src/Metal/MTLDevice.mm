@@ -27,6 +27,7 @@
 #import <Metal/MTLMSLReflection.h>
 #import <Metal/MTLDiagnostics.h>
 #import <Metal/MTLCountersInternal.h>
+#import <Metal/MTLBinaryArchiveInternal.h>
 
 #include <mslc/mslc.h>
 #include <mach/mach_time.h>
@@ -538,6 +539,12 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 	return [[MTLCounterSampleBufferInternal alloc] initWithSampleBuffer: sampleBuffer device: self label: descriptor.label];
 }
 
+- (id<MTLBinaryArchive>)newBinaryArchiveWithDescriptor: (MTLBinaryArchiveDescriptor*)descriptor
+                                                 error: (NSError**)error
+{
+	return [[MTLBinaryArchiveInternal alloc] initWithDevice: self url: descriptor.url error: error];
+}
+
 - (MTLArgumentBuffersTier)argumentBuffersSupport
 {
 	return MTLArgumentBuffersTier1;
@@ -565,6 +572,12 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 	if (reflection) {
 		*reflection = nil;
 	}
+	// binary archives are this framework's: Indium compiles every pipeline and takes no archive option
+	if ((options & MTLPipelineOptionFailOnBinaryArchiveMiss) && descriptor.computeFunction != nil
+		&& !MTLBinaryArchivesContainFunctions(descriptor.binaryArchives, @[descriptor.computeFunction], error)) {
+		return nil;
+	}
+	options &= ~MTLPipelineOptionFailOnBinaryArchiveMiss;
 	auto pso = MTLCallIndium(error, MTLLibraryErrorInternal, [&]() {
 		return _device->newComputePipelineState(descriptor.asIndiumDescriptor, static_cast<Indium::PipelineOption>(options), nullptr);
 	});
@@ -600,6 +613,8 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 	if (reflection) {
 		*reflection = nil;
 	}
+	// without a descriptor there are no binary archives to look in, so the pipeline is compiled
+	options &= ~MTLPipelineOptionFailOnBinaryArchiveMiss;
 	auto pso = MTLCallIndium(error, MTLLibraryErrorInternal, [&]() {
 		return _device->newComputePipelineState(((MTLFunctionInternal*)computeFunction).function, static_cast<Indium::PipelineOption>(options), nullptr);
 	});
@@ -631,6 +646,15 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 	}
 	if (error) {
 		*error = nil;
+	}
+	if ((options & MTLPipelineOptionFailOnBinaryArchiveMiss) && descriptor.vertexFunction != nil) {
+		NSMutableArray<id<MTLFunction>>* functions = [NSMutableArray arrayWithObject: descriptor.vertexFunction];
+		if (descriptor.fragmentFunction != nil) {
+			[functions addObject: descriptor.fragmentFunction];
+		}
+		if (!MTLBinaryArchivesContainFunctions(descriptor.binaryArchives, functions, error)) {
+			return nil;
+		}
 	}
 	auto pso = MTLCallIndium(error, MTLLibraryErrorInternal, [&]() {
 		return _device->newRenderPipelineState([descriptor asIndiumDescriptor]);
@@ -1095,7 +1119,7 @@ static size_t iosurfacePixelSize(MTLPixelFormat format)
 		}
 		return nil;
 	}
-	return [[MTLLibraryInternal alloc] initWithLibrary: lib device: self];
+	return [[MTLLibraryInternal alloc] initWithLibrary: lib device: self contents: bytes length: length];
 }
 
 - (id<MTLLibrary>)newLibraryWithSource: (NSString*)source
@@ -1232,6 +1256,7 @@ static size_t iosurfacePixelSize(MTLPixelFormat format)
 
 	std::string indiumError;
 	auto library = _device->newLibrary(spirv, spirvSize, libraryReflection, &indiumError);
+	MTLLibraryInternal* result = library ? [[MTLLibraryInternal alloc] initWithLibrary: library device: self contents: spirv length: spirvSize] : nil;
 
 	// indium borrows the module and the reflection for the call and nothing
 	// longer, so both go back before the library is handed out rather than after
@@ -1250,7 +1275,7 @@ static size_t iosurfacePixelSize(MTLPixelFormat format)
 		return nil;
 	}
 
-	return [[MTLLibraryInternal alloc] initWithLibrary: library device: self];
+	return result;
 }
 
 #else

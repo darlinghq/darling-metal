@@ -10,19 +10,51 @@
 
 METAL_DECLARATIONS_BEGIN
 
+@protocol MTLDevice;
+@class MTLComputePipelineDescriptor;
+@class MTLRenderPipelineDescriptor;
+
+MTL_EXTERN NSErrorDomain const MTLBinaryArchiveDomain;
+
+typedef NS_ENUM(NSUInteger, MTLBinaryArchiveError) {
+	MTLBinaryArchiveErrorNone = 0,
+	MTLBinaryArchiveErrorInvalidFile = 1,
+	MTLBinaryArchiveErrorUnexpectedElement = 2,
+	MTLBinaryArchiveErrorCompilationFailure = 3,
+	MTLBinaryArchiveErrorInternalError = 4,
+};
+
 /**
- * Points at a .metallib on disk to open a binary archive from.
- *
- * A stored URL is returned unchanged. The archive itself is not provided:
- * indium's BinaryArchive is an empty placeholder struct with no members, and
- * -[MTLDevice newBinaryArchiveWithDescriptor:error:] is therefore not declared,
- * so a caller reaches an unrecognised selector rather than an archive that
- * loads nothing and reports an empty pipeline list.
+ * The file a binary archive is opened from, or nil for a new, empty archive.
  */
 MTL_EXPORT
 @interface MTLBinaryArchiveDescriptor : NSObject <NSCopying>
 
 @property(nullable, nonatomic, copy) NSURL* url;
+
+@end
+
+/**
+ * The functions of pipeline descriptors, so that a pipeline made with
+ * MTLPipelineOptionFailOnBinaryArchiveMiss can be checked against them.
+ *
+ * Indium compiles a pipeline when it is created, so an archive holds no GPU
+ * code: it records which functions were added to it, by their content, and a
+ * pipeline found in one is compiled like any other.
+ */
+@protocol MTLBinaryArchive <NSObject>
+
+@property(nullable, copy, atomic) NSString* label;
+@property(readonly) id<MTLDevice> device;
+
+- (BOOL)addComputePipelineFunctionsWithDescriptor: (MTLComputePipelineDescriptor*)descriptor
+                                            error: (NSError**)error;
+
+- (BOOL)addRenderPipelineFunctionsWithDescriptor: (MTLRenderPipelineDescriptor*)descriptor
+                                           error: (NSError**)error;
+
+- (BOOL)serializeToURL: (NSURL*)url
+                 error: (NSError**)error;
 
 @end
 
