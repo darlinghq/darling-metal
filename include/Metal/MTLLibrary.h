@@ -8,6 +8,7 @@
 
 #import <Metal/MTLDefines.h>
 #import <Metal/MTLArgumentDescriptor.h>
+#import <Metal/MTLFunctionDescriptor.h>
 
 METAL_DECLARATIONS_BEGIN
 
@@ -32,11 +33,6 @@ typedef NS_ENUM(NSUInteger, MTLFunctionType) {
 	MTLFunctionTypeIntersection = 6,
 	MTLFunctionTypeMesh = 7,
 	MTLFunctionTypeObject = 8,
-};
-
-typedef NS_OPTIONS(NSUInteger, MTLFunctionOptions) {
-	MTLFunctionOptionNone = 0,
-	MTLFunctionOptionCompileToBinary = 1 << 0,
 };
 
 typedef NS_ENUM(NSUInteger, MTLPatchType) {
@@ -156,6 +152,14 @@ typedef NS_ENUM(NSUInteger, MTLLibraryError) {
 - (void)newFunctionWithName: (NSString*)name
              constantValues: (MTLFunctionConstantValues*)constantValues
           completionHandler: (void (^)(id<MTLFunction> function, NSError* error))completionHandler;
+
+/* Errors as for -newFunctionWithName:constantValues:error:. Without constant values, the function is made as
+ * -newFunctionWithName: makes it. */
+- (nullable id<MTLFunction>)newFunctionWithDescriptor: (MTLFunctionDescriptor*)descriptor
+                                                error: (NSError**)error;
+
+- (void)newFunctionWithDescriptor: (MTLFunctionDescriptor*)descriptor
+                completionHandler: (void (^)(id<MTLFunction> function, NSError* error))completionHandler;
 
 // TODO: other methods
 
