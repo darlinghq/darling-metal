@@ -9,6 +9,7 @@
 
 #import <Metal/MTLResource.h>
 #import <Metal/MTLPixelFormat.h>
+#import <Metal/MTLTypes.h>
 #import <Metal/MTLDefines.h>
 #import <Metal/MTLEvent.h>
 #import <Metal/MTLFence.h>
@@ -37,6 +38,10 @@ typedef struct MTLSizeAndAlign {
 @protocol MTLCounterSet;
 @protocol MTLCounterSampleBuffer;
 @class MTLCounterSampleBufferDescriptor;
+@protocol MTLBinaryArchive;
+@class MTLBinaryArchiveDescriptor;
+@protocol MTLResidencySet;
+@class MTLResidencySetDescriptor;
 
 @class MTLCompileOptions;
 @class MTLComputePipelineDescriptor;
@@ -50,6 +55,7 @@ typedef struct MTLSizeAndAlign {
 typedef NS_OPTIONS(NSUInteger, MTLPipelineOption) {
 	MTLPipelineOptionNone = 0,
 	MTLPipelineOptionArgumentInfo = 1 << 0,
+	MTLPipelineOptionBindingInfo = MTLPipelineOptionArgumentInfo,
 	MTLPipelineOptionBufferTypeInfo = 1 << 1,
 	MTLPipelineOptionFailOnBinaryArchiveMiss = 1 << 2,
 };
@@ -180,6 +186,8 @@ typedef NS_ENUM(NSUInteger, MTLCounterSamplingPoint) {
 // The bytes of memory currently allocated for the device's buffers, textures and heaps.
 @property(readonly) NSUInteger currentAllocatedSize;
 @property(readonly) NSUInteger maxBufferLength;
+@property(readonly) MTLSize maxThreadsPerThreadgroup;
+@property(readonly) NSUInteger maxThreadgroupMemoryLength;
 @property(readonly, getter=isDepth24Stencil8PixelFormatSupported) BOOL depth24Stencil8PixelFormatSupported;
 @property(readonly) MTLReadWriteTextureTier readWriteTextureSupport;
 
@@ -209,6 +217,9 @@ typedef NS_ENUM(NSUInteger, MTLCounterSamplingPoint) {
 
 /* For a built-in GPU 0 when it is the low-power one and 1 otherwise; 0 for other locations. */
 @property(readonly) NSUInteger locationNumber;
+
+/* 0: Apple specifies 0 for built-in GPUs, and Vulkan reports no link rate for the others. */
+@property(readonly) uint64_t maxTransferRate;
 
 /* The counter sets the device can sample: only the timestamp set, and none where the device cannot sample timestamps. */
 @property(readonly, nullable) NSArray<id<MTLCounterSet>>* counterSets;
@@ -347,6 +358,12 @@ typedef NS_ENUM(NSUInteger, MTLCounterSamplingPoint) {
 - (nullable id<MTLLibrary>)newLibraryWithSource: (NSString*)source
                                         options: (nullable MTLCompileOptions*)options
                                           error: (NSError**)error;
+
+- (nullable id<MTLBinaryArchive>)newBinaryArchiveWithDescriptor: (MTLBinaryArchiveDescriptor*)descriptor
+                                                          error: (NSError**)error;
+
+- (nullable id<MTLResidencySet>)newResidencySetWithDescriptor: (MTLResidencySetDescriptor*)descriptor
+                                                        error: (NSError**)error;
 
 // TODO: other methods and properties
 

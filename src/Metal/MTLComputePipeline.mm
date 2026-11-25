@@ -19,6 +19,7 @@
 		_computeFunction = nil;
 		_threadGroupSizeIsMultipleOfThreadExecutionWidth = NO;
 		_maxTotalThreadsPerThreadgroup = 0; // this indicates to Indium that we haven't changed it from the default; TODO: check what the actual default is
+		_requiredThreadsPerThreadgroup = MTLSizeMake(0, 0, 0);
 		_maxCallStackDepth = 1;
 		_stageInputDescriptor = nil;
 		_buffers = [MTLPipelineBufferDescriptorArray new];
@@ -53,6 +54,7 @@
 	copy.computeFunction = self.computeFunction;
 	copy.threadGroupSizeIsMultipleOfThreadExecutionWidth = self.threadGroupSizeIsMultipleOfThreadExecutionWidth;
 	copy.maxTotalThreadsPerThreadgroup = self.maxTotalThreadsPerThreadgroup;
+	copy.requiredThreadsPerThreadgroup = self.requiredThreadsPerThreadgroup;
 	copy.maxCallStackDepth = self.maxCallStackDepth;
 	copy.stageInputDescriptor = self.stageInputDescriptor;
 	[copy->_buffers release];
@@ -82,6 +84,7 @@
 	self.computeFunction = nil;
 	self.threadGroupSizeIsMultipleOfThreadExecutionWidth = NO;
 	self.maxTotalThreadsPerThreadgroup = 0; // TODO: check what the actual default is
+	self.requiredThreadsPerThreadgroup = MTLSizeMake(0, 0, 0);
 	self.maxCallStackDepth = 1;
 	self.stageInputDescriptor = nil;
 	[_buffers release];
@@ -99,6 +102,7 @@
 @dynamic computeFunction;
 @dynamic threadGroupSizeIsMultipleOfThreadExecutionWidth;
 @dynamic maxTotalThreadsPerThreadgroup;
+@dynamic requiredThreadsPerThreadgroup;
 @dynamic maxCallStackDepth;
 @dynamic stageInputDescriptor;
 @dynamic buffers;
@@ -134,6 +138,7 @@ MTL_UNSUPPORTED_CLASS
 		nullptr, // TODO
 		static_cast<bool>(_supportAddingBinaryFunctions),
 		{}, // TODO
+		MTLSizeToIndium(_requiredThreadsPerThreadgroup),
 	};
 }
 
@@ -215,6 +220,12 @@ const std::shared_ptr<Indium::ComputePipelineState>& MTLComputePipelineStateGetI
 	return _pso->maxTotalThreadsPerThreadgroup();
 }
 
+- (MTLSize)requiredThreadsPerThreadgroup
+{
+	auto size = _pso->requiredThreadsPerThreadgroup();
+	return MTLSizeMake(size.width, size.height, size.depth);
+}
+
 - (NSUInteger)threadExecutionWidth
 {
 	return _pso->threadExecutionWidth();
@@ -233,6 +244,7 @@ const std::shared_ptr<Indium::ComputePipelineState>& MTLComputePipelineStateGetI
 #else
 
 @dynamic maxTotalThreadsPerThreadgroup;
+@dynamic requiredThreadsPerThreadgroup;
 @dynamic threadExecutionWidth;
 @dynamic staticThreadgroupMemoryLength;
 @dynamic device;

@@ -1,6 +1,6 @@
 // Copyright (C) 2026 Lubos Dolezel
 // MTLDevice feature queries (32-bit float filtering, BC compression, pull-model interpolation,
-// programmable sample positions, raster order groups, location, counter sets). The answers claimed as YES must be backed by working textures.
+// programmable sample positions, raster order groups, location, transfer rate, counter sets). The answers claimed as YES must be backed by working textures.
 // Exits 77 when there is no Metal device.
 #import <Foundation/Foundation.h>
 #import <Metal/Metal.h>
@@ -44,6 +44,12 @@ int main(void) {
 			CHECK(device.locationNumber == (device.isLowPower ? 0 : 1));
 		} else {
 			CHECK(device.locationNumber == 0);
+		}
+
+		// Apple specifies 0 for built-in GPUs; Vulkan gives no rate for the others either
+		CHECK([device respondsToSelector: @selector(maxTransferRate)]);
+		if ([device respondsToSelector: @selector(maxTransferRate)]) {
+			CHECK(device.maxTransferRate == 0);
 		}
 
 		// the timestamp set is the only counter set a device offers here (test counters covers it)

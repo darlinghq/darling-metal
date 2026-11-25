@@ -187,6 +187,46 @@ static bool MTLReadBindings(NSArray* bindings, Indium::FunctionReflection& outFu
 			outFunction.bindings.push_back(binding);
 			continue;
 		}
+		else if ([kind isEqualToString: @"StageOutput"] || [kind isEqualToString: @"StageInput"]) {
+			// A varying of a vertex function's returned struct, or of a fragment function's stage-in struct.
+			// It is no resource: indium pairs the fragment inputs with the vertex outputs by name when it
+			// makes a pipeline, so the entry only gives name, type and Location.
+			const bool output = [kind isEqualToString: @"StageOutput"];
+			Indium::StageInterfaceField field;
+			size_t location = 0;
+			NSString* name = nil;
+			NSString* type = nil;
+			if (outFunction.functionType != (output ? Indium::FunctionType::Vertex : Indium::FunctionType::Fragment) ||
+				!MTLReadIndex([object objectForKey: @"location"], location) || location > UINT32_MAX ||
+				!MTLReadString(object, @"name", name) || !MTLReadString(object, @"type", type))
+			{
+				outError = MTLReflectionError(@"invalid stage interface entry");
+				return false;
+			}
+			field.name = name.UTF8String;
+			field.type = type.UTF8String;
+			field.location = (uint32_t)location;
+			outFunction.stageInterface.push_back(field);
+			continue;
+		}
+		else if ([kind isEqualToString: @"ThreadgroupMemory"]) {
+			// A kernel's [[threadgroup(n)]] argument. It is no resource either: the module declares it as an
+			// array whose length, in elements of element_size bytes, is the specialization constant spec_id,
+			// which indium sets from setThreadgroupMemoryLength:atIndex: when it creates a pipeline.
+			Indium::ThreadgroupArgumentInfo argument;
+			size_t specializationID = 0;
+			if (outFunction.functionType != Indium::FunctionType::Kernel ||
+				!MTLReadIndex([object objectForKey: @"metal_index"], argument.index) ||
+				!MTLReadIndex([object objectForKey: @"spec_id"], specializationID) || specializationID > UINT32_MAX ||
+				!MTLReadIndex([object objectForKey: @"element_size"], argument.elementSize))
+			{
+				outError = MTLReflectionError(@"invalid threadgroup memory entry");
+				return false;
+			}
+			argument.specializationID = (uint32_t)specializationID;
+			outFunction.threadgroupArguments.push_back(argument);
+			continue;
+		}
 		else {
 			outError = MTLReflectionError(@"unsupported reflection binding kind '%@'", kind);
 			return false;

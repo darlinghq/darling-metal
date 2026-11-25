@@ -22,6 +22,7 @@ METAL_DECLARATIONS_BEGIN
  */
 @protocol MTLEvent <NSObject>
 
+/** The device that made the event; nil for a shared event, which is not tied to one device. */
 @property(nullable, readonly) id<MTLDevice> device;
 @property(nullable, copy, atomic) NSString* label;
 

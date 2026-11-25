@@ -32,6 +32,7 @@ MTL_EXPORT
 @property(readwrite, nullable, nonatomic, strong) id<MTLFunction> computeFunction;
 @property(readwrite, nonatomic) BOOL threadGroupSizeIsMultipleOfThreadExecutionWidth;
 @property(readwrite, nonatomic) NSUInteger maxTotalThreadsPerThreadgroup;
+@property(readwrite, nonatomic) MTLSize requiredThreadsPerThreadgroup;
 @property(readwrite, nonatomic) NSUInteger maxCallStackDepth;
 @property(readwrite, nullable, copy, nonatomic) MTLStageInputOutputDescriptor* stageInputDescriptor;
 @property(readonly) MTLPipelineBufferDescriptorArray* buffers;
@@ -50,6 +51,7 @@ MTL_EXPORT
 @protocol MTLComputePipelineState <NSObject>
 
 @property(readonly) NSUInteger maxTotalThreadsPerThreadgroup;
+@property(readonly) MTLSize requiredThreadsPerThreadgroup;
 @property(readonly) NSUInteger threadExecutionWidth;
 @property(readonly) NSUInteger staticThreadgroupMemoryLength;
 @property(readonly) id<MTLDevice> device;

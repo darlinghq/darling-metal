@@ -115,11 +115,15 @@ typedef NS_ENUM(NSUInteger, MTLDataType) {
 	MTLDataTypeTensor = 140,
 };
 
-typedef NS_ENUM(NSUInteger, MTLArgumentAccess) {
-	MTLArgumentAccessReadOnly = 0,
-	MTLArgumentAccessReadWrite = 1,
-	MTLArgumentAccessWriteOnly = 2,
+typedef NS_ENUM(NSUInteger, MTLBindingAccess) {
+	MTLBindingAccessReadOnly = 0,
+	MTLBindingAccessReadWrite = 1,
+	MTLBindingAccessWriteOnly = 2,
+	MTLArgumentAccessReadOnly = MTLBindingAccessReadOnly,
+	MTLArgumentAccessReadWrite = MTLBindingAccessReadWrite,
+	MTLArgumentAccessWriteOnly = MTLBindingAccessWriteOnly,
 };
+typedef MTLBindingAccess MTLArgumentAccess;
 
 /**
  * Describes one argument of a function signature.

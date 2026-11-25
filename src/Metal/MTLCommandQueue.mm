@@ -65,6 +65,26 @@
 	return [[[MTLCommandBufferInternal alloc] initWithCommandBuffer: buf commandQueue: self retainedReferences: descriptor.retainedReferences errorOptions: descriptor.errorOptions] autorelease];
 }
 
+// Vulkan keeps all memory resident, and residency sets do not track hazards: there is nothing to do.
+
+- (void)addResidencySet: (id<MTLResidencySet>)residencySet
+{
+}
+
+- (void)addResidencySets: (const id<MTLResidencySet> __nonnull[__nonnull])residencySets
+                   count: (NSUInteger)count
+{
+}
+
+- (void)removeResidencySet: (id<MTLResidencySet>)residencySet
+{
+}
+
+- (void)removeResidencySets: (const id<MTLResidencySet> __nonnull[__nonnull])residencySets
+                      count: (NSUInteger)count
+{
+}
+
 #else
 
 @dynamic device;

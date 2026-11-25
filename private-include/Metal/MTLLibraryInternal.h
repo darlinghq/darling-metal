@@ -16,8 +16,17 @@
 #if DARLING_METAL_ENABLED
 @property(readonly) std::shared_ptr<Indium::Function> function;
 
+// What identifies the function's code in a binary archive: a digest of its library's contents, its name and
+// the values of its function constants
+@property(readonly) NSData* archiveKey;
+
+// set by -[MTLLibrary newFunctionWithDescriptor:error:] from the descriptor
+- (void)setName: (NSString*)name;
+- (void)setOptions: (MTLFunctionOptions)options;
+
 - (instancetype)initWithFunction: (std::shared_ptr<Indium::Function>)function
-                          device: (id<MTLDevice>)device;
+                          device: (id<MTLDevice>)device
+                      archiveKey: (NSData*)archiveKey;
 #endif
 
 @end
@@ -25,8 +34,11 @@
 @interface MTLLibraryInternal : NSObject <MTLLibrary>
 
 #if DARLING_METAL_ENABLED
+// `contents` are the bytes Indium made the library from: a metallib, or the SPIR-V compiled from source
 - (instancetype)initWithLibrary: (std::shared_ptr<Indium::Library>)library
-                         device: (id<MTLDevice>)device;
+                         device: (id<MTLDevice>)device
+                       contents: (const void*)contents
+                         length: (size_t)length;
 #endif
 
 @end
