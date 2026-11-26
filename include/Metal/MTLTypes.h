@@ -66,6 +66,27 @@ MTLRegion MTLRegionMake3D(NSUInteger x, NSUInteger y, NSUInteger z, NSUInteger w
 	return region;
 };
 
+// A position in a pixel, from (0, 0) at its top left corner to (1, 1) at its bottom right.
+typedef struct MTLSamplePosition {
+	float x;
+	float y;
+} MTLSamplePosition;
+
+NS_INLINE
+MTLSamplePosition MTLSamplePositionMake(float x, float y) {
+	MTLSamplePosition position = { x, y };
+	return position;
+};
+
+// A point in the screen or physical space of a rasterization rate map.
+typedef MTLSamplePosition MTLCoordinate2D;
+
+NS_INLINE
+MTLCoordinate2D MTLCoordinate2DMake(float x, float y) {
+	MTLCoordinate2D coordinate = { x, y };
+	return coordinate;
+};
+
 METAL_DECLARATIONS_END
 
 #endif // _METAL_MTLTYPES_H_

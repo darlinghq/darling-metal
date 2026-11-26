@@ -433,6 +433,12 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 	return MTLDeviceInfo::supportsFeatureSet(featureSet);
 }
 
+- (BOOL)supportsRasterizationRateMapWithLayerCount: (NSUInteger)layerCount
+{
+	// See the note in MTLDevice.h.
+	return NO;
+}
+
 - (BOOL)supportsShaderBarycentricCoordinates
 {
 	// See the note in MTLDevice.h: Vulkan has no barycentric decoration to lower

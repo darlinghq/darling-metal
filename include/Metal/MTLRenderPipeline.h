@@ -56,7 +56,7 @@ typedef NS_ENUM(NSUInteger, MTLTessellationPartitionMode) {
 	MTLTessellationPartitionModeFractionalEven = 3,
 };
 
-typedef NS_ENUM(NSUInteger, MTLColorWriteMask) {
+typedef NS_OPTIONS(NSUInteger, MTLColorWriteMask) {
 	MTLColorWriteMaskNone = 0,
 	MTLColorWriteMaskAlpha = 1,
 	MTLColorWriteMaskBlue = 2,

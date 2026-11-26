@@ -5,6 +5,7 @@
 #define _METAL_MTLRENDERCOMMANDENCODER_H_
 
 #import <Metal/MTLDefines.h>
+#import <Metal/MTLTypes.h>
 #import <Metal/MTLFence.h>
 #import <Foundation/Foundation.h>
 #import <Metal/MTLCommandEncoder.h>
@@ -45,8 +46,6 @@ typedef struct {
 @class MTLRenderPassColorAttachmentDescriptor;
 @class MTLRenderPassAttachmentDescriptor;
 
-struct MTLSamplePosition;
-typedef struct MTLSamplePosition MTLSamplePosition;
 
 typedef NS_OPTIONS(NSUInteger, MTLRenderStages) {
 	MTLRenderStageVertex = 1 << 0,

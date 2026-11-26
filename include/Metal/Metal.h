@@ -12,6 +12,7 @@
 #import <Metal/MTLArgument.h>
 #import <Metal/MTLAllocation.h>
 #import <Metal/MTLArgumentDescriptor.h>
+#import <Metal/MTLArgumentEncoder.h>
 #import <Metal/MTLBlitCommandEncoder.h>
 #import <Metal/MTLCaptureManager.h>
 #import <Metal/MTLCommandBuffer.h>
@@ -37,6 +38,7 @@
 #import <Metal/MTLLinkedFunctions.h>
 #import <Metal/MTLPipeline.h>
 #import <Metal/MTLPixelFormat.h>
+#import <Metal/MTLRasterizationRate.h>
 #import <Metal/MTLRenderCommandEncoder.h>
 #import <Metal/MTLParallelRenderCommandEncoder.h>
 #import <Metal/MTLRenderPipeline.h>
