@@ -235,6 +235,10 @@ typedef NS_ENUM(NSUInteger, MTLCounterSamplingPoint) {
  * longer means what it says. */
 - (BOOL)supportsShaderBarycentricCoordinates;
 
+/* NO: indium has no variable rasterization rate to give a rate map to, so
+ * there are no rate maps to make. */
+- (BOOL)supportsRasterizationRateMapWithLayerCount: (NSUInteger)layerCount;
+
 - (id<MTLCommandQueue>)newCommandQueueWithMaxCommandBufferCount: (NSUInteger)maxCommandBufferCount;
 
 - (id<MTLComputePipelineState>)newComputePipelineStateWithDescriptor: (MTLComputePipelineDescriptor*)descriptor

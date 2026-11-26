@@ -7,6 +7,7 @@
 #import <Metal/MTLBufferInternal.h>
 #import <Metal/MTLCountersInternal.h>
 #import <Metal/MTLDevice.h>
+#import <Metal/MTLRasterizationRate.h>
 #import <Metal/MTLRenderPipelineInternal.h>
 #import <Metal/MTLTypesInternal.h>
 #import <Metal/MTLSamplerStateInternal.h>
@@ -569,8 +570,7 @@ MTL_UNSUPPORTED_CLASS
 	[_depthAttachment release];
 	[_stencilAttachment release];
 	[_visibilityResultBuffer release];
-	// TODO: remove cast once we define MTLRasterizationRateMap
-	[(id<NSObject>)_rasterizationRateMap release];
+	[_rasterizationRateMap release];
 	[_sampleBufferAttachments release];
 }
 

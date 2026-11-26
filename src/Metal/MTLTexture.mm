@@ -11,6 +11,10 @@
 #if DARLING_METAL_ENABLED
 	// Set when the texture holds a copy of its IOSurface plane.
 	MTLIOSurfaceCopy* _iosurfaceCopy;
+	// For a view: the texture it was made from, retained, and where in it the view starts.
+	id<MTLTexture> _parentTexture;
+	NSUInteger _parentRelativeLevel;
+	NSUInteger _parentRelativeSlice;
 #endif
 }
 
@@ -88,6 +92,7 @@ void MTLIOSurfaceWriteSetNote(MTLIOSurfaceWriteSet& set, id<MTLTexture> texture)
 		CFRelease(_iosurface);
 	}
 	[(id)_backingBuffer release];
+	[(id)_parentTexture release];
 	// the Indium texture gives its range back to the heap, which has to be alive for that
 	[(id)_owningHeap release];
 	[_device release];
@@ -141,6 +146,21 @@ void MTLIOSurfaceWriteSetNote(MTLIOSurfaceWriteSet& set, id<MTLTexture> texture)
 - (NSUInteger)bufferOffset
 {
 	return _texture->bufferOffset();
+}
+
+- (id<MTLTexture>)parentTexture
+{
+	return _parentTexture;
+}
+
+- (NSUInteger)parentRelativeLevel
+{
+	return _parentRelativeLevel;
+}
+
+- (NSUInteger)parentRelativeSlice
+{
+	return _parentRelativeSlice;
 }
 
 - (NSUInteger)bufferBytesPerRow
@@ -232,15 +252,26 @@ void MTLIOSurfaceWriteSetNote(MTLIOSurfaceWriteSet& set, id<MTLTexture> texture)
 // methods
 //
 
+// A view of this texture, starting at the given level and slice of it.
+- (MTLTextureInternal*)_viewWithTexture: (std::shared_ptr<Indium::Texture>)texture
+                                  level: (NSUInteger)level
+                                  slice: (NSUInteger)slice
+{
+	MTLTextureInternal* view = [[MTLTextureInternal alloc] initWithTexture: texture device: _device resourceOptions: _resourceOptions];
+	view.owningHeap = _owningHeap;
+	view->_parentTexture = [self retain];
+	view->_parentRelativeLevel = level;
+	view->_parentRelativeSlice = slice;
+	return view;
+}
+
 - (id<MTLTexture>)newTextureViewWithPixelFormat: (MTLPixelFormat)pixelFormat
 {
 	auto tex = _texture->newTextureView(static_cast<Indium::PixelFormat>(pixelFormat));
 	if (!tex) {
 		return nil;
 	}
-	MTLTextureInternal* view = [[MTLTextureInternal alloc] initWithTexture: tex device: _device resourceOptions: _resourceOptions];
-	view.owningHeap = _owningHeap;
-	return view;
+	return [self _viewWithTexture: tex level: 0 slice: 0];
 }
 
 - (id<MTLTexture>)newTextureViewWithPixelFormat: (MTLPixelFormat)pixelFormat
@@ -252,9 +283,7 @@ void MTLIOSurfaceWriteSetNote(MTLIOSurfaceWriteSet& set, id<MTLTexture> texture)
 	if (!tex) {
 		return nil;
 	}
-	MTLTextureInternal* view = [[MTLTextureInternal alloc] initWithTexture: tex device: _device resourceOptions: _resourceOptions];
-	view.owningHeap = _owningHeap;
-	return view;
+	return [self _viewWithTexture: tex level: levelRange.location slice: sliceRange.location];
 }
 
 - (id<MTLTexture>)newTextureViewWithPixelFormat: (MTLPixelFormat)pixelFormat
@@ -267,9 +296,7 @@ void MTLIOSurfaceWriteSetNote(MTLIOSurfaceWriteSet& set, id<MTLTexture> texture)
 	if (!tex) {
 		return nil;
 	}
-	MTLTextureInternal* view = [[MTLTextureInternal alloc] initWithTexture: tex device: _device resourceOptions: _resourceOptions];
-	view.owningHeap = _owningHeap;
-	return view;
+	return [self _viewWithTexture: tex level: levelRange.location slice: sliceRange.location];
 }
 
 // Indium states a precondition it cannot meet by throwing, and these selectors
@@ -368,6 +395,9 @@ static void raiseIndiumFailure(const std::exception& e) {
 @dynamic buffer;
 @dynamic bufferOffset;
 @dynamic bufferBytesPerRow;
+@dynamic parentTexture;
+@dynamic parentRelativeLevel;
+@dynamic parentRelativeSlice;
 @dynamic textureType;
 @dynamic pixelFormat;
 @dynamic width;

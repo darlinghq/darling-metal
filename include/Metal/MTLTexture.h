@@ -83,6 +83,12 @@ MTLTextureSwizzleChannels MTLTextureSwizzleChannelsMake(MTLTextureSwizzle red, M
 @property(readonly) NSUInteger bufferOffset;
 @property(readonly) NSUInteger bufferBytesPerRow;
 
+// For a view, the texture it was made from and the first level and slice of it that the view starts at; nil and 0
+// for a texture that is not a view.
+@property(nullable, readonly) id<MTLTexture> parentTexture;
+@property(readonly) NSUInteger parentRelativeLevel;
+@property(readonly) NSUInteger parentRelativeSlice;
+
 - (id<MTLTexture>)newTextureViewWithPixelFormat: (MTLPixelFormat)pixelFormat;
 
 - (id<MTLTexture>)newTextureViewWithPixelFormat: (MTLPixelFormat)pixelFormat
