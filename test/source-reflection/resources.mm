@@ -8,9 +8,10 @@ int main() {
  "{\"kind\":\"Buffer\",\"metal_index\":2,\"descriptor\":{\"set\":1,\"binding\":0}}",
  "{\"kind\":\"Texture\",\"metal_index\":3,\"texture_access\":\"Sample\",\"descriptor\":{\"set\":1,\"binding\":1}}",
  "{\"kind\":\"Texture\",\"metal_index\":3,\"texture_access\":\"Write\",\"descriptor\":{\"set\":1,\"binding\":1}}",
- "{\"kind\":\"Sampler\",\"metal_index\":4,\"descriptor\":{\"set\":1,\"binding\":2}}"};
+ "{\"kind\":\"Sampler\",\"metal_index\":4,\"descriptor\":{\"set\":1,\"binding\":2}}",
+ "{\"kind\":\"Texture\",\"metal_index\":3,\"texture_access\":\"Read\",\"descriptor\":{\"set\":1,\"binding\":1}}"};
  int failures=0;
- for (int i=0;i<4;i++) {
+ for (int i=0;i<5;i++) {
   NSString* json=[NSString stringWithFormat:@"{\"reflection_version\":2,\"entry_points\":[{\"name\":\"f\",\"stage\":\"fragment\",\"bindings\":[%s]}]}",bindings[i]];
   Indium::LibraryReflection result; NSString* error=nil;
   bool ok=MTLReadMSLReflection([json UTF8String],strlen([json UTF8String]),result,error);
@@ -18,6 +19,7 @@ int main() {
   if(match) { const auto& f=result.functions.at("f"); const auto& b=f.bindings[0]; match=f.functionType==Indium::FunctionType::Fragment && b.index==(i==0?2:i==3?4:3) && b.internalIndex==(i==0?0:i==3?2:1) && b.type==(i==0?Indium::BindingType::Buffer:i==3?Indium::BindingType::Sampler:Indium::BindingType::Texture); }
   if(match && i==1) match=result.functions.at("f").bindings[0].textureAccessType==Indium::TextureAccessType::Sample;
   if(match && i==2) match=result.functions.at("f").bindings[0].textureAccessType==Indium::TextureAccessType::Write;
+  if(match && i==4) match=result.functions.at("f").bindings[0].textureAccessType==Indium::TextureAccessType::Fetch;
   printf("case%d %s%s%s\n",i,match?"PASS":"FAIL",error?": ":"",error?[error UTF8String]:"");
   failures+=!match;
  }
