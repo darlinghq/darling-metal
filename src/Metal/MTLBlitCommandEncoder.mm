@@ -234,6 +234,23 @@ destinationBytesPerImage: (NSUInteger)destinationBytesPerImage
 	_encoder->generateMipmapsForTexture(MTLTextureGetIndium(texture));
 }
 
+- (void)synchronizeResource: (id<MTLResource>)resource
+{
+	if ([resource conformsToProtocol: @protocol(MTLBuffer)]) {
+		_encoder->synchronize(MTLBufferGetIndium((id<MTLBuffer>)resource));
+	} else if ([resource conformsToProtocol: @protocol(MTLTexture)]) {
+		_encoder->synchronize(MTLTextureGetIndium((id<MTLTexture>)resource));
+	}
+}
+
+// Indium synchronizes a texture whole, which covers the one image asked for.
+- (void)synchronizeTexture: (id<MTLTexture>)texture
+                     slice: (NSUInteger)slice
+                     level: (NSUInteger)level
+{
+	_encoder->synchronize(MTLTextureGetIndium(texture));
+}
+
 #else
 
 @dynamic device;

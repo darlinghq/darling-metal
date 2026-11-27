@@ -110,7 +110,12 @@ destinationBytesPerImage: (NSUInteger)destinationBytesPerImage
 
 - (void)generateMipmapsForTexture: (id<MTLTexture>)texture;
 
-// TODO: the synchronize methods; indium has no equivalent
+// Make what the GPU wrote to a managed resource before this point visible to the CPU once the command buffer
+// completes.
+- (void)synchronizeResource: (id<MTLResource>)resource;
+- (void)synchronizeTexture: (id<MTLTexture>)texture
+                     slice: (NSUInteger)slice
+                     level: (NSUInteger)level;
 
 // Samples the counters of `sampleBuffer` into `sampleIndex` at this point in the encoder. Taking a sample inside
 // the pass is supported where -supportsCounterSampling: says so for the matching sampling point.
