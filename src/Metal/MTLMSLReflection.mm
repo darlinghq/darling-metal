@@ -292,7 +292,23 @@ static bool MTLReadBindings(NSArray* bindings, Indium::FunctionReflection& outFu
 bool MTLReadMSLReflection(const char* document, size_t length,
 	Indium::LibraryReflection& outReflection, NSString*& outError)
 {
+	std::map<std::string, std::string> unusable;
+	if (!MTLReadMSLReflection(document, length, outReflection, unusable, outError)) {
+		return false;
+	}
+	if (!unusable.empty()) {
+		outError = MTLReflectionError(@"function '%s' cannot be used: %s", unusable.begin()->first.c_str(), unusable.begin()->second.c_str());
+		return false;
+	}
+	return true;
+}
+
+bool MTLReadMSLReflection(const char* document, size_t length,
+	Indium::LibraryReflection& outReflection, std::map<std::string, std::string>& outUnusable,
+	NSString*& outError)
+{
 	outError = nil;
+	outUnusable.clear();
 
 	if (document == NULL || length == 0) {
 		outError = MTLReflectionError(@"mslc returned an empty reflection document");
@@ -398,6 +414,53 @@ bool MTLReadMSLReflection(const char* document, size_t length,
 			functionReflection.numSamplesSpecializationID = (uint32_t)[numSamplesID longLongValue];
 		}
 
+		// the function constants the entry point reads: the SpecIds of each one's value and of the flag that says
+		// whether it was given one (is_function_constant_defined)
+		id constants = [entryObject objectForKey: @"function_constants"];
+		NSString* unusableReason = nil;
+		if (constants != nil) {
+			if (![constants isKindOfClass: [NSArray class]]) {
+				outError = MTLReflectionError(@"mslc's reflection has function_constants that is not an array");
+				return false;
+			}
+			for (id object in (NSArray*)constants) {
+				Indium::FunctionConstantInfo constant;
+				NSString* name = nil;
+				NSString* type = nil;
+				size_t specializationID = 0;
+				size_t definedSpecializationID = 0;
+				if (![object isKindOfClass: [NSDictionary class]] ||
+					!MTLReadString(object, @"name", name) || !MTLReadString(object, @"type", type) ||
+					!MTLReadIndex([object objectForKey: @"index"], constant.index) ||
+					!MTLReadIndex([object objectForKey: @"spec_id"], specializationID) || specializationID > UINT32_MAX ||
+					!MTLReadIndex([object objectForKey: @"defined_spec_id"], definedSpecializationID) || definedSpecializationID > UINT32_MAX)
+				{
+					outError = MTLReflectionError(@"invalid function constant entry");
+					return false;
+				}
+				if ([type isEqualToString: @"bool"]) {
+					constant.type = Indium::FunctionConstantType::Bool;
+				} else if ([type isEqualToString: @"int"]) {
+					constant.type = Indium::FunctionConstantType::Int;
+				} else if ([type isEqualToString: @"uint"]) {
+					constant.type = Indium::FunctionConstantType::UInt;
+				} else if ([type isEqualToString: @"float"]) {
+					constant.type = Indium::FunctionConstantType::Float;
+				} else {
+					// Implementation limit: indium specializes 32-bit constants only. Only the functions that read
+					// such a constant are unusable, so the library is still made and they are refused by name.
+					if (unusableReason == nil) {
+						unusableReason = [NSString stringWithFormat: @"function constant '%@' has the type %@, which is not supported yet; bool, int, uint and float are", name, type];
+					}
+					continue;
+				}
+				constant.name = name.UTF8String;
+				constant.specializationID = (uint32_t)specializationID;
+				constant.definedSpecializationID = (uint32_t)definedSpecializationID;
+				functionReflection.functionConstants.push_back(constant);
+			}
+		}
+
 		NSString* entryPoint = nil;
 		if (!MTLReadString(entryObject, @"name", entryPoint) || [entryPoint length] == 0) {
 			if (!MTLReadString(entryObject, @"entry_point", entryPoint) || [entryPoint length] == 0) {
@@ -406,6 +469,9 @@ bool MTLReadMSLReflection(const char* document, size_t length,
 			}
 		}
 
+		if (unusableReason != nil) {
+			outUnusable[std::string([entryPoint UTF8String])] = std::string([unusableReason UTF8String]);
+		}
 		outReflection.functions.emplace(
 			std::string([entryPoint UTF8String]), std::move(functionReflection));
 	}

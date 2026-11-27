@@ -294,6 +294,7 @@ MTL_UNSUPPORTED_CLASS
 {
 	std::shared_ptr<Indium::Library> _library;
 	unsigned char _digest[CC_SHA256_DIGEST_LENGTH];
+	NSDictionary<NSString*, NSString*>* _unusableFunctions;
 }
 
 @synthesize installName = _installName;
@@ -335,7 +336,15 @@ MTL_UNSUPPORTED_CLASS
 	[_functionNames release];
 	[_device release];
 	[_label release];
+	[_unusableFunctions release];
 	[super dealloc];
+}
+
+- (void)setUnusableFunctions: (NSDictionary<NSString*, NSString*>*)reasons
+{
+	NSDictionary* copy = [reasons copy];
+	[_unusableFunctions release];
+	_unusableFunctions = copy;
 }
 
 // A function of this library, by its name and the values given for its constants, as the SHA-256 of the
@@ -367,7 +376,7 @@ MTL_UNSUPPORTED_CLASS
 
 - (id<MTLFunction>)newFunctionWithName: (NSString*)functionName
 {
-	if (!functionName) {
+	if (!functionName || _unusableFunctions[functionName] != nil) {
 		return nil;
 	}
 	// this selector has no error out-parameter: a function Indium cannot create is nil
@@ -389,6 +398,10 @@ MTL_UNSUPPORTED_CLASS
 	}
 	if (!functionName) {
 		MTLSetError(error, MTLLibraryErrorFunctionNotFound, @"No function name");
+		return nil;
+	}
+	if (NSString* reason = _unusableFunctions[functionName]) {
+		MTLSetError(error, MTLLibraryErrorUnsupported, [NSString stringWithFormat: @"Function '%@' cannot be used: %@", functionName, reason]);
 		return nil;
 	}
 
@@ -483,7 +496,9 @@ MTL_UNSUPPORTED_CLASS
 		function = [self newFunctionWithName: functionName constantValues: descriptor.constantValues error: error];
 	} else {
 		function = [self newFunctionWithName: functionName];
-		if (!function) {
+		if (!function && functionName && _unusableFunctions[functionName] != nil) {
+			MTLSetError(error, MTLLibraryErrorUnsupported, [NSString stringWithFormat: @"Function '%@' cannot be used: %@", functionName, _unusableFunctions[functionName]]);
+		} else if (!function) {
 			MTLSetError(error, MTLLibraryErrorFunctionNotFound, [NSString stringWithFormat: @"Function '%@' was not found in the library", functionName]);
 		}
 	}

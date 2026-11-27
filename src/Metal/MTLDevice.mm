@@ -1251,10 +1251,11 @@ static size_t iosurfacePixelSize(MTLPixelFormat format)
 	}
 
 	Indium::LibraryReflection libraryReflection;
+	std::map<std::string, std::string> unusableFunctions;
 	NSString* reflectionError = nil;
 
 	if (!MTLReadMSLReflection(reflection, (reflection != NULL) ? strlen(reflection) : 0,
-		libraryReflection, reflectionError))
+		libraryReflection, unusableFunctions, reflectionError))
 	{
 		if (error) {
 			*error = MSLLibraryError(
@@ -1273,6 +1274,13 @@ static size_t iosurfacePixelSize(MTLPixelFormat format)
 	std::string indiumError;
 	auto library = _device->newLibrary(spirv, spirvSize, libraryReflection, &indiumError);
 	MTLLibraryInternal* result = library ? [[MTLLibraryInternal alloc] initWithLibrary: library device: self contents: spirv length: spirvSize] : nil;
+	if (result != nil && !unusableFunctions.empty()) {
+		NSMutableDictionary<NSString*, NSString*>* reasons = [NSMutableDictionary dictionary];
+		for (const auto& [name, reason]: unusableFunctions) {
+			reasons[[NSString stringWithUTF8String: name.c_str()]] = [NSString stringWithUTF8String: reason.c_str()];
+		}
+		[result setUnusableFunctions: reasons];
+	}
 
 	// indium borrows the module and the reflection for the call and nothing
 	// longer, so both go back before the library is handed out rather than after
