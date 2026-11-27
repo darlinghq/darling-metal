@@ -244,12 +244,16 @@ int main(void) {
                    && constants[1].index == 4 && constants[1].specializationID == 65540 && constants[1].definedSpecializationID == 131076);
             }
         }
+        // the refusals start from mslc's real document, so the only thing wrong with each is its constant
         expectRejected("a half function constant, which indium does not specialize",
-            @"{\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":[],\"function_constants\":["
-            "{\"name\":\"h\",\"type\":\"half\",\"index\":0,\"spec_id\":65536,\"defined_spec_id\":131072}]}");
+            [realDocument() stringByReplacingOccurrencesOfString: @"\"local_size\""
+                withString: @"\"function_constants\": [{ \"name\": \"h\", \"type\": \"half\", \"index\": 0, \"spec_id\": 65536, \"defined_spec_id\": 131072 }],\n\t\"local_size\""]);
         expectRejected("a function constant with no spec_id",
-            @"{\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":[],\"function_constants\":["
-            "{\"name\":\"c\",\"type\":\"int\",\"index\":0,\"defined_spec_id\":131072}]}");
+            [realDocument() stringByReplacingOccurrencesOfString: @"\"local_size\""
+                withString: @"\"function_constants\": [{ \"name\": \"c\", \"type\": \"int\", \"index\": 0, \"defined_spec_id\": 131072 }],\n\t\"local_size\""]);
+        expectRejected("function_constants that is not an array",
+            [realDocument() stringByReplacingOccurrencesOfString: @"\"local_size\""
+                withString: @"\"function_constants\": 3,\n\t\"local_size\""]);
 
         expectRejected("a string where an index belongs",
             @"{\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":["
