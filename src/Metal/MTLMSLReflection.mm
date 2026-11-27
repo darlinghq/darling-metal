@@ -388,6 +388,16 @@ bool MTLReadMSLReflection(const char* document, size_t length,
 			functionReflection.gridSizeSpecializationIDs = ids;
 		}
 
+		// the specialization constant that holds a fragment function's sample count, get_num_samples()
+		id numSamplesID = [entryObject objectForKey: @"num_samples_spec_id"];
+		if (numSamplesID != nil) {
+			if (![numSamplesID isKindOfClass: [NSNumber class]] || [numSamplesID longLongValue] < 0 || [numSamplesID longLongValue] > UINT32_MAX) {
+				outError = MTLReflectionError(@"mslc's reflection has a num_samples_spec_id that is not a specialization ID");
+				return false;
+			}
+			functionReflection.numSamplesSpecializationID = (uint32_t)[numSamplesID longLongValue];
+		}
+
 		NSString* entryPoint = nil;
 		if (!MTLReadString(entryObject, @"name", entryPoint) || [entryPoint length] == 0) {
 			if (!MTLReadString(entryObject, @"entry_point", entryPoint) || [entryPoint length] == 0) {

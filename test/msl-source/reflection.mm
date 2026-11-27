@@ -197,6 +197,32 @@ int main(void) {
             @"{\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":["
             "{\"kind\":\"Buffer\",\"metal_index\":-1,\"descriptor\":{\"set\":0,\"binding\":0}}]}");
 
+        // ------------------------------------------- sample count constant
+        LOG("  sample count");
+        {
+            Indium::LibraryReflection reflection;
+            NSString* err = nil;
+            NSString* doc = [[realDocument() stringByReplacingOccurrencesOfString: @"\"kernel\""
+                                                                      withString: @"\"fragment\""]
+                stringByReplacingOccurrencesOfString: @"\"local_size\""
+                                          withString: @"\"num_samples_spec_id\": 262147,\n\t\"local_size\""];
+            ok("num_samples_spec_id is accepted", read(doc, reflection, err));
+            for (const auto& e : reflection.functions) {
+                ok("and reads back as the sample count's specialization ID",
+                   e.second.numSamplesSpecializationID && *e.second.numSamplesSpecializationID == 262147);
+            }
+        }
+        {
+            Indium::LibraryReflection reflection;
+            NSString* err = nil;
+            ok("a document without it is read", read(realDocument(), reflection, err));
+            for (const auto& e : reflection.functions) {
+                ok("and has no sample count constant", !e.second.numSamplesSpecializationID);
+            }
+        }
+        expectRejected("a num_samples_spec_id that is a string",
+            @"{\"stage\":\"fragment\",\"entry_point\":\"f\",\"num_samples_spec_id\":\"262147\",\"bindings\":[]}");
+
         expectRejected("a string where an index belongs",
             @"{\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":["
             "{\"kind\":\"Buffer\",\"metal_index\":\"0\",\"descriptor\":{\"set\":0,\"binding\":0}}]}");
