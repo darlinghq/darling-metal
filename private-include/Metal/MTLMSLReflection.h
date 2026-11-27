@@ -27,8 +27,9 @@ extern bool MTLReadMSLReflection(const char* document, size_t length,
 /**
  * The same, for a library that may hold functions indium cannot make: each one is
  * still read, and `outUnusable` maps its name to the reason, for the library to
- * refuse that function by name rather than refuse the whole library. The other
- * overload refuses the document if there is any such function.
+ * refuse that function by name rather than refuse the whole library. This is the
+ * one a library is made with; the other overload, which the reader's tests use,
+ * refuses the document if there is any such function.
  */
 extern bool MTLReadMSLReflection(const char* document, size_t length,
 	Indium::LibraryReflection& outReflection, std::map<std::string, std::string>& outUnusable,

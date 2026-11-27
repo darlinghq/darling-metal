@@ -3,9 +3,11 @@
 
 // Function constants of a library compiled from source: the values given by index or by name reach a kernel
 // and a fragment function, is_function_constant_defined is true for a constant that was given a value and
-// false for one that was not, and the function reports its constants. A function that reads a constant of a
-// type that cannot be specialized yet (half) is refused with MTLLibraryErrorUnsupported, naming the
-// constant, while the other functions of its library work.
+// false for one that was not, and the function reports its constants.
+// The last part checks an implementation limit of Darling, not Metal's behaviour (Metal accepts half
+// function constants, so it fails on macOS): a function that reads a constant of a type indium cannot
+// specialize yet is refused with MTLLibraryErrorUnsupported, naming the constant, while the other functions
+// of its library work.
 // Exits 77 when there is no Metal device.
 #import <Foundation/Foundation.h>
 #import <Metal/Metal.h>
@@ -91,7 +93,8 @@ int main(void) {
 		CHECK(plain != nil);
 		if (plain != nil) {
 			NSArray<NSNumber*>* words = runValues(device, plain);
-			CHECK(words != nil && [words[2] isEqual: @0] && [words[3] isEqual: @0]);
+			// an undefined constant reads as zero or false
+			CHECK([words isEqual: (@[ @0, @2, @0, @0 ])]);
 		}
 
 		// a fragment function's constant reaches the render pipeline
@@ -100,6 +103,7 @@ int main(void) {
 		[tintValues setConstantValue: &red type: MTLDataTypeFloat atIndex: 2];
 		MTLRenderPipelineDescriptor* pd = [[MTLRenderPipelineDescriptor new] autorelease];
 		pd.vertexFunction = [[library newFunctionWithName: @"fullscreen"] autorelease];
+		CHECK(pd.vertexFunction != nil);
 		pd.fragmentFunction = [[library newFunctionWithName: @"tint" constantValues: tintValues error: &error] autorelease];
 		pd.colorAttachments[0].pixelFormat = MTLPixelFormatRGBA8Unorm;
 		id<MTLRenderPipelineState> rps = [[device newRenderPipelineStateWithDescriptor: pd error: &error] autorelease];
@@ -127,18 +131,21 @@ int main(void) {
 			CHECK(pixel[0] == 255 && pixel[1] == 255 && pixel[2] == 0 && pixel[3] == 255);
 		}
 
-		// the function reading the half constant is refused by every way of making it
+		// Implementation limit, not Metal's behaviour: the function reading the half constant is refused by
+		// every way of making it
 		error = nil;
 		id<MTLFunction> halves = [library newFunctionWithName: @"halves" constantValues: [[MTLFunctionConstantValues new] autorelease] error: &error];
 		CHECK(halves == nil);
 		CHECK(error != nil && [error.domain isEqualToString: MTLLibraryErrorDomain] && error.code == MTLLibraryErrorUnsupported);
 		CHECK(error != nil && [error.localizedDescription rangeOfString: @"kHalf"].location != NSNotFound);
 		if (error) printf("halves: %s\n", error.localizedDescription.UTF8String);
-		CHECK([library newFunctionWithName: @"halves"] == nil);
+		id<MTLFunction> unnamed = [[library newFunctionWithName: @"halves"] autorelease];
+		CHECK(unnamed == nil);
 		MTLFunctionDescriptor* fd = [MTLFunctionDescriptor functionDescriptor];
 		fd.name = @"halves";
 		error = nil;
-		CHECK([library newFunctionWithDescriptor: fd error: &error] == nil);
+		id<MTLFunction> described = [[library newFunctionWithDescriptor: fd error: &error] autorelease];
+		CHECK(described == nil);
 		CHECK(error != nil && error.code == MTLLibraryErrorUnsupported);
 	}
 	if (failures) {
