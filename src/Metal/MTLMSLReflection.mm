@@ -247,9 +247,12 @@ static bool MTLReadBindings(NSArray* bindings, Indium::FunctionReflection& outFu
 			outError = MTLReflectionError(@"binding '%@' has no integer metal_index", kind);
 			return false;
 		}
+		// An access::read texture ("Read") is fetched from by coordinate and lod: indium binds it as a sampled image
+		// of every level, and a cube as the 2D array of its faces, which is how mslc declares it.
 		if (binding.type == Indium::BindingType::Texture &&
 			!MTLReadEnum(object, @"texture_access", binding.textureAccessType, {
-				{@"Sample", Indium::TextureAccessType::Sample}, {@"Write", Indium::TextureAccessType::Write}}))
+				{@"Sample", Indium::TextureAccessType::Sample}, {@"Write", Indium::TextureAccessType::Write},
+				{@"Read", Indium::TextureAccessType::Fetch}}))
 		{
 			outError = MTLReflectionError(@"texture binding has missing or unsupported texture_access");
 			return false;
