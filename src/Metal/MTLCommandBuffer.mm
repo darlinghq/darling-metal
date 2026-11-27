@@ -64,6 +64,18 @@ struct MTLCommandBufferStatusBox {
 	MTLCommandBufferInternal* target = nil;
 };
 
+struct MTLRetainedDrawables {
+	std::mutex mutex;
+	std::vector<id<MTLDrawable>> drawables;
+	~MTLRetainedDrawables() {
+		@autoreleasepool {
+			for (id<MTLDrawable> d : drawables) {
+				[d release];
+			}
+		}
+	}
+};
+
 // The host clock CACurrentMediaTime() reads, in seconds, which is what the command buffer times are on.
 static CFTimeInterval MTLHostTimeNow(void)
 {
@@ -92,6 +104,7 @@ static CFTimeInterval MTLHostTimeNow(void)
 	BOOL _retainedReferences;
 	MTLCommandBufferErrorOption _errorOptions;
 	std::shared_ptr<MTLCommandBufferStatusBox> _statusBox;
+	std::shared_ptr<MTLRetainedDrawables> _drawablesToPresent;
 }
 
 @synthesize device = _device;
@@ -123,6 +136,7 @@ static CFTimeInterval MTLLoadTime(uint64_t* slot)
 	if (self != nil) {
 		_commandBuffer = commandBuffer;
 		_iosurfaceWrites = std::make_shared<MTLIOSurfaceWriteSet>();
+		_drawablesToPresent = std::make_shared<MTLRetainedDrawables>();
 		_device = [commandQueue.device retain];
 		_commandQueue = [commandQueue retain];
 		_status = MTLCommandBufferStatusNotEnqueued;
@@ -350,7 +364,18 @@ static CFTimeInterval MTLLoadTime(uint64_t* slot)
 
 - (void)presentDrawable: (id<MTLDrawable>)drawable
 {
-	_commandBuffer->presentDrawable(((id<MTLDrawableInternal>)drawable).drawable);
+	if (!drawable || ![drawable respondsToSelector: @selector(drawable)]) {
+		return;
+	}
+	auto indiumDrawable = ((id<MTLDrawableInternal>)drawable).drawable;
+	if (!indiumDrawable) {
+		return;
+	}
+	{
+		std::lock_guard<std::mutex> lock(_drawablesToPresent->mutex);
+		_drawablesToPresent->drawables.push_back([drawable retain]);
+	}
+	_commandBuffer->presentDrawable(indiumDrawable);
 }
 
 // The drawable decides when the frame is shown (see -[MTLDrawableInternal presentAtTime:]), so a presentation
@@ -423,6 +448,19 @@ static CFTimeInterval MTLLoadTime(uint64_t* slot)
 		_commandBuffer->addCompletedHandler([](std::shared_ptr<Indium::CommandBuffer> completed) {
 			MTLIOSurfaceCopyCompleted(completed);
 		});
+	}
+	std::shared_ptr<MTLRetainedDrawables> presented;
+	{
+		std::lock_guard<std::mutex> lock(_drawablesToPresent->mutex);
+		if (!_drawablesToPresent->drawables.empty()) {
+			presented = std::make_shared<MTLRetainedDrawables>();
+			presented->drawables.swap(_drawablesToPresent->drawables);
+		}
+	}
+	if (presented) {
+		// Keep presented drawables alive across autorelease-pool drains until Indium finishes
+		// presenting and completes the command buffer, without retaining `self`.
+		_commandBuffer->addCompletedHandler([presented](std::shared_ptr<Indium::CommandBuffer>) {});
 	}
 	_commandBuffer->commit();
 	MTLIOSurfaceCopyGPUMayHaveWritten();
