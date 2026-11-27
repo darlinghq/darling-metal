@@ -33,7 +33,7 @@ It carries four controls, all of which have to fire:
   assertions here would turn someone else's progress into a failure.
 
 `reflection.mm` tests `MTLReadMSLReflection` on its own: mslc's real document byte
-for byte including the trailing comma that makes it not strict JSON, then eighteen
+for byte including the trailing comma that makes it not strict JSON, then twenty
 documents that have to be refused. A reader that guessed instead of stopping would
 pass the first document and be wrong on all of them.
 
@@ -52,7 +52,8 @@ On the only device this reaches, `Apple M1 (G13G B1)`, under `darlingserver`:
 RESULT: PASS
 ```
 
-`reflection.mm`: 25 of 25, `RESULT: PASS`.
+`reflection.mm`: 40 of 40, `RESULT: PASS`, under Darling. Every hand-written document carries
+`reflection_version`, so each refusal prints the reason it is about rather than a missing version.
 
 ## What cannot compile, and where the reason lives
 

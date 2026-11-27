@@ -152,7 +152,7 @@ int main(void) {
         {
             Indium::LibraryReflection reflection;
             NSString* err = nil;
-            NSString* doc = @"{\"stage\":\"vertex\",\"entry_point\":\"v\",\"bindings\":["
+            NSString* doc = @"{\"reflection_version\":1,\"stage\":\"vertex\",\"entry_point\":\"v\",\"bindings\":["
                 "{\"kind\":\"VertexInput\",\"metal_index\":2,\"location\":2,\"name\":\"position\"}]}";
             ok("a VertexInput binding on a vertex function is accepted", read(doc, reflection, err));
             for (const auto& e : reflection.functions) {
@@ -170,31 +170,31 @@ int main(void) {
         LOG("  negative controls");
 
         expectRejected("a Texture binding, which carries no access type",
-            @"{\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":["
+            @"{\"reflection_version\":1,\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":["
             "{\"kind\":\"Texture\",\"metal_index\":0,\"descriptor\":{\"set\":0,\"binding\":0}}]}");
 
         expectRejected("a Sampler binding on a descriptor set its stage does not own",
-            @"{\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":["
+            @"{\"reflection_version\":1,\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":["
             "{\"kind\":\"Sampler\",\"metal_index\":0,\"descriptor\":{\"set\":1,\"binding\":0}}]}");
 
         expectRejected("a VertexInput binding on a kernel",
-            @"{\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":["
+            @"{\"reflection_version\":1,\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":["
             "{\"kind\":\"VertexInput\",\"metal_index\":0,\"location\":0}]}");
 
         expectRejected("a VertexInput binding with no attribute index",
-            @"{\"stage\":\"vertex\",\"entry_point\":\"v\",\"bindings\":["
+            @"{\"reflection_version\":1,\"stage\":\"vertex\",\"entry_point\":\"v\",\"bindings\":["
             "{\"kind\":\"VertexInput\",\"location\":0}]}");
 
         expectRejected("a binding of unknown kind",
-            @"{\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":["
+            @"{\"reflection_version\":1,\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":["
             "{\"kind\":\"AccelerationStructure\",\"metal_index\":0,\"descriptor\":{\"set\":0,\"binding\":0}}]}");
 
         expectRejected("a fractional metal_index, which must not be rounded to 2",
-            @"{\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":["
+            @"{\"reflection_version\":1,\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":["
             "{\"kind\":\"Buffer\",\"metal_index\":2.5,\"descriptor\":{\"set\":0,\"binding\":0}}]}");
 
         expectRejected("a negative metal_index",
-            @"{\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":["
+            @"{\"reflection_version\":1,\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":["
             "{\"kind\":\"Buffer\",\"metal_index\":-1,\"descriptor\":{\"set\":0,\"binding\":0}}]}");
 
         // ------------------------------------------- sample count constant
@@ -221,31 +221,31 @@ int main(void) {
             }
         }
         expectRejected("a num_samples_spec_id that is a string",
-            @"{\"stage\":\"fragment\",\"entry_point\":\"f\",\"num_samples_spec_id\":\"262147\",\"bindings\":[]}");
+            @"{\"reflection_version\":1,\"stage\":\"fragment\",\"entry_point\":\"f\",\"num_samples_spec_id\":\"262147\",\"bindings\":[]}");
 
         expectRejected("a string where an index belongs",
-            @"{\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":["
+            @"{\"reflection_version\":1,\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":["
             "{\"kind\":\"Buffer\",\"metal_index\":\"0\",\"descriptor\":{\"set\":0,\"binding\":0}}]}");
 
         expectRejected("a binding with no descriptor",
-            @"{\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":["
+            @"{\"reflection_version\":1,\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":["
             "{\"kind\":\"Buffer\",\"metal_index\":0}]}");
 
         expectRejected("a binding with no metal_index",
-            @"{\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":["
+            @"{\"reflection_version\":1,\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":["
             "{\"kind\":\"Buffer\",\"descriptor\":{\"set\":0,\"binding\":0}}]}");
 
         expectRejected("no bindings array",
-            @"{\"stage\":\"kernel\",\"entry_point\":\"k\"}");
+            @"{\"reflection_version\":1,\"stage\":\"kernel\",\"entry_point\":\"k\"}");
 
         expectRejected("no entry point",
-            @"{\"stage\":\"kernel\",\"bindings\":[]}");
+            @"{\"reflection_version\":1,\"stage\":\"kernel\",\"bindings\":[]}");
 
         expectRejected("an empty entry point name",
-            @"{\"stage\":\"kernel\",\"entry_point\":\"\",\"bindings\":[]}");
+            @"{\"reflection_version\":1,\"stage\":\"kernel\",\"entry_point\":\"\",\"bindings\":[]}");
 
         expectRejected("no stage",
-            @"{\"entry_point\":\"k\",\"bindings\":[]}");
+            @"{\"reflection_version\":1,\"entry_point\":\"k\",\"bindings\":[]}");
 
         expectRejected("a document that is a JSON array, not an object",
             @"[{\"stage\":\"kernel\"}]");
@@ -253,6 +253,10 @@ int main(void) {
         expectRejected("a document that is not JSON at all", @"this is not json");
 
         expectRejected("an empty document", @"");
+        expectRejected("a document with no reflection_version",
+            @"{\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":[]}");
+        expectRejected("a reflection_version this reader does not know",
+            @"{\"reflection_version\":3,\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":[]}");
 
         // The last one has to hold for the whole suite: a reflection of no
         // functions is what indium refuses with "reflection describes no
@@ -261,7 +265,7 @@ int main(void) {
         {
             Indium::LibraryReflection reflection;
             NSString* err = nil;
-            BOOL accepted = read(@"{\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":[]}",
+            BOOL accepted = read(@"{\"reflection_version\":1,\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":[]}",
                                  reflection, err);
             ok("a document with no bindings is read, and carries one empty function",
                accepted && reflection.functions.size() == 1
