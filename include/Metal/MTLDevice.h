@@ -9,6 +9,7 @@
 
 #import <Metal/MTLResource.h>
 #import <Metal/MTLPixelFormat.h>
+#import <Metal/MTLTexture.h>
 #import <Metal/MTLTypes.h>
 #import <Metal/MTLDefines.h>
 #import <Metal/MTLEvent.h>
@@ -174,6 +175,12 @@ typedef NS_ENUM(NSUInteger, MTLCounterSamplingPoint) {
 	MTLCounterSamplingPointAtBlitBoundary = 4,
 };
 
+typedef NS_ENUM(NSInteger, MTLSparsePageSize) {
+	MTLSparsePageSize16 = 101,
+	MTLSparsePageSize64 = 102,
+	MTLSparsePageSize256 = 103,
+};
+
 @protocol MTLDevice <NSObject>
 
 @property(readonly, nonnull) NSString* name;
@@ -198,6 +205,9 @@ typedef NS_ENUM(NSUInteger, MTLCounterSamplingPoint) {
 /* Whether R32Float, RG32Float and RGBA32Float textures can be sampled with linear filtering. */
 @property(readonly) BOOL supports32BitFloatFiltering;
 
+/* Whether 32-bit floating-point formats are supported for MSAA textures. */
+@property(readonly) BOOL supports32BitMSAA;
+
 /* Whether the block-compressed BC1 to BC7 texture formats can be sampled. */
 @property(readonly) BOOL supportsBCTextureCompression;
 
@@ -210,6 +220,18 @@ typedef NS_ENUM(NSUInteger, MTLCounterSamplingPoint) {
 
 /* Always NO: raster order groups need fragment ordering that indium does not provide. */
 @property(readonly, getter=areRasterOrderGroupsSupported) BOOL rasterOrderGroupsSupported;
+
+- (BOOL)supportsVertexAmplificationCount: (NSUInteger)count;
+@property(readonly) BOOL supportsDynamicLibraries;
+@property(readonly) BOOL supportsRenderDynamicLibraries;
+@property(readonly) BOOL supportsFunctionPointers;
+@property(readonly) BOOL supportsFunctionPointersFromRender;
+@property(readonly) BOOL supportsPrimitiveMotionBlur;
+@property(readonly) BOOL supportsQueryTextureLOD;
+@property(readonly) BOOL supportsRaytracing;
+@property(readonly) BOOL supportsRaytracingFromRender;
+@property(readonly) BOOL supportsPlacementSparse;
+- (BOOL)supportsMetal4FX: (id)descriptor;
 
 /* Where the GPU sits, from the kind of Vulkan device: integrated is built in, discrete is in a
  * slot, anything else (virtual, software) is unspecified. */
@@ -227,6 +249,13 @@ typedef NS_ENUM(NSUInteger, MTLCounterSamplingPoint) {
 /* Reports Tier 1 argument buffers support (baseline tier). indium does not
  * implement Tier 2 argument buffers. */
 - (MTLArgumentBuffersTier)argumentBuffersSupport;
+@property(readonly) NSUInteger maxArgumentBufferSamplerCount;
+@property(readonly) NSUInteger sparseTileSizeInBytes;
+- (NSUInteger)sparseTileSizeInBytesForSparsePageSize: (MTLSparsePageSize)sparsePageSize;
+- (MTLSize)sparseTileSizeWithTextureType: (MTLTextureType)textureType pixelFormat: (MTLPixelFormat)pixelFormat sampleCount: (NSUInteger)sampleCount;
+- (MTLSize)sparseTileSizeWithTextureType: (MTLTextureType)textureType pixelFormat: (MTLPixelFormat)pixelFormat sampleCount: (NSUInteger)sampleCount sparsePageSize: (MTLSparsePageSize)sparsePageSize;
+@property(readwrite) BOOL shouldMaximizeConcurrentCompilation;
+@property(readonly) NSUInteger maximumConcurrentCompilationTaskCount;
 
 /* Also NO for want of an implementation rather than for want of hardware.
  * Barycentric coordinates are a fragment-shader interpolation decoration, and
