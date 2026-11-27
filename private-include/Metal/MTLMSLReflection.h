@@ -8,6 +8,8 @@
 
 #if DARLING_METAL_ENABLED
 #include <indium/library.hpp>
+#include <map>
+#include <string>
 
 /**
  * Reads mslc's reflection document into the values indium's SPIR-V library
@@ -21,6 +23,16 @@
  */
 extern bool MTLReadMSLReflection(const char* document, size_t length,
 	Indium::LibraryReflection& outReflection, NSString*& outError);
+
+/**
+ * The same, for a library that may hold functions indium cannot make: each one is
+ * still read, and `outUnusable` maps its name to the reason, for the library to
+ * refuse that function by name rather than refuse the whole library. The other
+ * overload refuses the document if there is any such function.
+ */
+extern bool MTLReadMSLReflection(const char* document, size_t length,
+	Indium::LibraryReflection& outReflection, std::map<std::string, std::string>& outUnusable,
+	NSString*& outError);
 
 #endif // DARLING_METAL_ENABLED
 

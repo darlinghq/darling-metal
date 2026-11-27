@@ -39,6 +39,9 @@
                          device: (id<MTLDevice>)device
                        contents: (const void*)contents
                          length: (size_t)length;
+
+// functions of the library that cannot be made, by name, with the reason each one is refused for
+- (void)setUnusableFunctions: (NSDictionary<NSString*, NSString*>*)reasons;
 #endif
 
 @end
