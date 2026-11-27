@@ -223,6 +223,34 @@ int main(void) {
         expectRejected("a num_samples_spec_id that is a string",
             @"{\"stage\":\"fragment\",\"entry_point\":\"f\",\"num_samples_spec_id\":\"262147\",\"bindings\":[]}");
 
+        // --------------------------------------------------- function constants
+        LOG("  function constants");
+        {
+            Indium::LibraryReflection reflection;
+            NSString* err = nil;
+            NSString* doc = [realDocument() stringByReplacingOccurrencesOfString: @"\"local_size\""
+                withString: @"\"function_constants\": [\n"
+                    "\t\t{ \"name\": \"useMask\", \"type\": \"bool\", \"index\": 0, \"spec_id\": 65536, \"defined_spec_id\": 131072 },\n"
+                    "\t\t{ \"name\": \"scale\", \"type\": \"float\", \"index\": 4, \"spec_id\": 65540, \"defined_spec_id\": 131076 }\n"
+                    "\t],\n\t\"local_size\""];
+            ok("function_constants is accepted", read(doc, reflection, err));
+            for (const auto& e : reflection.functions) {
+                const auto& constants = e.second.functionConstants;
+                ok("and reads back both constants with their names, types, indices and SpecIds",
+                   constants.size() == 2
+                   && constants[0].name == "useMask" && constants[0].type == Indium::FunctionConstantType::Bool
+                   && constants[0].index == 0 && constants[0].specializationID == 65536 && constants[0].definedSpecializationID == 131072
+                   && constants[1].name == "scale" && constants[1].type == Indium::FunctionConstantType::Float
+                   && constants[1].index == 4 && constants[1].specializationID == 65540 && constants[1].definedSpecializationID == 131076);
+            }
+        }
+        expectRejected("a half function constant, which indium does not specialize",
+            @"{\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":[],\"function_constants\":["
+            "{\"name\":\"h\",\"type\":\"half\",\"index\":0,\"spec_id\":65536,\"defined_spec_id\":131072}]}");
+        expectRejected("a function constant with no spec_id",
+            @"{\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":[],\"function_constants\":["
+            "{\"name\":\"c\",\"type\":\"int\",\"index\":0,\"defined_spec_id\":131072}]}");
+
         expectRejected("a string where an index belongs",
             @"{\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":["
             "{\"kind\":\"Buffer\",\"metal_index\":\"0\",\"descriptor\":{\"set\":0,\"binding\":0}}]}");
