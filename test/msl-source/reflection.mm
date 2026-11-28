@@ -163,6 +163,25 @@ int main(void) {
             }
         }
 
+        {
+            // mslc's reflection of `fragment float4 f(float4 c [[color(1)]])`, a framebuffer fetch
+            Indium::LibraryReflection reflection;
+            NSString* err = nil;
+            NSString* doc = @"{\"reflection_version\":2,\"entry_points\":[{\"name\":\"f\",\"stage\":\"fragment\","
+                "\"local_size\":[1,1,1],\"bindings\":["
+                "{ \"kind\": \"InputAttachment\", \"metal_index\": 1, \"descriptor\": { \"set\": 1, \"binding\": 3 },"
+                " \"input_attachment_index\": 1, \"scalar\": \"float\", \"name\": \"c\" }],\"embedded_samplers\":[]}]}";
+            ok("an InputAttachment binding of a fragment function is accepted", read(doc, reflection, err));
+            for (const auto& e : reflection.functions) {
+                ok("and is the color attachment at its descriptor binding",
+                   e.second.functionType == Indium::FunctionType::Fragment
+                   && e.second.bindings.size() == 1
+                   && e.second.bindings[0].type == Indium::BindingType::InputAttachment
+                   && e.second.bindings[0].index == 1
+                   && e.second.bindings[0].internalIndex == 3);
+            }
+        }
+
         // ------------------------------------------------ negative controls
         // Each of these is a document mslc could be changed into producing. A reader
         // that guessed instead of stopping would pass everything above and be wrong
@@ -196,6 +215,33 @@ int main(void) {
         expectRejected("a negative metal_index",
             @"{\"reflection_version\":1,\"stage\":\"kernel\",\"entry_point\":\"k\",\"bindings\":["
             "{\"kind\":\"Buffer\",\"metal_index\":-1,\"descriptor\":{\"set\":0,\"binding\":0}}]}");
+
+        // an input attachment that indium could not bind as asked
+        LOG("  input attachments");
+        {
+            auto attachment = [](NSString* stage, NSString* binding) {
+                return [NSString stringWithFormat:
+                    @"{\"reflection_version\":2,\"entry_points\":[{\"name\":\"f\",\"stage\":\"%@\","
+                    "\"local_size\":[1,1,1],\"bindings\":[%@],\"embedded_samplers\":[]}]}", stage, binding];
+            };
+            NSString* good = @"{\"kind\":\"InputAttachment\",\"metal_index\":0,\"descriptor\":{\"set\":1,\"binding\":0},"
+                "\"input_attachment_index\":0,\"scalar\":\"float\"}";
+            expectRejected("an input attachment of a vertex function", attachment(@"vertex", good));
+            expectRejected("an input attachment of a kernel", attachment(@"kernel", good));
+            expectRejected("an input attachment whose InputAttachmentIndex is not its color attachment",
+                attachment(@"fragment", @"{\"kind\":\"InputAttachment\",\"metal_index\":0,\"descriptor\":{\"set\":1,\"binding\":0},"
+                    "\"input_attachment_index\":1,\"scalar\":\"float\"}"));
+            expectRejected("an input attachment with no InputAttachmentIndex",
+                attachment(@"fragment", @"{\"kind\":\"InputAttachment\",\"metal_index\":0,\"descriptor\":{\"set\":1,\"binding\":0}}"));
+            expectRejected("an input attachment of color attachment 8",
+                attachment(@"fragment", @"{\"kind\":\"InputAttachment\",\"metal_index\":8,\"descriptor\":{\"set\":1,\"binding\":0},"
+                    "\"input_attachment_index\":8}"));
+            expectRejected("an input attachment on the descriptor set of another stage",
+                attachment(@"fragment", @"{\"kind\":\"InputAttachment\",\"metal_index\":0,\"descriptor\":{\"set\":0,\"binding\":0},"
+                    "\"input_attachment_index\":0}"));
+            expectRejected("an input attachment with no descriptor",
+                attachment(@"fragment", @"{\"kind\":\"InputAttachment\",\"metal_index\":0,\"input_attachment_index\":0}"));
+        }
 
         // ------------------------------------------- sample count constant
         LOG("  sample count");

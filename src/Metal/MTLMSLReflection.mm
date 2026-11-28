@@ -172,6 +172,21 @@ static bool MTLReadBindings(NSArray* bindings, Indium::FunctionReflection& outFu
 		if ([kind isEqualToString: @"Buffer"]) binding.type = Indium::BindingType::Buffer;
 		else if ([kind isEqualToString: @"Texture"]) binding.type = Indium::BindingType::Texture;
 		else if ([kind isEqualToString: @"Sampler"]) binding.type = Indium::BindingType::Sampler;
+		else if ([kind isEqualToString: @"InputAttachment"]) {
+			// A fragment function's framebuffer fetch input, [[color(n)]]. metal_index is the color attachment n, and
+			// the module's InputAttachmentIndex is n as well: indium takes the attachment from the render pass
+			// and has no way to map another index to it, so a document that says otherwise is not usable. Like
+			// a texture, it has a descriptor binding in the fragment stage's set, read below.
+			size_t attachment = 0;
+			if (outFunction.functionType != Indium::FunctionType::Fragment ||
+				!MTLReadIndex([object objectForKey: @"metal_index"], binding.index) || binding.index >= 8 ||
+				!MTLReadIndex([object objectForKey: @"input_attachment_index"], attachment) || attachment != binding.index)
+			{
+				outError = MTLReflectionError(@"invalid input attachment binding");
+				return false;
+			}
+			binding.type = Indium::BindingType::InputAttachment;
+		}
 		else if ([kind isEqualToString: @"VertexInput"]) {
 			// A [[stage_in]] field of a vertex function. Its metal_index is the
 			// field's attribute index, which is also the location of the shader
