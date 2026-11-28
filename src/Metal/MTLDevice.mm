@@ -814,6 +814,8 @@ static size_t iosurfacePixelSize(MTLPixelFormat format)
 	case MTLPixelFormatBGRA8Unorm:
 	case MTLPixelFormatBGRA8Unorm_sRGB:
 		return 4;
+	case MTLPixelFormatRGBA16Float:
+		return 8;
 	default:
 		return 0;
 	}
