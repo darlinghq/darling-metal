@@ -77,22 +77,40 @@ static bool cpuWroteSince(const MTLIOSurfaceCopy* copy)
 static void writeBack(IOSurfaceRef surface)
 {
 	std::lock_guard lock(g_copiesMutex);
+	// The seed belongs to the whole surface, and the write below changes it. So which copies the CPU has not written
+	// over, and which of those hold GPU results, is settled before anything is written: a surface with a copy per
+	// plane would otherwise see the first plane's writeback as a CPU write that makes it skip the others.
+	std::vector<MTLIOSurfaceCopy*> current;
+	std::vector<MTLIOSurfaceCopy*> toWrite;
 	for (auto copy: g_copies) {
-		if (copy->surface != surface || cpuWroteSince(copy) || copy->generation == g_generation.load()) {
+		if (copy->surface != surface || cpuWroteSince(copy)) {
 			continue;
 		}
-		uint64_t generation = g_generation.load();
-		if (IOSurfaceLock(surface, 0, nullptr) != kIOReturnSuccess) {
-			continue;
+		current.push_back(copy);
+		if (copy->generation != g_generation.load()) {
+			toWrite.push_back(copy);
 		}
-		uint32_t seed = 0;
+	}
+	if (toWrite.empty()) {
+		return;
+	}
+	uint64_t generation = g_generation.load();
+	if (IOSurfaceLock(surface, 0, nullptr) != kIOReturnSuccess) {
+		return;
+	}
+	for (auto copy: toWrite) {
 		try {
 			copy->texture->getBytes(textureRegion(copy), 0, planeBase(surface, copy->plane), planeBytesPerRow(surface, copy->plane));
 		} catch (const std::exception&) {
 			// The surface keeps what it had.
 		}
-		IOSurfaceUnlock(surface, 0, &seed);
+	}
+	uint32_t seed = 0;
+	IOSurfaceUnlock(surface, 0, &seed);
+	for (auto copy: current) {
 		copy->seed = seed;
+	}
+	for (auto copy: toWrite) {
 		copy->generation = generation;
 	}
 }
