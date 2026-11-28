@@ -470,7 +470,9 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 
 - (NSUInteger)maxArgumentBufferSamplerCount
 {
-	return _device->maxPerStageDescriptorSamplers();
+	// The device reports argument buffers tier 1, for which Apple's Metal feature set tables give 16 samplers per
+	// stage from an argument buffer; the Vulkan limit is only an upper bound for it.
+	return std::min<NSUInteger>(16, _device->maxPerStageDescriptorSamplers());
 }
 
 - (NSUInteger)sparseTileSizeInBytes
