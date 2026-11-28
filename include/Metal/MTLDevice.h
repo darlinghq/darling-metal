@@ -231,7 +231,6 @@ typedef NS_ENUM(NSInteger, MTLSparsePageSize) {
 @property(readonly) BOOL supportsRaytracing;
 @property(readonly) BOOL supportsRaytracingFromRender;
 @property(readonly) BOOL supportsPlacementSparse;
-- (BOOL)supportsMetal4FX: (id)descriptor;
 
 /* Where the GPU sits, from the kind of Vulkan device: integrated is built in, discrete is in a
  * slot, anything else (virtual, software) is unspecified. */

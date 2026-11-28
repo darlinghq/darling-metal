@@ -34,11 +34,19 @@ int main(void) {
         // an 8-bit unsigned normalized and a 32-bit float color format multisample on every Vulkan device
         printf("supports32BitMSAA %d\n", (int)d.supports32BitMSAA);
 
+        // the default sparse page is 16 KB: RGBA8 2D tiles are 64x64x1
+        CHECK(d.sparseTileSizeInBytes == 16 * 1024);
+        MTLSize def = [d sparseTileSizeWithTextureType:MTLTextureType2D pixelFormat:MTLPixelFormatRGBA8Unorm sampleCount:1];
+        CHECK(def.width == 64 && def.height == 64 && def.depth == 1);
         CHECK([d sparseTileSizeInBytesForSparsePageSize:MTLSparsePageSize16] == 16 * 1024);
         CHECK([d sparseTileSizeInBytesForSparsePageSize:MTLSparsePageSize64] == 64 * 1024);
         CHECK([d sparseTileSizeInBytesForSparsePageSize:MTLSparsePageSize256] == 256 * 1024);
         checkTile(d, MTLTextureType2D, MTLPixelFormatRGBA8Unorm, 4, 1, MTLSparsePageSize16, 16 * 1024);
         checkTile(d, MTLTextureType2D, MTLPixelFormatRGBA8Unorm, 4, 1, MTLSparsePageSize64, 64 * 1024);
+        MTLSize t64 = [d sparseTileSizeWithTextureType:MTLTextureType2D pixelFormat:MTLPixelFormatRGBA8Unorm sampleCount:1 sparsePageSize:MTLSparsePageSize64];
+        CHECK(t64.width == 128 && t64.height == 128);
+        MTLSize t256 = [d sparseTileSizeWithTextureType:MTLTextureType2D pixelFormat:MTLPixelFormatRGBA8Unorm sampleCount:1 sparsePageSize:MTLSparsePageSize256];
+        CHECK(t256.width == 256 && t256.height == 256);
         checkTile(d, MTLTextureType2D, MTLPixelFormatR8Unorm, 1, 1, MTLSparsePageSize64, 64 * 1024);
         checkTile(d, MTLTextureType2D, MTLPixelFormatRGBA32Float, 16, 1, MTLSparsePageSize256, 256 * 1024);
         checkTile(d, MTLTextureType3D, MTLPixelFormatRGBA8Unorm, 4, 1, MTLSparsePageSize64, 64 * 1024);

@@ -477,7 +477,8 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 
 - (NSUInteger)sparseTileSizeInBytes
 {
-	return [self sparseTileSizeInBytesForSparsePageSize: MTLSparsePageSize64];
+	// the default sparse page is 16 KB
+	return [self sparseTileSizeInBytesForSparsePageSize: MTLSparsePageSize16];
 }
 
 - (NSUInteger)sparseTileSizeInBytesForSparsePageSize: (MTLSparsePageSize)sparsePageSize
@@ -490,13 +491,13 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 		case MTLSparsePageSize256:
 			return 256 * 1024;
 		default:
-			return 64 * 1024;
+			return 16 * 1024;
 	}
 }
 
 - (MTLSize)sparseTileSizeWithTextureType: (MTLTextureType)textureType pixelFormat: (MTLPixelFormat)pixelFormat sampleCount: (NSUInteger)sampleCount
 {
-	return [self sparseTileSizeWithTextureType: textureType pixelFormat: pixelFormat sampleCount: sampleCount sparsePageSize: MTLSparsePageSize64];
+	return [self sparseTileSizeWithTextureType: textureType pixelFormat: pixelFormat sampleCount: sampleCount sparsePageSize: MTLSparsePageSize16];
 }
 
 - (MTLSize)sparseTileSizeWithTextureType: (MTLTextureType)textureType pixelFormat: (MTLPixelFormat)pixelFormat sampleCount: (NSUInteger)sampleCount sparsePageSize: (MTLSparsePageSize)sparsePageSize
@@ -598,11 +599,6 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 }
 
 - (BOOL)supportsPlacementSparse
-{
-	return NO;
-}
-
-- (BOOL)supportsMetal4FX: (id)descriptor
 {
 	return NO;
 }
