@@ -32,6 +32,7 @@
 
 #include <mslc/mslc.h>
 #include <mach/mach_time.h>
+#include <algorithm>
 
 #include <dlfcn.h>
 #include <functional>
@@ -260,6 +261,7 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 	BOOL _lowPower;
 	uint64_t _reportedWorkingSetSize;
 	BOOL _unifiedMemory;
+	BOOL _shouldMaximizeConcurrentCompilation;
 }
 
 @synthesize device = _device;
@@ -456,6 +458,72 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 	return YES;
 }
 
+- (BOOL)supports32BitMSAA
+{
+	for (auto format: { Indium::PixelFormat::R32Float, Indium::PixelFormat::RG32Float, Indium::PixelFormat::RGBA32Float }) {
+		if (!_device->supportsPixelFormatMSAA(format, 4)) {
+			return NO;
+		}
+	}
+	return YES;
+}
+
+- (NSUInteger)maxArgumentBufferSamplerCount
+{
+	// The device reports argument buffers tier 1, for which Apple's Metal feature set tables give 16 samplers per
+	// stage from an argument buffer; the Vulkan limit is only an upper bound for it.
+	return std::min<NSUInteger>(16, _device->maxPerStageDescriptorSamplers());
+}
+
+- (NSUInteger)sparseTileSizeInBytes
+{
+	// the default sparse page is 16 KB
+	return [self sparseTileSizeInBytesForSparsePageSize: MTLSparsePageSize16];
+}
+
+- (NSUInteger)sparseTileSizeInBytesForSparsePageSize: (MTLSparsePageSize)sparsePageSize
+{
+	switch (sparsePageSize) {
+		case MTLSparsePageSize16:
+			return 16 * 1024;
+		case MTLSparsePageSize64:
+			return 64 * 1024;
+		case MTLSparsePageSize256:
+			return 256 * 1024;
+		default:
+			return 16 * 1024;
+	}
+}
+
+- (MTLSize)sparseTileSizeWithTextureType: (MTLTextureType)textureType pixelFormat: (MTLPixelFormat)pixelFormat sampleCount: (NSUInteger)sampleCount
+{
+	return [self sparseTileSizeWithTextureType: textureType pixelFormat: pixelFormat sampleCount: sampleCount sparsePageSize: MTLSparsePageSize16];
+}
+
+- (MTLSize)sparseTileSizeWithTextureType: (MTLTextureType)textureType pixelFormat: (MTLPixelFormat)pixelFormat sampleCount: (NSUInteger)sampleCount sparsePageSize: (MTLSparsePageSize)sparsePageSize
+{
+	// Compute tile dimensions from the requested sparse page size and pixel format byte size;
+	// returns (0, 0, 0) for invalid/compressed/buffer-backed texture configurations.
+	if (sampleCount > UINT32_MAX) {
+		return MTLSizeMake(0, 0, 0);
+	}
+	NSUInteger tileBytes = [self sparseTileSizeInBytesForSparsePageSize: sparsePageSize];
+	auto size = _device->sparseTileSize(
+		static_cast<Indium::TextureType>(textureType),
+		static_cast<Indium::PixelFormat>(pixelFormat),
+		static_cast<uint32_t>(sampleCount),
+		tileBytes
+	);
+	return MTLSizeMake(size.width, size.height, size.depth);
+}
+
+@synthesize shouldMaximizeConcurrentCompilation = _shouldMaximizeConcurrentCompilation;
+
+- (NSUInteger)maximumConcurrentCompilationTaskCount
+{
+	return std::max<NSUInteger>(1, [[NSProcessInfo processInfo] activeProcessorCount]);
+}
+
 - (BOOL)supportsBCTextureCompression
 {
 	for (auto format: {
@@ -481,6 +549,56 @@ void MTLRemoveDeviceObserver(id<NSObject> observer) {
 }
 
 - (BOOL)areRasterOrderGroupsSupported
+{
+	return NO;
+}
+
+- (BOOL)supportsVertexAmplificationCount: (NSUInteger)count
+{
+	return count == 1;
+}
+
+- (BOOL)supportsDynamicLibraries
+{
+	return NO;
+}
+
+- (BOOL)supportsRenderDynamicLibraries
+{
+	return NO;
+}
+
+- (BOOL)supportsFunctionPointers
+{
+	return NO;
+}
+
+- (BOOL)supportsFunctionPointersFromRender
+{
+	return NO;
+}
+
+- (BOOL)supportsPrimitiveMotionBlur
+{
+	return NO;
+}
+
+- (BOOL)supportsQueryTextureLOD
+{
+	return NO;
+}
+
+- (BOOL)supportsRaytracing
+{
+	return NO;
+}
+
+- (BOOL)supportsRaytracingFromRender
+{
+	return NO;
+}
+
+- (BOOL)supportsPlacementSparse
 {
 	return NO;
 }
